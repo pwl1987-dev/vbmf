@@ -12,6 +12,7 @@
  * - write 命令显式 idempotency key，无自动重试（S6）。
  */
 export type {
+  AlarmItem,
   ErrorCode,
   ErrorEnvelope,
   RuntimeSnapshot,

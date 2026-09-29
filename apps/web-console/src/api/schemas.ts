@@ -7,6 +7,7 @@
  * apps/api 单源 re-export（测试/契约验证用）。
  */
 export type {
+  AlarmItem,
   ErrorCode,
   ErrorEnvelope,
   RuntimeSnapshot,

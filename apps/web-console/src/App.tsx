@@ -5,8 +5,9 @@ import { HealthPage } from "./pages/HealthPage.tsx";
 import { RuntimePage } from "./pages/RuntimePage.tsx";
 import { SessionsPage } from "./pages/SessionsPage.tsx";
 import { EventsPage } from "./pages/EventsPage.tsx";
+import { AlarmsPage } from "./pages/AlarmsPage.tsx";
 
-type PageId = "health" | "runtime" | "sessions" | "events";
+type PageId = "health" | "runtime" | "sessions" | "events" | "alarms";
 
 export function App(): React.JSX.Element {
   const [authed, setAuthed] = useState(false);
@@ -33,6 +34,9 @@ export function App(): React.JSX.Element {
           <button className={page === "events" ? "active" : ""} onClick={() => setPage("events")}>
             Events
           </button>
+          <button className={page === "alarms" ? "active" : ""} onClick={() => setPage("alarms")}>
+            Alarms
+          </button>
         </nav>
         <div className="meta">
           Build: dev
@@ -45,6 +49,7 @@ export function App(): React.JSX.Element {
         {page === "runtime" ? <RuntimePage /> : null}
         {page === "sessions" ? <SessionsPage /> : null}
         {page === "events" ? <EventsPage /> : null}
+        {page === "alarms" ? <AlarmsPage /> : null}
       </main>
     </div>
   );

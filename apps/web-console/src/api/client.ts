@@ -167,7 +167,7 @@ export async function apiCall<T>(path: string, init?: RequestInit): Promise<T> {
  * - `ApiClientError` 与既有导出形态（pages/tests 消费面不变）。
  * SDK 的 VbmfApiError 在此被映射回 ApiResult error 分支 —— UI 消费语义零变化。
  */
-import { VbmfClient, VbmfApiError } from "@vbmf/sdk";
+import { VbmfClient, VbmfApiError, type AlarmItem } from "@vbmf/sdk";
 
 let testFetchImpl: typeof fetch | null = null;
 
@@ -236,4 +236,29 @@ export function getHealthz(signal?: AbortSignal): Promise<ApiResult<HealthLayers
 
 export function getHealthLive(signal?: AbortSignal): Promise<ApiResult<HealthLiveResponse>> {
   return toResult(sdkClient().healthLive(signal));
+}
+
+// ---------- HI-01D: alarms（投影派生事实 + awareness ack） ----------
+
+export function getAlarms(
+  opts: { active?: boolean; severity?: "warning" | "error"; limit?: number; beforeId?: string } = {},
+  signal?: AbortSignal,
+): Promise<ApiResult<{ alarms: AlarmItem[]; count: number }>> {
+  return toResult(sdkClient().listAlarms(opts, signal));
+}
+
+export function getAlarm(alarmId: string, signal?: AbortSignal): Promise<ApiResult<AlarmItem>> {
+  return toResult(sdkClient().getAlarm(alarmId, signal));
+}
+
+/**
+ * Operator awareness ACK（幂等；只写 ack_* 三字段）。UI 语义红线：acked ≠
+ * healthy —— 页面必须继续以 alarm.active 与 Runtime 真实状态展示。
+ */
+export function postAckAlarm(
+  alarmId: string,
+  note?: string,
+  signal?: AbortSignal,
+): Promise<ApiResult<AlarmItem>> {
+  return toResult(sdkClient().ackAlarm(alarmId, note, signal));
 }
