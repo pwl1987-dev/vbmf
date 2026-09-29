@@ -36,12 +36,12 @@ describe("schema authority", () => {
 
   it("errorEnvelopeSchema requires code+message+request_id+retryable", () => {
     expect(errorEnvelopeSchema.required).toEqual(["error"]);
-    const errProps = (errorEnvelopeSchema.properties as { error: { required: string[] } }).error.required;
-    expect(errProps.sort()).toEqual(["code", "message", "request_id", "retryable"].sort());
+    const errProps = (errorEnvelopeSchema.properties as unknown as { error: { required: string[] } }).error.required;
+    expect(errProps.slice().sort()).toEqual(["code", "message", "request_id", "retryable"].sort());
   });
 
   it("runtimeSnapshotSchema requires freshness envelope", () => {
-    expect((runtimeSnapshotSchema.required as string[]).sort()).toEqual(
+    expect((runtimeSnapshotSchema.required as readonly string[]).slice().sort()).toEqual(
       [
         "capabilities",
         "devices",
@@ -76,18 +76,18 @@ describe("schema authority", () => {
 
   it("startSessionBodySchema requires intent.version + intent.devices non-empty", () => {
     expect(startSessionBodySchema.required).toEqual(["intent"]);
-    const intentProps = (startSessionBodySchema.properties as { intent: { required: string[]; properties: { devices: { minItems: number } } } }).intent;
-    expect(intentProps.required.sort()).toEqual(["devices", "version"].sort());
+    const intentProps = (startSessionBodySchema.properties as unknown as { intent: { required: string[]; properties: { devices: { minItems: number } } } }).intent;
+    expect(intentProps.required.slice().sort()).toEqual(["devices", "version"].sort());
     expect(intentProps.properties.devices.minItems).toBe(1);
   });
 
   it("healthLiveSchema returns status=live only", () => {
-    expect((healthLiveSchema.properties as { status: { enum: string[] } }).status.enum).toEqual(["live"]);
+    expect((healthLiveSchema.properties as unknown as { status: { enum: string[] } }).status.enum).toEqual(["live"]);
   });
 
   it("healthLayersSchema contains all five layers", () => {
-    const layersProps = (healthLayersSchema.properties as { layers: { required: string[] } }).layers;
-    expect(layersProps.required.sort()).toEqual(["api", "auth", "db", "events", "runtime"].sort());
+    const layersProps = (healthLayersSchema.properties as unknown as { layers: { required: string[] } }).layers;
+    expect(layersProps.required.slice().sort()).toEqual(["api", "auth", "db", "events", "runtime"].sort());
   });
 
   it("sseFramePayloadSchema enforces weak_ordering=true", () => {

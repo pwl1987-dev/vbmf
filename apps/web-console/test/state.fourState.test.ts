@@ -21,7 +21,7 @@ function command(state: "pending" | "completed" | "failed" | "timeout"): Command
   };
 }
 
-function snapshotWith(states: Array<"reserved" | "running" | "released" | "terminated" | "failed">): RuntimeSnapshot {
+function snapshotWith(states: Array<"reserved" | "running" | "released" | "terminated">): RuntimeSnapshot {
   return {
     devices: [],
     ports: [],
