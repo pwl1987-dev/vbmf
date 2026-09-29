@@ -130,6 +130,21 @@ export async function buildAppHandle(config: AppConfig, opts: BuildOptions = {})
       const mapped = new ApiError("VALIDATION_ERROR", 400, "request body is not valid JSON", false);
       return reply.code(mapped.status).send(errorEnvelope(mapped));
     }
+    // Fastify JSON-Schema 校验失败（querystring/params/body 模式不匹配）→
+    // 映射为 400 VALIDATION_ERROR，与 ApiError 语义统一；避免落回 500。
+    const code = (err as { code?: unknown }).code;
+    if (
+      code === "FST_ERR_VALIDATION" ||
+      code === "FST_ERR_VALIDATION_ERROR" ||
+      code === "FST_ERR_VALIDATION_CONTEXT"
+    ) {
+      const message =
+        typeof (err as { message?: unknown }).message === "string"
+          ? (err as { message: string }).message
+          : "request validation failed";
+      const mapped = new ApiError("VALIDATION_ERROR", 400, message, false);
+      return reply.code(mapped.status).send(errorEnvelope(mapped));
+    }
     // 含 security misconfiguration（/api/v1 路由缺 security config）= fail-closed 500。
     req.log.error({ err }, "unhandled error");
     const mapped = internalError("internal server error");

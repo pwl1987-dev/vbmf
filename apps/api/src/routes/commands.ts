@@ -9,12 +9,13 @@
  *   接受客户端自报（硬化）；每条路由声明 CASL permission + 限流 bucket——
  *   authn/authz/rate-limit 拒绝不进 handler ⇒ 不占幂等、零 dispatch（C4）。
  */
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifySchema } from "fastify";
 import { ApiError, internalError, notFound, validationError } from "../lib/errors.ts";
 import { assertCanonicalUuid, ClientSessionIdError } from "../lib/sessionIds.ts";
 import { canonicalCommandId } from "../command/commandIds.ts";
 import { CommandService, type CommandKind, type CommandPlane } from "../command/commandService.ts";
 import { ROUTE_PERMISSIONS, type PermissionSpec, type RequestPrincipal } from "../security/fastifySecurity.ts";
+import { ROUTE_SCHEMAS } from "./schemas.ts";
 
 export interface CommandRouteDeps {
   commandService: CommandPlane | null;
@@ -86,10 +87,24 @@ function requireCommandPlane(deps: CommandRouteDeps): CommandPlane {
 }
 
 export async function commandRoutes(app: FastifyInstance, deps: CommandRouteDeps): Promise<void> {
+  const startSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "POST" && s.url === "/api/v1/sessions",
+  )?.schema;
+  const stopSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "POST" && s.url === "/api/v1/sessions/:id/stop",
+  )?.schema;
+  const releaseSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "POST" && s.url === "/api/v1/sessions/:id/release",
+  )?.schema;
+  const commandGetSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "GET" && s.url === "/api/v1/commands/:id",
+  )?.schema;
+
   app.post(
     "/api/v1/sessions",
     {
       config: { security: { permission: ROUTE_PERMISSIONS.sessionStart, bucket: "write" } },
+      ...(startSchema !== undefined ? { schema: startSchema } : {}),
     },
     async (req, reply) => {
       const service = requireCommandPlane(deps);
@@ -120,11 +135,12 @@ export async function commandRoutes(app: FastifyInstance, deps: CommandRouteDeps
     },
   );
 
-  const sessionAction = (kind: CommandKind, path: string) => {
+  const sessionAction = (kind: CommandKind, path: string, schema: FastifySchema | undefined) => {
     app.post(
       path,
       {
         config: { security: { permission: KIND_PERMISSION[kind], bucket: "write" } },
+        ...(schema !== undefined ? { schema } : {}),
       },
       async (req, reply) => {
         const service = requireCommandPlane(deps);
@@ -147,13 +163,14 @@ export async function commandRoutes(app: FastifyInstance, deps: CommandRouteDeps
     );
   };
   // ROUTE_PERMISSIONS 键与 CommandKind 同名（start/stop/release session）。
-  sessionAction("stop_session", "/api/v1/sessions/:id/stop");
-  sessionAction("release_session", "/api/v1/sessions/:id/release");
+  sessionAction("stop_session", "/api/v1/sessions/:id/stop", stopSchema);
+  sessionAction("release_session", "/api/v1/sessions/:id/release", releaseSchema);
 
   app.get(
     "/api/v1/commands/:id",
     {
       config: { security: { permission: ROUTE_PERMISSIONS.commandRead, bucket: "read" } },
+      ...(commandGetSchema !== undefined ? { schema: commandGetSchema } : {}),
     },
     async (req, reply) => {
       const service = requireCommandPlane(deps);

@@ -21,6 +21,7 @@ import { latestOutboxSequence, outboxRowsAfter } from "../events/eventPlane.ts";
 import { ROUTE_PERMISSIONS } from "../security/fastifySecurity.ts";
 import type { Db } from "../db/index.ts";
 import { ApiError, validationError } from "../lib/errors.ts";
+import { ROUTE_SCHEMAS } from "./schemas.ts";
 
 export interface EventsRouteDeps {
   db: Db | null;
@@ -38,10 +39,14 @@ function parseCursor(query: unknown, headers: Record<string, unknown>): number |
 }
 
 export async function eventsRoutes(app: FastifyInstance, deps: EventsRouteDeps): Promise<void> {
+  const streamSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "GET" && s.url === "/events/v1/stream",
+  )?.schema;
   app.get(
     "/events/v1/stream",
     {
       config: { security: { permission: ROUTE_PERMISSIONS.eventsRead, bucket: "read" } },
+      ...(streamSchema !== undefined ? { schema: streamSchema } : {}),
     },
     async (req, reply) => {
       if (deps.db === null) {

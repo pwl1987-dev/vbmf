@@ -19,6 +19,7 @@ import {
 import { assertCanonicalUuid, ClientSessionIdError } from "../lib/sessionIds.ts";
 import type { AgentQuerySnapshotWire } from "../agent/types.ts";
 import type { ProductRuntimeSnapshot } from "../agent/normalize.ts";
+import { ROUTE_SCHEMAS } from "./schemas.ts";
 
 export function mapAgentFailure(f: AgentTransportFailure): ApiError {
   switch (f.causeKind) {
@@ -39,11 +40,15 @@ export interface RouteDeps {
 }
 
 export async function runtimeRoutes(app: FastifyInstance, deps: RouteDeps): Promise<void> {
+  const runtimeSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "GET" && s.url === "/api/v1/runtime",
+  )?.schema;
   app.get(
     "/api/v1/runtime",
     {
       // CP-01C：runtime read = CASL (read, runtime) + principal×read 限流。
       config: { security: { permission: ROUTE_PERMISSIONS.runtimeRead, bucket: "read" } },
+      ...(runtimeSchema !== undefined ? { schema: runtimeSchema } : {}),
     },
     async (req, reply) => {
     const raw = (req.query as Record<string, unknown>).session_id;

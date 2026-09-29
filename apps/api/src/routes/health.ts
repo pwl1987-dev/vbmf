@@ -18,6 +18,7 @@ import type { RouteDeps } from "./runtime.ts";
 import type { Db } from "../db/index.ts";
 import type { Authenticator } from "../security/auth.ts";
 import type { ProjectionDrainLoop } from "../events/eventPlane.ts";
+import { ROUTE_SCHEMAS } from "./schemas.ts";
 
 export interface HealthRouteDeps {
   agent: AgentControlClient;
@@ -29,9 +30,23 @@ export interface HealthRouteDeps {
 }
 
 export async function healthRoutes(app: FastifyInstance, deps: HealthRouteDeps): Promise<void> {
-  app.get("/health/live", async () => ({ status: "live" }));
+  const liveSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "GET" && s.url === "/health/live",
+  )?.schema;
+  const healthzSchema = ROUTE_SCHEMAS.find(
+    (s) => s.method === "GET" && s.url === "/healthz",
+  )?.schema;
 
-  app.get("/healthz", async (req) => {
+  app.get(
+    "/health/live",
+    liveSchema !== undefined ? { schema: liveSchema } : {},
+    async () => ({ status: "live" }),
+  );
+
+  app.get(
+    "/healthz",
+    healthzSchema !== undefined ? { schema: healthzSchema } : {},
+    async (req) => {
     const checkedAtMs = Date.now();
     let runtime: Record<string, unknown>;
     try {
