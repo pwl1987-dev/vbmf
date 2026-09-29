@@ -65,6 +65,33 @@ jobs:
         working-directory: apps/api
         run: npm run build
 
+      # ---- TypeScript SDK (packages/vbmf-sdk · SDK-ENTRY-01 lane, non-required) ----
+      # Web Console 经 file: 依赖消费本包（npm ci symlink 到此目录），vite
+      # build 解析 @vbmf/sdk 的 dist —— SDK 必须先构建（顺序不可调换）。
+      - name: Install SDK deps (npm ci, lockfile-pinned)
+        working-directory: packages/vbmf-sdk
+        run: npm ci
+      - name: SDK type drift gate (regen + git diff must be clean)
+        working-directory: packages/vbmf-sdk
+        run: |
+          npm run gen:types
+          git diff --exit-code -- src/generated/types.ts
+      - name: SDK red-line gate (dependency + handwriting + single authority)
+        working-directory: packages/vbmf-sdk
+        run: node scripts/check-sdk-red-lines.mjs
+      - name: SDK typecheck
+        working-directory: packages/vbmf-sdk
+        run: npm run typecheck
+      - name: SDK tests (hermetic + real-Fastify integration)
+        working-directory: packages/vbmf-sdk
+        run: npm test
+      - name: SDK build
+        working-directory: packages/vbmf-sdk
+        run: npm run build
+      - name: SDK pack smoke (self-contained tarball)
+        working-directory: packages/vbmf-sdk
+        run: npm pack --pack-destination /tmp >/dev/null && ls -1 /tmp/vbmf-sdk-*.tgz | head -1
+
       # ---- Web Console (apps/web-console) ----
       - name: Install Web Console deps (npm ci, lockfile-pinned)
         working-directory: apps/web-console
