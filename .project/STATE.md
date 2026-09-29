@@ -1268,7 +1268,7 @@ Status: **PLANNING COMPLETE / first bounded implementation packet marked READY**
 
 ## 3.80 WEB-CONSOLE-ENTRY-01 closure（2026-09-28）—— 首个真实 TS consumer 落地
 
-Status: **COMPLETE / SOFTWARE + CI 7/7 + control-plane lane + 静态红线 gate VERIFIED / BMD RUNTIME = DEFERRED**（VM 软件验证已完成；BMD 真机命令旅程将在后续验收窗口执行）
+Status: **COMPLETE / SOFTWARE VERIFIED / media-agent CI 7/7 VERIFIED / BMD RUNTIME = DEFERRED**（control-plane lane 绿色曾在本节被过度声明——exact-head `c02b118` control-plane CI 实为 FAILURE，已于 2026-09-29 经 WCE-01-CLOSURE-RECONCILIATION 修正，见本节末 Reconciliation 注记；VM 软件验证已完成；BMD 真机命令旅程将在后续验收窗口执行）
 
 ### 实现链路（5 commits on `main`，HEAD = `e65f001`）
 
@@ -1372,20 +1372,31 @@ frozen Authority / Contract **零修改**：
 - **BMD Runtime**: DEFERRED（明确登记；不写为 hardware verified）。
 - **24h Stability**: 仍为独立 debt（与 WCE-01 无关）；按 §3.18 STAB-O4 既有结论维持。
 
+### Reconciliation 注记（2026-09-29）—— WCE-01-CLOSURE-RECONCILIATION
+
+本节原 Status 中 "control-plane lane VERIFIED" 属**过早声明**，按 exact-head CI 证据修正（历史记录保留，不删除）：
+
+- **Exact-head CI 事实（重新查询 GitHub Actions）**：`c02b118` control-plane CI run `36517519963` = **FAILURE**（"Fastify typecheck" step）；且 WCE-01 实现链全部 5 个 commit 的 control-plane lane 均为 FAILURE（`a3c5351` run `36515471928` / `bd967ca` run `36516167126` / `29a849d` run `36517005600` / `e65f001` run `36517266067` / `c02b118` run `36517519963`）。WCE-01 收口时 "CI 全绿" 的声明只对 media-agent lane 成立。
+- **media-agent lane**：`c02b118` run `36517519937` = SUCCESS，7 required checks 全部保持 PASS，不受影响。
+- **RCA**：`apps/api` 为 ESM（`"type": "module"`）+ `module/moduleResolution: NodeNext` + `verbatimModuleSyntax: true`；ajv 8.20.0 为 CJS-only 包（无 `exports` 字段）。NodeNext 下 TypeScript 将 ESM 对 CJS 的 default import 按 Node 语义类型化为 `module.exports`（即 d.ts 整个模块命名空间，无构造签名）→ `test/routes.schema.contract.test.ts:32` `new Ajv(...)` 报 **TS2351**。运行时之所以不炸：ajv 的 CJS 构建执行 `module.exports = Ajv`（default import 运行时恰为 class），因此 `node --test` 通过而 `tsc --noEmit` 失败——CI 的 "Fastify typecheck" step 先于 test 失败。
+- **最小正确修复**：`import Ajv from "ajv"` → `import { Ajv } from "ajv"`（命名导入）。类型层：ajv d.ts 有真实 named `export declare class Ajv`（可构造）；运行时层：`module.exports.Ajv` 实测存在（ESM 视角 `typeof m.Ajv === "function"`）。不修改 tsconfig、不关闭 verbatimModuleSyntax、不开 esModuleInterop、不 skip 测试、不用 any 掩盖。
+- **本地全回归（Development VM，clean dependency state）**：apps/api `npm ci` + typecheck + `npm test` 56/56（32 skipped 为 DB lane）+ build 全 PASS；apps/web-console `npm ci` + typecheck + 52/52 tests + vite build 全 PASS；`scripts/check_control_plane_gate.py` PASS；`scripts/check_web_console_red_lines.py` PASS；`git diff --check` clean。
+- **Status 修正后口径**：WEB-CONSOLE-ENTRY-01 = **COMPLETE / SOFTWARE + CI VERIFIED**（media-agent 7/7 required + control-plane lane 于修复 commit exact-head 双绿后确认）**/ BMD RUNTIME ACCEPTANCE DEFERRED**（不因 CI PASS 升级为 hardware verified）。
+
 ## 4. Current Task
 
-**无 READY packet——CONTROL-PLANE-ENTRY-01 全链 + PORT-COLLISION-01 + PRODUCT-SURFACE-ENTRY-01 + WEB-CONSOLE-ENTRY-01 全部收口**
+**WCE-01-CLOSURE-RECONCILIATION → REPO-MIGRATION-01 两个 bounded packet 连续推进（用户 2026-09-28 指令）**
 
-- WEB-CONSOLE-ENTRY-01 全链 COMPLETE（§3.80 WCE-01A–01F + Compose/CI/red-lines gate）；§5.1 Task Queue 中 `WEB-CONSOLE-ENTRY-01` 行更新为 COMPLETE。
-- 详见 §5.1 Task Queue 行 + §3.80 收口报告。
-- 后续 deferred 项（按 §3.79/§3.80 登记，未变）：`vbmf-sdk`（SDK-ENTRY-01 待 Web Console wire 稳定后启）、BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
-- 登记发现（非阻塞）：BMD Runtime acceptance for WEB-CONSOLE-ENTRY-01 = DEFERRED（待后续验收窗口执行）。
-- 其它 deferred 项维持原状：`vbmf-sdk`（待 Web Console wire 稳定后启 SDK-ENTRY-01）、BullMQ/Worker 异步面、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发。
-- 登记发现（非阻塞）：`rustfs/rustfs:2026.8.1` 与 `ossrs/srs:6.0.42` docker.io pinned tags 已失效（§3.77 诚实披露）——storage/SRS 相关 packet 入场前需先裁决镜像基线。
+1. **WCE-01-CLOSURE-RECONCILIATION**（进行中，收尾条件 = 修复 commit exact-head 双 lane CI 绿）：Ajv NodeNext 类型导入修复 + STATE §3.80 过度声明修正（见 §3.80 Reconciliation 注记）。实现/软件回归已完成；push 后以 exact-head CI 真实结果关闭，不以旧 commit 绿色替代。
+2. **REPO-MIGRATION-01**（顺序执行）：GitHub repository transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf`（正式 Transfer API，保留 identity/history/issues/PR/settings；禁止新空仓 + mirror push）。产品名保持 **VBMF** 不变（仅 GitHub owner/slug 变更）；迁移后 remote/硬编码引用分类更新、self-hosted runners（vbmf-ci-01/02/media）与 branch protection/Actions 复核、迁移后 exact-head CI 双绿后才可标 COMPLETE。
+
+- 迁移完成后下一任务裁决（迁移收口时执行）：BMD 可访问 → 优先 `WEB-CONSOLE-BMD-ACCEPTANCE-01`；BMD 不可访问 → 保持 deferred 并裁决 `SDK-ENTRY-01`；不得把 SDK 开发写成 BMD verification 替代。
+- WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance 仍保持 **DEFERRED**，不因 repo migration 或 CI PASS 自动升级。
+- 其余 deferred 项维持原状：`vbmf-sdk`、BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
 
 ## 5. Next Task
 
-进入 **WEB-CONSOLE-ENTRY-01** 实施：独立 TS app（Vite + 原生 fetch + JSON Schema 派生类型），消费 Fastify `/api/v1/*` + `/events/v1/stream`；零直连 agent；四状态分离 + 命令旅程 + SSE 实时 + reconnect/replay；frozen Authority/Contract 零修改。§5.1 Task Queue 已标 READY。
+**WCE-01-CLOSURE-RECONCILIATION 收尾（exact-head CI 双绿）→ REPO-MIGRATION-01（repository transfer，§4）→ 迁移后裁决 WEB-CONSOLE-BMD-ACCEPTANCE-01 vs SDK-ENTRY-01**（BMD 可访问优先清偿 BMD acceptance；不可访问则保持 deferred 并裁决 SDK；不得把 SDK 开发写成 BMD verification 替代）。
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
@@ -1452,7 +1463,9 @@ P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance
 | **CP-01D** | **COMPLETE — SOFTWARE + CI + VM PG 注入 + 真实 HTTP SSE（§3.76·2026-09-24·BMD DEFERRED to CP-01E）** | Event plane：drain→outbox→SSE（单实例约束·B9）+ cursor | CP-01B（§3.74）+ CP-01C（§3.75） | hermetic 49/49 + DB 29/29（B9 双实例抢锁/cursor/retention/真实 HTTP SSE）+ CI 双 lane |
 | **PORT-COLLISION-01** | **COMPLETE（§3.78，2026-09-25）** | PortId derive 键不含 direction/Analog 位折叠——BMD Device smoke 实证 Input/Sdi 与 Output/Sdi 同卡碰撞 ×2；专门 collision closure（port_id 稳定性 + registry fail-closed 语义复核）→ 物理 jack 槽位忠实枚举 + PortId invariant guard | 无 | 双工卡 out jack 表达需后续 Resolver 端口级 binding 演进（独立 packet） |
 | **PRODUCT-SURFACE-ENTRY-01** | **COMPLETE（§3.79，2026-09-25）—— planning 裁决** | VBMF-SDK vs WEB-CONSOLE 实施顺序裁决：以 live API + frozen Contract + dependency evidence 为依据；结论 = **WEB-CONSOLE-ENTRY-01 先行**（首个真实 TS consumer；可反向验证 Product API 消费者可用性；为后续 SDK 生成提供 real consumer evidence）；SDK 仍属 planning deferred，待 Web Console 形成稳定 wire 语义后再启 SDK-ENTRY-01 | 无 | Web Console 与 SDK 都不改 frozen Contract；仅消费 Product API |
-| **WEB-CONSOLE-ENTRY-01** | **COMPLETE（§3.80·2026-09-28·WCE-01A–01F + Compose/CI/red-lines gate 全绿）** | 独立 TS Web Console app（Vite + React 19 + 原生 fetch + JSON Schema 派生类型），经 Fastify 反代消费 `/api/v1/*` + `/events/v1/stream`；零直连 media-agent；四状态分离（Desired/Requested/Executing/Observed）+ 命令旅程（Start/Stop/Release）+ SSE 实时 + failure/recovery 反映 + reconnect/reload 收敛；agent 原生 INDEX_HTML 路由（transport.rs）保留作 D10 离线诊断面，不删除 | §3.79（PRODUCT-SURFACE-ENTRY-01 裁决） | WCE-01A: schema 单一源（apps/api/src/routes/schemas.ts）+ contract test（ajv）；WCE-01B: apps/web-console foundation + Vite 6 + React 19 + in-memory 凭证 + same-origin 客户端红线拦截；WCE-01C/01D/01E: 4-state reducer + Start/Stop/Release 命令旅程 + SSE cursor tri-state/weak_ordering/reload-first snapshot；WCE-01F: 真实 Fastify fixture + 12 integration tests；Compose/CI: 多阶段 Dockerfile.web + ops/nginx/web.conf + 红线 gate（check_web_console_red_lines.py）+ control-plane lane 扩展。apps/api 56/56 tests + apps/web-console 52/52 tests PASS；typecheck/build/vite build/F11/F12/WCE-01 红线 gate 全绿；frozen EXTERNAL_API_CONTRACT/EVENT_CONTRACT/IMPLEMENTATION_BOUNDARIES/CANONICAL_IDENTITY 零修改。BMD Runtime acceptance = DEFERRED（VM 软件验证已闭环）。 |
+| **WEB-CONSOLE-ENTRY-01** | **COMPLETE（§3.80·2026-09-28 实施 + 2026-09-29 §3.80 Reconciliation 修正——原 control-plane lane "CI 全绿" 属过早声明；exact-head `c02b118` control-plane CI 实为 FAILURE，Ajv NodeNext 类型导入由 WCE-01-CLOSURE-RECONCILIATION 修复）** | 独立 TS Web Console app（Vite + React 19 + 原生 fetch + JSON Schema 派生类型），经 Fastify 反代消费 `/api/v1/*` + `/events/v1/stream`；零直连 media-agent；四状态分离（Desired/Requested/Executing/Observed）+ 命令旅程（Start/Stop/Release）+ SSE 实时 + failure/recovery 反映 + reconnect/reload 收敛；agent 原生 INDEX_HTML 路由（transport.rs）保留作 D10 离线诊断面，不删除 | §3.79（PRODUCT-SURFACE-ENTRY-01 裁决） | WCE-01A: schema 单一源（apps/api/src/routes/schemas.ts）+ contract test（ajv）；WCE-01B: apps/web-console foundation + Vite 6 + React 19 + in-memory 凭证 + same-origin 客户端红线拦截；WCE-01C/01D/01E: 4-state reducer + Start/Stop/Release 命令旅程 + SSE cursor tri-state/weak_ordering/reload-first snapshot；WCE-01F: 真实 Fastify fixture + 12 integration tests；Compose/CI: 多阶段 Dockerfile.web + ops/nginx/web.conf + 红线 gate（check_web_console_red_lines.py）+ control-plane lane 扩展。apps/api 56/56 tests + apps/web-console 52/52 tests PASS；typecheck/build/vite build/F11/F12/WCE-01 红线 gate 全绿；frozen EXTERNAL_API_CONTRACT/EVENT_CONTRACT/IMPLEMENTATION_BOUNDARIES/CANONICAL_IDENTITY 零修改。BMD Runtime acceptance = DEFERRED（VM 软件验证已闭环）。 |
+| **WCE-01-CLOSURE-RECONCILIATION** | **IN PROGRESS（2026-09-29·用户指令 bounded packet；软件回归已完成，收尾 = 修复 commit exact-head 双 lane CI 绿）** | Ajv TS2351 RCA + 最小修复（`import { Ajv } from "ajv"` 命名导入，零 tsconfig 妥协）+ STATE §3.80 过度声明修正 + 全软件回归（双 app npm ci/typecheck/test/build + 双红线 gate + diff-check） | WEB-CONSOLE-ENTRY-01（§3.80） | exact-head 修复 commit：media-agent CI 7/7 SUCCESS + control-plane CI SUCCESS（不以旧 commit 绿色替代） |
+| **REPO-MIGRATION-01** | **READY（2026-09-29·用户指令 bounded packet；WCE-01-CLOSURE-RECONCILIATION 收尾后顺序执行）** | GitHub repository transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf`（正式 Transfer API；identity/history/issues/PR/settings 连续保留；禁止新空仓+mirror push+history 复制）；产品名维持 VBMF；迁移后 origin remote 更新 + 仓内硬编码引用分类更新（canonical metadata/README clone URL+badge/active workflows 更新；frozen 历史 evidence 保留）+ runners/branch protection/Actions 复核 + 迁移后 exact-head CI 双绿 | WCE-01-CLOSURE-RECONCILIATION | transfer API 成功 + live main SHA 不变 + history/issues/PR/tags/releases 保留 + 7 required contexts 名称不变 + 迁移后 media-agent/control-plane exact-head CI 双绿 |
 | **STANDALONE** | **BACKLOG（umbrella；首个 bounded packet = STANDALONE-ENTRY-01）** | production images/compose、readiness、shutdown/restart/upgrade/rollback、current-main BMD deployment reconciliation | Runtime feature slice | standalone install/run/restore；BMD exact commit acceptance |
 | **CONTROL-PLANE** | **BACKLOG** | Fastify + PostgreSQL/Drizzle + Worker/BullMQ + Auth/RBAC | Standalone/runtime APIs stable | Rust Runtime remains truth；Fastify 不拥有媒体生命周期 |
 | **VBMF-SDK** | **BACKLOG** | 契约测试 + 真实消费者证据后实现 Rust/TS/Python `vbmf-sdk` | stable API consumers | 不暴露 Rust/GStreamer/FFmpeg/vendor/DB internals |

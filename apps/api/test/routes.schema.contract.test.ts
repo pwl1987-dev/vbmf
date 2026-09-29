@@ -17,7 +17,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import Ajv from "ajv";
+import { Ajv } from "ajv";
 import { buildApp } from "../src/server.ts";
 import { loadConfig } from "../src/config.ts";
 import { AgentControlClient, AgentTransportFailure } from "../src/agent/agentControlClient.ts";
