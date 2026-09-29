@@ -1568,7 +1568,7 @@ STATE-CONTROL-PLANE-RECONCILIATION（本节）→ ec5fc68 8h 自然收口 → RD
 2. **PR-01B COMPLETE**（§3.85·`885b766` BMD 全旅程）：`/opt/vbmf/current -> 0.1.0-885b766`，provenance 六环链 + rollback/forward + teardown（含 §3.85 事后修正教训）。
 3. **PR-STAB-01**：**exact-commit 口径已修正（§3.88）**——2h/8h 属 **PRE-HI RUNTIME BASELINE**（binary = ec5fc68；HI-01A `309c3e1` 后 media-agent Rust 已推进 +156/-1）；2h PASS 10/10（RSS +1.6MB vs gate +50MB）；8h 自然跑完（不打断），verdict 只能写 PRE-HI RUNTIME BASELINE 8h PASS；**旧 baseline 24h NOT RUN（runtime source advanced）**；current-main 新 ladder 从最新 canonical HEAD 重新 2h→8h→24h（启动前证 `git diff 309c3e1..HEAD -- services/media-agent` 为空 + exact artifact 钉扎）；FAIL 路径纪律不变；**新 24h PASS 前不得写 stability verified**。
 4. **HEALTH-INCIDENT-ENTRY-01 COMPLETE**（§3.86+§3.87）：HI-01A..D 软件+CI、VM 全栈旅程、HI-01E BMD bounded（真机 fault→alarm→recovery→clear 真实链 + Browser canonical + teardown 零残留）。
-5. **REDUNDANCY-ENTRY-01**：plan frozen（诚实基线：auto failover 类型级不可构造；readiness 轴/hysteresis/Hot-Standby policy/RG/failover_benchmarks 零实现）；**RD-01A planning-only 并行推进中（用户 2026-09-29 指令；只 planning 不编码，Runtime 写入面冻结见 §3.88 并行边界）**；RD-01B..E 待 RD-01A planning 收口。
+5. **REDUNDANCY-ENTRY-01**：plan frozen（诚实基线：auto failover 类型级不可构造；readiness 轴/hysteresis/Hot-Standby policy/RG/failover_benchmarks 零实现）；**RD-01A planning-only 完成（2026-09-29·`docs/superpowers/plans/2026-09-29-rd-01a-readiness-rg-planning.md`：owner 九问 D1–D9 + 三轴语义（Readiness≠Health 防偷合并）+ RG identity/config 语义 + failure-first matrix 17 项 + RD-01A..E 分解 reconciliation（frozen §5 为准）；Runtime 写入面仍冻结（§3.88），实施 READY 待 stability ladder 收口后独立裁决）**；RD-01B..E 待 RD-01A 实施收口。
 
 ## 5. Next Task
 
