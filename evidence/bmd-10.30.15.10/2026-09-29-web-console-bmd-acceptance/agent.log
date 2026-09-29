@@ -1,0 +1,42 @@
+[2m2026-09-29T04:56:49.680340Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m adapter selection (P0-4 运维可见) [3mprovider[0m[2m=[0m"blackmagic" [3mbackend[0m[2m=[0m"gstreamer" [3mmode[0m[2m=[0m"production"
+[2m2026-09-29T04:56:49.684933Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m device discovery complete [3mcount[0m[2m=[0m3
+[2m2026-09-29T04:56:49.685058Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease acquired [3mdevice[0m[2m=[0m4fa33dcb-5f76-5f76-aea8-330df7ada03e
+[2m2026-09-29T04:56:49.685091Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease acquired [3mdevice[0m[2m=[0m6ede00d0-baf4-573f-a0dd-4a503bf7f766
+[2m2026-09-29T04:56:49.685114Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease acquired [3mdevice[0m[2m=[0m1afe2dcc-6d85-5b46-b7d6-e14102501c77
+[2m2026-09-29T04:56:49.685150Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease re-acquire correctly rejected [3merror[0m[2m=[0mdevice 4fa33dcb-5f76-5f76-aea8-330df7ada03e already leased
+[2m2026-09-29T04:56:49.685198Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m supervisor initialized [3mwatched[0m[2m=[0m3
+[2m2026-09-29T04:56:49.685250Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m SDK libDeckLinkAPI.so reachable, entry symbols present
+[2m2026-09-29T04:56:54.045295Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m2 [3merror[0m[2m=[0mStateFailed: device-number 2: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T04:56:54.045366Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m3 [3merror[0m[2m=[0mStateFailed: device-number 3: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T04:56:54.045393Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m4 [3merror[0m[2m=[0mStateFailed: device-number 4: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T04:56:54.045418Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m5 [3merror[0m[2m=[0mStateFailed: device-number 5: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T04:56:54.045443Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m6 [3merror[0m[2m=[0mStateFailed: device-number 6: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T04:56:54.045468Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m7 [3merror[0m[2m=[0mStateFailed: device-number 7: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T04:56:54.045820Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m BMD SDK runtime identity (provenance) [3mdetected_sdk[0m[2m=[0msdk_include=/usr/local/share/decklink-sdk/include;lib=/usr/lib/libDeckLinkAPI.so;lib_bytes=8851504
+[2m2026-09-29T04:56:54.046321Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m production composition root ready: PortRegistry→ResourceRegistry→bundle→SessionManager 已构造 (零媒体启动), 会话命令经 internal Runtime Control (/internal/v1/agent) 显式触发
+[2m2026-09-29T04:56:54.046470Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m production runtime ready: manifest 已校验, 不自动启动任何媒体管线
+[2m2026-09-29T04:56:54.046721Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m media-agent canonical runtime loaded; media lifecycle remains Session/MediaBackend owned
+[2m2026-09-29T04:56:54.047003Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m health+api endpoints listening (internal-only; 经反向代理/认证暴露, 见用户 §二十二) [3mbind[0m[2m=[0m127.0.0.1:8080
+[2m2026-09-29T04:56:54.047003Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m internal runtime control listening (/internal/v1/agent; 默认回环·私有 bind 为显式运维动作·该面无认证不公网, RCE-D3-R) [3mbind[0m[2m=[0m172.18.0.1:50051
+[2m2026-09-29T05:48:58.898411Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m graceful shutdown signal received; draining sessions [3mcause[0m[2m=[0mTerminated
+[2m2026-09-29T05:48:58.898460Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m graceful shutdown complete
+[2m2026-09-29T05:49:06.380322Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m adapter selection (P0-4 运维可见) [3mprovider[0m[2m=[0m"blackmagic" [3mbackend[0m[2m=[0m"gstreamer" [3mmode[0m[2m=[0m"production"
+[2m2026-09-29T05:49:06.384969Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m device discovery complete [3mcount[0m[2m=[0m3
+[2m2026-09-29T05:49:06.385092Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease acquired [3mdevice[0m[2m=[0m4fa33dcb-5f76-5f76-aea8-330df7ada03e
+[2m2026-09-29T05:49:06.385126Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease acquired [3mdevice[0m[2m=[0m6ede00d0-baf4-573f-a0dd-4a503bf7f766
+[2m2026-09-29T05:49:06.385149Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease acquired [3mdevice[0m[2m=[0m1afe2dcc-6d85-5b46-b7d6-e14102501c77
+[2m2026-09-29T05:49:06.385180Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m lease re-acquire correctly rejected [3merror[0m[2m=[0mdevice 4fa33dcb-5f76-5f76-aea8-330df7ada03e already leased
+[2m2026-09-29T05:49:06.385233Z[0m [32m INFO[0m [2mmedia_agent::bootstrap[0m[2m:[0m supervisor initialized [3mwatched[0m[2m=[0m3
+[2m2026-09-29T05:49:06.385273Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m SDK libDeckLinkAPI.so reachable, entry symbols present
+[2m2026-09-29T05:49:10.868317Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m2 [3merror[0m[2m=[0mStateFailed: device-number 2: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T05:49:10.868367Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m3 [3merror[0m[2m=[0mStateFailed: device-number 3: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T05:49:10.868383Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m4 [3merror[0m[2m=[0mStateFailed: device-number 4: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T05:49:10.868397Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m5 [3merror[0m[2m=[0mStateFailed: device-number 5: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T05:49:10.868412Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m6 [3merror[0m[2m=[0mStateFailed: device-number 6: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T05:49:10.868426Z[0m [33m WARN[0m [2mmedia_agent[0m[2m:[0m GStreamer 单设备名 探测失败 (已分类, 不再静默丢弃) [3mdevice_number[0m[2m=[0m7 [3merror[0m[2m=[0mStateFailed: device-number 7: set_state(Playing) 同步返回失败 (无 bus 错误明细)
+[2m2026-09-29T05:49:10.868680Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m BMD SDK runtime identity (provenance) [3mdetected_sdk[0m[2m=[0msdk_include=/usr/local/share/decklink-sdk/include;lib=/usr/lib/libDeckLinkAPI.so;lib_bytes=8851504
+[2m2026-09-29T05:49:10.868963Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m production composition root ready: PortRegistry→ResourceRegistry→bundle→SessionManager 已构造 (零媒体启动), 会话命令经 internal Runtime Control (/internal/v1/agent) 显式触发
+[2m2026-09-29T05:49:10.869063Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m production runtime ready: manifest 已校验, 不自动启动任何媒体管线
+[2m2026-09-29T05:49:10.869293Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m media-agent canonical runtime loaded; media lifecycle remains Session/MediaBackend owned
+[2m2026-09-29T05:49:10.869483Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m health+api endpoints listening (internal-only; 经反向代理/认证暴露, 见用户 §二十二) [3mbind[0m[2m=[0m127.0.0.1:8080
+[2m2026-09-29T05:49:10.869528Z[0m [32m INFO[0m [2mmedia_agent[0m[2m:[0m internal runtime control listening (/internal/v1/agent; 默认回环·私有 bind 为显式运维动作·该面无认证不公网, RCE-D3-R) [3mbind[0m[2m=[0m172.18.0.1:50051

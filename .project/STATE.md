@@ -1360,11 +1360,9 @@ frozen Authority / Contract **零修改**：
 
 ### BMD Runtime acceptance
 
-**DEFERRED**：本轮 BMD 真机命令旅程验收尚未执行（VM 软件验证已闭环）。按用户任务规范 "BMD 不可访问 → verification deferred" 明确登记。后续验收窗口将执行：
-- 真实 Web Console (production vite build) → Fastify → media-agent DeckLink Start/Stop/Release 旅程
-- device-2 / 现存输出边界保持不动（与 PORT-COLLISION-01 closure + SE-01B 一致）
-- SSE reconnect/reload 实证（弱序、cursor strictly-after）
-- failure injection → UI 显示 alarm → recovery → reload 重新收敛
+**BMD RUNTIME ACCEPTED（2026-09-29 · WEB-CONSOLE-BMD-ACCEPTANCE-01 §3.82，exact commit `dc780c8`）**：production Web Console（真实 Vite build, Dockerfile.web）→ Fastify → native media-agent（bmd,gstreamer）→ DeckLink 真机命令旅程 Start/Stop/Release + failure/recovery + SSE reconnect/replay + reload 收敛全 PASS；device-2 保护边界全程不变。此前 DEFERRED 状态由本验收清偿（历史保留见 Git history）。**非 24h soak——不写 stability verified**。
+
+后续验收明细、发现的 7 个真 bug（BUG-A..G）与证据路径见 §3.82。
 
 ### Verification Level
 
@@ -1383,6 +1381,7 @@ frozen Authority / Contract **零修改**：
 - **本地全回归（Development VM，clean dependency state）**：apps/api `npm ci` + typecheck + `npm test` 56/56（32 skipped 为 DB lane）+ build 全 PASS；apps/web-console `npm ci` + typecheck + 52/52 tests + vite build 全 PASS；`scripts/check_control_plane_gate.py` PASS；`scripts/check_web_console_red_lines.py` PASS；`git diff --check` clean。
 - **Status 修正后口径**：WEB-CONSOLE-ENTRY-01 = **COMPLETE / SOFTWARE + CI VERIFIED**（media-agent 7/7 required + control-plane lane 于修复 commit exact-head 双绿后确认）**/ BMD RUNTIME ACCEPTANCE DEFERRED**（不因 CI PASS 升级为 hardware verified）。
 - **收尾确认（同日）**：修复 commit `e1435fa` exact-head CI 双绿——media-agent run `36518795888` SUCCESS；control-plane run `36518795854` 首跑失败于 web-console `npm ci` npm registry `ETIMEDOUT`（self-hosted runner 出网故障窗，§3.10/§3.11 risk 8 既有模式；Ajv 修复相关 apps/api typecheck/test/build step 首跑即全 PASS），rerun 后 SUCCESS。WCE-01-CLOSURE-RECONCILIATION 按验收条件 **COMPLETE**。
+- **BMD Runtime acceptance（2026-09-29 更新）**：由 `WEB-CONSOLE-BMD-ACCEPTANCE-01`（§3.82）在 exact commit `dc780c8` 真机清偿 → **BMD RUNTIME ACCEPTED**（见本节 "BMD Runtime acceptance" 小节）。
 
 ## 3.81 REPO-MIGRATION-01 收口（2026-09-29）—— canonical repository transfer
 
@@ -1400,19 +1399,51 @@ Status: **COMPLETE（2026-09-29：transfer + 后置 reconciliation + closure com
 - **迁移后下一任务裁决（2026-09-29）**：BMD 可达性只读探针（lytv@10.30.15.10 SSH PASS、`/dev/blackmagic/dv0/dv1` 在位、无残留 media-agent/ffmpeg 进程）→ **BMD 可访问 ⇒ 下一任务 = `WEB-CONSOLE-BMD-ACCEPTANCE-01`**（真实 Web Console → Fastify → media-agent → DeckLink Start/acknowledged/executing/actual running/Stop/Release/failure/recovery/SSE reconnect/reload reconciliation 全旅程清偿 WEB-CONSOLE-ENTRY-01 的 DEFERRED 验收）；`SDK-ENTRY-01` 顺延其后，不作为 BMD verification 替代。
 - **迁移债务（remaining debt）**：无功能性债务。登记非阻塞事项：runner `.runner` 配置内旧 repo URL 依赖 GitHub 重定向/服务端路由（当前实测可调度；如未来 GitHub 收紧重定向，重注册 runbook = `scripts/ci/provision-runner.sh` 已指向新 slug）；fork PR 路径未实测（与迁移前状态一致）。BMD Runtime acceptance for WEB-CONSOLE-ENTRY-01 仍 **DEFERRED**（不因迁移或 CI PASS 升级）。
 
+## 3.82 WEB-CONSOLE-BMD-ACCEPTANCE-01 收口（2026-09-29）—— BMD 真机 Web Console 全旅程验收
+
+Status: **COMPLETE / BMD HARDWARE VERIFIED（exact commit `dc780c8`; 非 24h soak，不写 stability verified）—— WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance 由 DEFERRED 升级为 BMD RUNTIME ACCEPTED**
+
+### Pre-acceptance 修复链（7 个真 bug，全部 failure-first → RCA → 最小修复 → focused/regression → commit → exact-head CI 双绿 → exact-archive 重部署 → 受影响旅程从头重验）
+
+| Bug | 根因 | 修复 commit | CI runs（media / control） |
+|---|---|---|---|
+| BUG-A EventsPage 每事件重连 | stream effect deps `[cursor]`：每 payload `setCursor` → 重建连接；`sse.ts` EOF（`read() done=true`）静默退出不触发重连；malformed JSON 帧只 onError 不终止旧流（并行双 transport 风险） | `fad0072` | `36523254344` / `36523254380` |
+| BUG-B SessionsPage 请求风暴 | runtime effect deps `[rows,four]` × `reduceFourState` 恒返回新对象 → OBSERVE dispatch 无限重建 interval（2s polling 退化为风暴；生命周期测试 5s 超时实证） | `fad0072` | 同上 |
+| BUG-C BMD acceptance 仍是 placeholder Web | `compose.bmd-acceptance.yml`/`compose.software-acceptance.yml` 以 CP-01E placeholder nginx 覆盖 `web`；真实 Dockerfile.web 从未进入验收栈 | `fad0072`（双 overlay 去 override + 删 web-placeholder.conf + gate 扩展 WCE-BMD 断言） | 同上 |
+| BUG-D web 容器 healthcheck 抖动 | busybox/musl `localhost` 解析间歇首选 `::1`，容器 nginx 仅听 IPv4 → healthcheck 永久 unhealthy（同命令 exec 探测时成时败实证） | `59324cc`（healthcheck 127.0.0.1 字面量 + web.conf 双栈 5173） | `36524528934` / `36524528956` |
+| BUG-E `/healthz` 落 SPA | nginx B8 路由表只实现前缀 `/health/`；契约路径 `/healthz`（schema contract test 守护）无 exact match → Health 页收 HTML | `5b9cadb`（`location = /healthz` → fastify；nginx -t 验证） | `36525093958` / `36525093945` |
+| BUG-F Start intent 缺 `pipeline` | Web Console 发最小 intent `{version, devices[{device_id, role}]}`；Rust `graph_intent.rs` 冻结 wire 要求 `devices[].pipeline={source,sink}` → 真实 agent `invalid_intent` 拒绝（WCE-01F StubPlane 掩盖；表现 503 + PG `timeout\|retryable`） | `ec12f2b`（`api/intent.ts` canonical builder + wire guard 测试；直接 RPC 复现 + 完整 intent 实测 executed 定形） | `36526449012` / `36526449029` |
+| BUG-G Release 死路 | `pickSessionId` 仅认 running；真实 Runtime 语义 stop=released（对非 running 会话 stop=failed(permanent) 诚实拒绝、release=幂等 executed canonical removal，均真机实测）→ Stop 后 Release 恒 "no active session" | `dc780c8`（Release 目标 = running 优先 → 最近非 terminated；Runtime Contract 零修改） | `36527255975` / `36527256048` |
+
+### BMD 真机验收（exact commit `dc780c8`，archive sha256 `acfce0ac…`，agent binary = CI artifact `media-agent-gstreamer-linux` sha256 `3426108d…` 以 `/proc/<pid>/exe` 实证位元一致）
+
+- **拓扑**（CP-01E 形态复用）：Playwright Chromium（dev VM）→ BMD nginx :8081 → 真实 Vite production Web Console → Fastify → bridge gateway `172.18.0.1` → native media-agent :50051（bmd,gstreamer；`VBMF_MACHINE_ID=10.30.15.10` + v5 manifest）→ DeckLink。ufw 临时规则 3 条（bridge 50051 / devvm 8081+15433），before/after 记录，验收后即撤。
+- **旅程（24 截图 + browser-journey.log）**：credential gate（memory-only）→ 分层 Health（api/runtime/db/auth/events up; agent Ready devices=3）→ Runtime 真实快照（devices=3/ports=2/resources=2）→ Start（canonical device `4fa33dcb…`）：Desired=Running → Requested=completed → Executing=completed → Observed=running（divergence=ok after convergence；PG/API/agent 三方一致）→ Stop → observed released（resources available）→ Release → completed（幂等 canonical removal）。
+- **failure-first**：agent SIGTERM → UI 真实失败显示；故障窗 Start → 503 DEPENDENCY_UNAVAILABLE + PG `timeout|retryable|agent dispatch transport failure`（UI/PG 一致）；重启同 binary agent → API 200 + UI 重新收敛。
+- **SSE**：事件 #10/#11 到达期间 stream 请求恒 1（正常事件零重连 = BUG-A 修复真机反证）；`docker restart fastify` 断流 → 重连请求全部 `?cursor=11` strictly-after → replay 零重复 → 新事件 #12/#13 live 恢复。
+- **reload**：有 running session 时 reload → credential-required（设计）→ 重输 key → canonical runtime 先行 → observed=running 收敛；localStorage/sessionStorage/cookie/URL 零 key。
+- **边界**：device-2 PID `992634`（decklinkvideosink device-number=2, 1080p25, Sep 4 启动）before/after 存活、从未被 acceptance acquire（agent 日志 device-2 探测 WARN=占用证据）；`/opt/vbmf-dev/repo`（7cc33dd + 历史本地改动）未触碰；`/opt/vbmf/current` 保持 `0.1.0-06bc01a`。
+- **Teardown**：acceptance sessions 全 Stop/Release；agent SIGTERM 优雅退出；`compose down -v`（容器/卷/网络全清）；ufw 3 条临时规则删除（恢复仅 SSH）；API key 经官方 `npm run provision revoke` 撤销（明文 key 仅存在于运行期 0600 临时文件，双端已清）；BMD/dev VM /tmp 验收工作区清理；零 ffmpeg/gst 孤儿、零 :50051 listener、零容器。
+- **证据**：`evidence/bmd-10.30.15.10/2026-09-29-web-console-bmd-acceptance/`（manifest + 24 screens + agent.log + compose-rendered + pg-commands + device2 + ufw + sha256sums + browser-journey.log；不含任何 key/secret）。
+
+### Verification Level
+
+- **BMD Hardware（Web Console 旅程面）**: VERIFIED（exact commit `dc780c8`）。
+- **24h Stability**: 不在本包范围（不写 stability verified）；§3.18 结论维持。
+- media-agent Rust 源在本链零改动（fad0072→dc780c8 五 commit 的 gst artifact 位元一致）；Rust 侧既有 BMD 验收（RCE/CP-01E 等）不受影响。
+
 ## 4. Current Task
 
-**无进行中 packet——WCE-01-CLOSURE-RECONCILIATION 与 REPO-MIGRATION-01 均已 COMPLETE（§3.80 Reconciliation / §3.81）；下一任务已裁决 = `WEB-CONSOLE-BMD-ACCEPTANCE-01`（见 §5）**
+**无进行中 packet——`WEB-CONSOLE-BMD-ACCEPTANCE-01` 已 COMPLETE（§3.82·2026-09-29·exact commit `dc780c8` BMD 真机全旅程验收 PASS）；WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance 已升级 BMD RUNTIME ACCEPTED；下一任务已裁决 = `SDK-ENTRY-01` planning/reconciliation（见 §5）**
 
-1. **WCE-01-CLOSURE-RECONCILIATION = COMPLETE（2026-09-29·§3.80 Reconciliation + §3.81 前记）**：修复 commit `e1435fa` exact-head 双 lane CI 绿（media-agent `36518795888` SUCCESS；control-plane `36518795854` 出网窗 rerun 后 SUCCESS）；STATE §3.80 过度声明已修正。
-2. **REPO-MIGRATION-01 = COMPLETE（2026-09-29·§3.81）**：transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf` 完成且后置 reconciliation 全部验证（HEAD/history/tags/workflows/branch protection/PR/runners 保留；remote 三方一致；硬编码引用分类更新）；迁移后 closure commit `8d78ddf` exact-head 双 lane CI 绿（media-agent `36519490264` 7/7 required + control-plane `36519490258`）。
-3. **下一任务（已裁决）= `WEB-CONSOLE-BMD-ACCEPTANCE-01`**：BMD 探针可达（SSH PASS、DeckLink dv0/dv1 在位、无残留进程）→ 优先清偿 WEB-CONSOLE-ENTRY-01 的 BMD Runtime acceptance（DEFERRED → 待执行）；完成后再启 `SDK-ENTRY-01`。
-4. WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance 在新 packet 完成前仍登记 **DEFERRED**，不因 repo migration 或 CI PASS 自动升级。
-5. 其余 deferred 项维持原状：`vbmf-sdk`、BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
+1. **WEB-CONSOLE-BMD-ACCEPTANCE-01 = COMPLETE（2026-09-29·§3.82）**：验收前修复 7 个真 bug（BUG-A/B/C `fad0072` + BUG-D `59324cc` + BUG-E `5b9cadb` + BUG-F `ec12f2b` + BUG-G `dc780c8`，每个 commit exact-head 双 lane CI 绿）；最终 exact commit `dc780c8`（CI `36527255975`/`36527256048`）真机旅程全 PASS（credential/health/runtime/start/stop/release/failure/recovery/SSE reconnect-replay/reload/credential 零落盘）；device-2 保护边界不变；teardown 零残留。
+2. **WEB-CONSOLE-ENTRY-01 = COMPLETE / SOFTWARE + CI VERIFIED / BMD RUNTIME ACCEPTED（2026-09-29 升级）**：DEFERRED 债务由 §3.82 清偿。
+3. **下一任务（已裁决）= `SDK-ENTRY-01` — planning/reconciliation**：Web Console 真实 consumer 证据已齐（≥3 命令旅程 + SSE reconnect/replay 实证）→ 按 §3.79/§3.81 既有裁决进入 SDK 边界规划：Fastify JSON Schema authority → external API stability → TypeScript SDK boundary → standalone compatibility，形成 bounded packet；SDK implementation plan 冻结前不大规模写 SDK。SDK 永久约束：非第二 Runtime truth、不暴露 Fastify DB model / Rust / GStreamer / FFmpeg / DeckLink internals、复用已验证 Product API schema、TS 首语言。
+4. 其余 deferred 项维持原状：BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
 
 ## 5. Next Task
 
-**`WEB-CONSOLE-BMD-ACCEPTANCE-01`（已裁决·2026-09-29）**——BMD 探针可达（SSH PASS、DeckLink dv0/dv1 在位、无残留进程），清偿 WEB-CONSOLE-ENTRY-01 的 BMD Runtime acceptance：production vite build Web Console → Fastify → media-agent → DeckLink 真实命令旅程（Start → acknowledged → executing → actual running → Stop/Release → failure injection → recovery → SSE reconnect → reload 收敛）；device-2 / 现存输出边界不动。完成后再启 `SDK-ENTRY-01`（不得把 SDK 开发写成 BMD verification 替代）。
+**`SDK-ENTRY-01` — planning/reconciliation（已裁决·2026-09-29，WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE 后进入）**——Web Console 真实 consumer 证据链已闭合（Start/Stop/Release 命令旅程 + SSE reconnect/cursor replay + reload 收敛 + 真机 BMD 验收），按 §3.79 冻结裁决启动 TypeScript SDK 边界规划：以 Fastify route JSON Schema（`apps/api/src/routes/schemas.ts` 单一源）为 authority，评估 external API stability → SDK boundary → standalone compatibility，形成 bounded implementation packet（子包分解 + 验收矩阵）；**SDK implementation plan 冻结前不大规模写 SDK**。SDK 永久约束：不能成为第二 Runtime truth；不能暴露 Fastify DB model；不能暴露 Rust/GStreamer/FFmpeg/DeckLink internals；必须复用已验证 Product API schema；TS 首语言（Python 后续）。
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
@@ -1482,7 +1513,8 @@ P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance
 | **WEB-CONSOLE-ENTRY-01** | **COMPLETE（§3.80·2026-09-28 实施 + 2026-09-29 §3.80 Reconciliation 修正——原 control-plane lane "CI 全绿" 属过早声明；exact-head `c02b118` control-plane CI 实为 FAILURE，Ajv NodeNext 类型导入由 WCE-01-CLOSURE-RECONCILIATION 修复）** | 独立 TS Web Console app（Vite + React 19 + 原生 fetch + JSON Schema 派生类型），经 Fastify 反代消费 `/api/v1/*` + `/events/v1/stream`；零直连 media-agent；四状态分离（Desired/Requested/Executing/Observed）+ 命令旅程（Start/Stop/Release）+ SSE 实时 + failure/recovery 反映 + reconnect/reload 收敛；agent 原生 INDEX_HTML 路由（transport.rs）保留作 D10 离线诊断面，不删除 | §3.79（PRODUCT-SURFACE-ENTRY-01 裁决） | WCE-01A: schema 单一源（apps/api/src/routes/schemas.ts）+ contract test（ajv）；WCE-01B: apps/web-console foundation + Vite 6 + React 19 + in-memory 凭证 + same-origin 客户端红线拦截；WCE-01C/01D/01E: 4-state reducer + Start/Stop/Release 命令旅程 + SSE cursor tri-state/weak_ordering/reload-first snapshot；WCE-01F: 真实 Fastify fixture + 12 integration tests；Compose/CI: 多阶段 Dockerfile.web + ops/nginx/web.conf + 红线 gate（check_web_console_red_lines.py）+ control-plane lane 扩展。apps/api 56/56 tests + apps/web-console 52/52 tests PASS；typecheck/build/vite build/F11/F12/WCE-01 红线 gate 全绿；frozen EXTERNAL_API_CONTRACT/EVENT_CONTRACT/IMPLEMENTATION_BOUNDARIES/CANONICAL_IDENTITY 零修改。BMD Runtime acceptance = DEFERRED（VM 软件验证已闭环）。 |
 | **WCE-01-CLOSURE-RECONCILIATION** | **COMPLETE（2026-09-29·§3.80 Reconciliation + §3.81 前记·`e1435fa` exact-head 双绿：media-agent `36518795888` SUCCESS + control-plane `36518795854` 出网窗 rerun 后 SUCCESS）** | Ajv TS2351 RCA + 最小修复（`import { Ajv } from "ajv"` 命名导入，零 tsconfig 妥协）+ STATE §3.80 过度声明修正 + 全软件回归（双 app npm ci/typecheck/test/build + 双红线 gate + diff-check） | WEB-CONSOLE-ENTRY-01（§3.80） | 已满足（exact-head 双 lane CI 绿，不以旧 commit 绿色替代） |
 | **REPO-MIGRATION-01** | **COMPLETE（§3.81·2026-09-29·transfer + reconciliation + closure commit `8d78ddf` exact-head 双绿：media-agent `36519490264` 7/7 required + control-plane `36519490258`）** | GitHub repository transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf`（正式 Transfer API；identity/history/issues/PR/settings 连续保留；未建新仓/mirror/history 复制）；产品名维持 VBMF；remote/硬编码引用分类更新 + runners/branch protection/Actions 复核 + 迁移后 exact-head CI | WCE-01-CLOSURE-RECONCILIATION | 已满足（live main SHA 不变 + history/PR/tags 保留 + runners online + 7 required contexts 不变 + 迁移后双 lane CI 绿） |
-| **WEB-CONSOLE-BMD-ACCEPTANCE-01** | **READY（2026-09-29 裁决·§4/§5；BMD 探针可达）** | 清偿 WEB-CONSOLE-ENTRY-01 的 BMD Runtime acceptance：production Web Console → Fastify → media-agent → DeckLink 真实命令旅程（Start/acknowledged/executing/actual running/Stop/Release/failure/recovery/SSE reconnect/reload）；device-2 现存输出不动 | REPO-MIGRATION-01 COMPLETE（§3.81） | BMD exact-commit evidence + 旅程各态真实断言 + SSE/reload 实证；完成后 WEB-CONSOLE-ENTRY-01 方可标 BMD RUNTIME ACCEPTED |
+| **WEB-CONSOLE-BMD-ACCEPTANCE-01** | **COMPLETE（§3.82·2026-09-29·exact commit `dc780c8` BMD 真机全旅程 PASS；验收前修复 BUG-A..G 七个真 bug，每 commit exact-head 双 lane CI 绿）** | 清偿 WEB-CONSOLE-ENTRY-01 的 BMD Runtime acceptance：production Web Console → Fastify → media-agent → DeckLink 真实命令旅程 + failure/recovery/SSE/reload；device-2 现存输出不动 | REPO-MIGRATION-01 COMPLETE（§3.81） | 已满足（WEB-CONSOLE-ENTRY-01 已标 BMD RUNTIME ACCEPTED；证据 `evidence/bmd-10.30.15.10/2026-09-29-web-console-bmd-acceptance/`；teardown 零残留） |
+| **SDK-ENTRY-01** | **READY（2026-09-29 裁决·§3.79/§3.82 后置；planning/reconciliation 首入）** | TypeScript SDK 边界规划：Fastify JSON Schema authority → external API stability → SDK boundary → standalone compatibility；形成 bounded packet；plan 冻结前不大规模写 SDK | WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82） | bounded planning 文档冻结（复用 Product API schema 单一源；非第二 Runtime truth；不暴露 internals；TS 首语言）；实施子包按 planning 分解后入场 |
 | **STANDALONE** | **BACKLOG（umbrella；首个 bounded packet = STANDALONE-ENTRY-01）** | production images/compose、readiness、shutdown/restart/upgrade/rollback、current-main BMD deployment reconciliation | Runtime feature slice | standalone install/run/restore；BMD exact commit acceptance |
 | **CONTROL-PLANE** | **BACKLOG** | Fastify + PostgreSQL/Drizzle + Worker/BullMQ + Auth/RBAC | Standalone/runtime APIs stable | Rust Runtime remains truth；Fastify 不拥有媒体生命周期 |
 | **VBMF-SDK** | **BACKLOG** | 契约测试 + 真实消费者证据后实现 Rust/TS/Python `vbmf-sdk` | stable API consumers | 不暴露 Rust/GStreamer/FFmpeg/vendor/DB internals |
@@ -1643,6 +1675,8 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 - RF-SRC-RTMP-02 deferred ingress risks（2026-09-19 冻结时登记，plan §3；TG-0 探针观察已并入·§3.52）：RTMP 握手超时（空闲/恶意半连接可长期占用唯一 listener slot）——TG-0 实证 RTMP `-timeout`（等待来连上限）存在，但 post-accept 握手/空闲连接超时选项**未观察到**、非法 publisher 占用唯一 `(protocol, ip, port)` listener、高流速 FFmpeg stderr 排空成本、进程退出顺序（kill/wait/reader join/socket 释放不得泄漏）。BMD FFmpeg 若无法提供对应控制**不阻塞**实现包，但 BMD 验收报告必须逐项标注（含"未观察到限制"也要显式记录）并留档于本节；主机防火墙仅为部署建议，绝不替代 VBMF 内部授权、不得如此上报。
 - RF-SRC-RTMP-02 D10 strict evidence — **CLOSED（2026-09-19·§3.60）**：`d13f1fd` 上 4 次 gate 运行进程级零设备行为（0 行 discovery/lease/adapter/SDK probe）+ gate 内 D10 机械断言 + BMD TG-6R Tier 1/Tier 2 同 SHA 重验全 PASS。
 - `scripts/check_docs.py` 本 VM 病态挂起（Sep14/17 起即有孤儿进程；SE-01C/§3.63 起登记）：不作为门禁执行、不为绿灯杀未知归属进程、不冒充该门禁已运行；修复该脚本执行环境属独立 debt，非 SE-01B-FIX 范围。
+- ~~WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance DEFERRED~~ — **CLEARED（2026-09-29·§3.82）**：exact commit `dc780c8` 真机全旅程验收 PASS，升级 BMD RUNTIME ACCEPTED。
+- WEB-CONSOLE-BMD-ACCEPTANCE-01 衍生登记（非阻塞）：Web Console 长稳（>本包单次旅程时长）、多 sink kind（当前 UI Start 固定 appsink 采集形态）、意图构造器对 rtmp/self_test source 的 UI 暴露——均属后续 UI/SDK packet 范围，不在本债内核。
 
 ## 10. Cold-Start Handoff
 
@@ -1653,9 +1687,9 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 3. 读取 live `main` HEAD；
 4. 读取本 `.project/STATE.md`；
 5. 找到“包含当前 STATE 版本的 commit”，比较 live HEAD 是否有更新；若有，只 reconcile STATE 之后的新 commits；
-6. 读取 **Current Task = 无 READY packet（§4）**——RCE 全链 + RCE-D3（§3.71）+ CONTROL-PLANE-ENTRY-01 planning（§3.72·C1–C14）+ CP-01A（§3.73）+ CP-01B（§3.74·RH-IDEM-01 清偿）+ CP-01C（§3.75）+ CP-01D（§3.76）+ CP-01E（§3.77）已全链收口；deferred 项未经新裁决不得擅入（历史 Authority 链含：`/api/v1/*`=prototype 裁定、internal=JSON-RPC@`/internal/v1/*`、两平面语义映射、RH-IDEM 维持 DEFER；frozen Contract 零修改）。历史 Authority 链备查：`docs/superpowers/plans/2026-09-19-standalone-entry-01-planning.md` + `docs/superpowers/plans/2026-09-20-runtime-control-entry-01-planning.md`（D1–D8/F1–F10）+ `docs/architecture/STANDALONE_MEDIA_AGENT_OPERATIONS.md` + SE 系列四份收口报告 + SE-01B-FIX reconciliation 报告 + RUNTIME_RESOURCE_MODEL/RUNTIME_SESSION_MODEL/RUNTIME_BINDING_MODEL + `MEDIA_BACKEND_CONTRACT.md`；
+6. 读取 **Current Task = 无进行中 packet；下一 READY = `SDK-ENTRY-01` planning/reconciliation（§4/§5，2026-09-29 裁决）**——RCE 全链 + RCE-D3（§3.71）+ CONTROL-PLANE-ENTRY-01（§3.72–§3.77）+ WEB-CONSOLE-ENTRY-01（§3.80·BMD RUNTIME ACCEPTED 2026-09-29）+ WEB-CONSOLE-BMD-ACCEPTANCE-01（§3.82·exact `dc780c8`）已全链收口；deferred 项未经新裁决不得擅入（历史 Authority 链含：`/api/v1/*`=prototype 裁定、internal=JSON-RPC@`/internal/v1/*`、两平面语义映射、RH-IDEM 维持 DEFER；frozen Contract 零修改）。历史 Authority 链备查：`docs/superpowers/plans/2026-09-19-standalone-entry-01-planning.md` + `docs/superpowers/plans/2026-09-20-runtime-control-entry-01-planning.md`（D1–D8/F1–F10）+ `docs/architecture/STANDALONE_MEDIA_AGENT_OPERATIONS.md` + SE 系列四份收口报告 + SE-01B-FIX reconciliation 报告 + RUNTIME_RESOURCE_MODEL/RUNTIME_SESSION_MODEL/RUNTIME_BINDING_MODEL + `MEDIA_BACKEND_CONTRACT.md`；
 7. 核对 P2-C implementation chain through `0f375c8…`、maintenance failure `34921727757`、encrypted route probes 与最新 `media-agent CI`（P2-M2 后 `gstreamer-build` 应 @vbmf-media 且 artifact 非空）；
-8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个 `READY` Work Packet；RF-ENTRY-01、RF-FF-01A、RF-FF-01B、RF-FF-01C、RF-FF-01D、RF-FF-01E、RF-FF-01F、RF-FF-02、RF-FF-03、RH-CLOCK-01、RF-NORM-01、RF-MASTER-01、RF-SRC-RTMP-01 与对应 adjudication 已 COMPLETE；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·严格 D10 进程级 BMD 重验）**；STANDALONE-ENTRY-01 planning 已冻结（§3.61）、SE-01A（§3.62）、SE-01C（§3.63）、SE-01D（§3.64）、SE-01B（§3.65 + reconciliation §3.66–§3.67）全链完成；**当前无 READY packet——CP-01A..01E 全链 COMPLETE（§3.73–§3.77）**；PORT-COLLISION-01 登记 BACKLOG 不越级；
+8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个 `READY` Work Packet；RF-ENTRY-01、RF-FF-01A、RF-FF-01B、RF-FF-01C、RF-FF-01D、RF-FF-01E、RF-FF-01F、RF-FF-02、RF-FF-03、RH-CLOCK-01、RF-NORM-01、RF-MASTER-01、RF-SRC-RTMP-01 与对应 adjudication 已 COMPLETE；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·严格 D10 进程级 BMD 重验）**；STANDALONE-ENTRY-01 planning 已冻结（§3.61）、SE-01A（§3.62）、SE-01C（§3.63）、SE-01D（§3.64）、SE-01B（§3.65 + reconciliation §3.66–§3.67）全链完成；CONTROL-PLANE 全链 COMPLETE（§3.72–§3.77）；REPO-MIGRATION-01 COMPLETE（§3.81）；**WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82·2026-09-29）→ 当前第一个 READY = `SDK-ENTRY-01` planning**；PORT-COLLISION-01 登记 BACKLOG 不越级；
 9. 不回退到已经 COMPLETE 的 0.6 / 0.7 / A2-8 / P2-A；
 10. 不从历史 feature/fix/实验 branch 恢复开发；所有验证通过的改动直接推进 `main`；
 11. 完成独立任务后，同一轮更新本 STATE 的 Last Completed / Current Task / Next Task / verification / risks / debt / handoff；

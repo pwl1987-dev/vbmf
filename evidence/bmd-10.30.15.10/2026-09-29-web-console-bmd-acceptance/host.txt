@@ -1,0 +1,13 @@
+Linux lytv 7.0.0-30-generic #30-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 18:22:54 UTC 2026 x86_64 GNU/Linux
+Docker version 29.7.2, build a7dcaa6
+Docker Compose version v5.5.0
+ii  desktopvideo                            16.2a1                                     amd64        Blackmagic Design Desktop Video 16.2 - Driver and Firmware Update utility
+gst-launch-1.0 version 1.28.2
+ffmpeg version git-2026-08-23-1019f8f-+allcodec-20260824 Copyright (c) 2000-2026 the FFmpeg developers
+709ceacda35847a6b61350397eef8a39
+total 0
+drwxr-xr-x  2 root root     100 Aug 27 15:09 .
+drwxr-xr-x 21 root root    4360 Aug 27 15:09 ..
+crw-rw-rw-  1 root root 10, 263 Aug 27 15:09 dv0
+crw-rw-rw-  1 root root 10, 265 Aug 27 15:09 dv1
+crw-rw-rw-  1 root root 10, 264 Aug 27 15:09 io0

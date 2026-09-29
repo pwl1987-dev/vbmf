@@ -1,0 +1,294 @@
+name: ops
+services:
+  cache:
+    command:
+      - valkey-server
+      - --save
+      - ""
+      - --appendonly
+      - 'no'
+    expose:
+      - "6379"
+    healthcheck:
+      test:
+        - CMD
+        - valkey-cli
+        - ping
+      timeout: 3s
+      interval: 5s
+      retries: 10
+      start_period: 5s
+    image: valkey/valkey:8-alpine
+    networks:
+      default: null
+    restart: unless-stopped
+  db:
+    environment:
+      POSTGRES_DB: vbmf
+      POSTGRES_PASSWORD: ff7839e76cc0fb408c27b041adb98d4f39795c0019546c34
+      POSTGRES_USER: vbmf
+    expose:
+      - "5432"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U $${POSTGRES_USER:-vbmf} -d $${POSTGRES_DB:-vbmf}
+      timeout: 3s
+      interval: 5s
+      retries: 10
+      start_period: 10s
+    image: postgres:17-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "15433"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: pgdata
+        target: /var/lib/postgresql/data
+        volume: {}
+  fastify:
+    build:
+      context: /tmp/wcbmd01-accept
+      dockerfile: ops/Dockerfile.fastify
+    depends_on:
+      cache:
+        condition: service_healthy
+        required: true
+      db:
+        condition: service_healthy
+        required: true
+      media-agent:
+        condition: service_healthy
+        required: true
+      rustfs:
+        condition: service_healthy
+        required: true
+      srs:
+        condition: service_healthy
+        required: true
+    environment:
+      BETTER_AUTH_SECRET: 7fc5280c8179b56023f762ba675975c268eb27fcedf79fe5abaa42d501928e4e
+      DATABASE_HOST: db
+      DATABASE_NAME: vbmf
+      DATABASE_PASSWORD: ff7839e76cc0fb408c27b041adb98d4f39795c0019546c34
+      DATABASE_PORT: "5432"
+      DATABASE_USER: vbmf
+      MEDIA_AGENT_RPC_URL: http://172.18.0.1:50051
+      MIGRATE_ON_BOOT: "true"
+      RATE_LIMIT_READ_MAX: "240"
+      RATE_LIMIT_WINDOW_MS: "60000"
+      RATE_LIMIT_WRITE_MAX: "60"
+      REDIS_HOST: cache
+      REDIS_PORT: "6379"
+      RUSTFS_ACCESS: vbmf
+      RUSTFS_ENDPOINT: http://rustfs:9000
+      RUSTFS_SECRET: accept-only
+      SRS_API: http://srs:1985
+      TRUST_PROXY: "true"
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3000/health/live
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      default: null
+    restart: unless-stopped
+  media-agent:
+    build:
+      context: /tmp/wcbmd01-accept
+      dockerfile: ops/Dockerfile.media-agent
+    devices:
+      - source: /dev/blackmagic
+        target: /dev/blackmagic
+        permissions: rwm
+    environment:
+      DECKLINK_DEVICE_PATH: /dev/blackmagic
+      MEDIA_AGENT_RPC_BIND: 0.0.0.0:50051
+      RUST_LOG: info
+    expose:
+      - "8080"
+      - "50051"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:8080/health
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      default: null
+    restart: unless-stopped
+  nginx:
+    depends_on:
+      fastify:
+        condition: service_healthy
+        required: true
+      web:
+        condition: service_healthy
+        required: true
+    expose:
+      - "80"
+      - "443"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost/health/nginx
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 10s
+    image: nginx:1.27-alpine
+    networks:
+      default: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8081"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /tmp/wcbmd01-accept/ops/nginx/default.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind: {}
+  rustfs:
+    command:
+      - server
+      - /data
+      - --address
+      - :9000
+      - --console-address
+      - :9001
+    environment:
+      MINIO_ROOT_PASSWORD: accept-only
+      MINIO_ROOT_USER: vbmf
+    expose:
+      - "9000"
+      - "9001"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:9000/minio/health/live
+      timeout: 3s
+      interval: 5s
+      retries: 10
+      start_period: 10s
+    image: rustfs/rustfs:2026.8.1
+    networks:
+      default: null
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: rustfsdata
+        target: /data
+        volume: {}
+  srs:
+    expose:
+      - "1935"
+      - "1985"
+      - "8080"
+      - "8000"
+      - "1989"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:1985/api/v1/versions
+      timeout: 3s
+      interval: 5s
+      retries: 10
+      start_period: 10s
+    image: ossrs/srs:6.0.42
+    networks:
+      default: null
+    restart: unless-stopped
+  web:
+    build:
+      context: /tmp/wcbmd01-accept
+      dockerfile: ops/Dockerfile.web
+    depends_on:
+      fastify:
+        condition: service_healthy
+        required: true
+    expose:
+      - "5173"
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -qO-
+        - http://127.0.0.1:5173/
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      default: null
+    restart: unless-stopped
+  worker:
+    build:
+      context: /tmp/wcbmd01-accept/ops
+      dockerfile: ops/Dockerfile.worker
+    depends_on:
+      cache:
+        condition: service_healthy
+        required: true
+      db:
+        condition: service_healthy
+        required: true
+      rustfs:
+        condition: service_healthy
+        required: true
+    environment:
+      DATABASE_HOST: db
+      DATABASE_NAME: vbmf
+      DATABASE_PASSWORD: ff7839e76cc0fb408c27b041adb98d4f39795c0019546c34
+      DATABASE_PORT: "5432"
+      DATABASE_USER: vbmf
+      REDIS_HOST: cache
+      REDIS_PORT: "6379"
+      RUSTFS_ACCESS: vbmf
+      RUSTFS_ENDPOINT: http://rustfs:9000
+      RUSTFS_SECRET: accept-only
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:3000/health/worker
+      timeout: 3s
+      interval: 10s
+      retries: 5
+      start_period: 15s
+    networks:
+      default: null
+    restart: unless-stopped
+networks:
+  default:
+    name: ops_default
+volumes:
+  pgdata:
+    name: ops_pgdata
+  rustfsdata:
+    name: ops_rustfsdata

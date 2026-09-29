@@ -1,0 +1,4 @@
+ops-web-1 Up 5 minutes (healthy) ops-web
+ops-nginx-1 Up 31 minutes (healthy) nginx:1.27-alpine
+ops-fastify-1 Up About a minute (healthy) ops-fastify
+ops-db-1 Up 59 minutes (healthy) postgres:17-alpine

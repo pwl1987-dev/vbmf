@@ -1,0 +1,22 @@
+              command_id              |      kind       |   state   | classification |          created_at           
+--------------------------------------+-----------------+-----------+----------------+-------------------------------
+ f676100f-d605-53e4-9024-2b8791e077f7 | start_session   | timeout   | retryable      | 2026-09-29 05:22:54.981333+00
+ fe0aa04d-d216-515a-90c9-12c747819b24 | start_session   | timeout   | retryable      | 2026-09-29 05:23:24.693337+00
+ a7164ced-5b1a-5eaf-9b10-afd7f6db8c64 | start_session   | timeout   | retryable      | 2026-09-29 05:23:27.833163+00
+ 693c8176-4a86-58f4-bb24-548d9af4f201 | start_session   | completed |                | 2026-09-29 05:37:46.789253+00
+ 00689ee7-8cc3-535f-a1fb-a5d87a1544e2 | stop_session    | completed |                | 2026-09-29 05:38:11.193698+00
+ dcec55f3-1fb3-5eeb-8fd8-a4e5c02e7321 | release_session | completed |                | 2026-09-29 05:38:28.589561+00
+ e2a6d079-7b66-517e-bcfd-d106213c348d | release_session | completed |                | 2026-09-29 05:38:28.618877+00
+ 532564e9-93fe-54b0-88c1-e03944dbe161 | stop_session    | failed    | permanent      | 2026-09-29 05:38:42.054915+00
+ bfef07b9-39fd-5d92-a025-4db31263940c | start_session   | completed |                | 2026-09-29 05:48:26.940946+00
+ f671193a-577c-5d1f-a090-aae6c5f74318 | stop_session    | completed |                | 2026-09-29 05:48:30.577284+00
+ c5c29660-17b2-55fc-b554-73c9131db83a | release_session | completed |                | 2026-09-29 05:48:32.093643+00
+ 043b83f9-0aa8-5fdf-a449-a9cbcacb947e | start_session   | timeout   | retryable      | 2026-09-29 05:49:03.559315+00
+ f3907cd2-523b-5250-8d79-1918b5e8973b | start_session   | completed |                | 2026-09-29 05:50:55.694954+00
+ 9ce1d470-d420-5ded-ac5f-4460c99ed331 | stop_session    | completed |                | 2026-09-29 05:50:57.078413+00
+ e8016fe7-057b-5216-85e4-2a64b09c95bb | start_session   | completed |                | 2026-09-29 05:51:41.54117+00
+ 4300717c-75f4-58ba-9bed-8eb694a35035 | stop_session    | completed |                | 2026-09-29 05:51:44.716915+00
+ 5fa39d11-9e82-5134-aa81-fc692f857e31 | start_session   | completed |                | 2026-09-29 05:52:08.175239+00
+ 554396a2-191a-57cf-8838-020356f6ff06 | stop_session    | completed |                | 2026-09-29 05:52:16.71411+00
+(18 rows)
+

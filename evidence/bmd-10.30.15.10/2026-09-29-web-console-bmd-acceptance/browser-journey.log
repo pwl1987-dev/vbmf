@@ -1,0 +1,179 @@
+
+===== phaseA @ 2026-09-29T05:22:18.939Z =====
+{
+  "gate": "\n    Operator credential requiredVBMF Web Console observes and commands the Runtime. Enter the operator API key provisioned for this control plane.Credential is held in memory only. It will be cleared on page reload.Authenticate\n  \n\n",
+  "needsKey": true,
+  "healthText": "\n    VBMF Web ConsoleHealthRuntimeSessionsEventsBuild: devOperator: configuredLiveness/health/livelivefastify process is serving requestsLayered health (/healthz)apiupcontrol plane processruntimeupagent_state=Ready · devices=3 · pipelines=0dbupPostgreSQL SELECT 1 OKauthupBetter Auth identity layereventsrunningdrain loop / outbox\n  \n\n",
+  "hasLayers": true,
+  "runtimeUp": true
+}
+
+===== phaseB @ 2026-09-29T05:22:29.096Z =====
+{
+  "hasDeviceId": false,
+  "hasSecondDevice": false,
+  "hasObservation": true,
+  "ports": false,
+  "sessionsZero": true,
+  "bodyExcerpt": "\n    VBMF Web ConsoleHealthRuntimeSessionsEventsBuild: devOperator: configuredRuntime snapshot (live)generated_at_ms1790659347555observation_revision3observation_lineagecb9b095c-5b15-411f-b756-7b624ac4043dfetched_at_ms1790659347559devices3ports2resources2sessions0capabilities3Sessionsno sessionsRuntime snapshot is canonical truth. UI must NOT infer Desired state from observed snapshot alone.\n  \n\n"
+}
+
+===== phaseC @ 2026-09-29T05:23:14.725Z =====
+{
+  "out": {
+    "desiredRunning": true,
+    "requestedShown": false,
+    "executingShown": false,
+    "observedRunning": false,
+    "divergenceOk": true,
+    "commandCompleted": false,
+    "statesTail": [
+      "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+      "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+      "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown"
+    ]
+  },
+  "states": [
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown",
+    "4-state machinedesiredRunningrequested— (—)executing—observedUnknowndivergenceokdesired=Running | requested=— | executing=— | observed=Unknown"
+  ]
+}
+
+===== phaseC-error @ 2026-09-29T05:23:27.760Z =====
+{
+  "startPanel": "Start sessiondevice_idStartHTTP 503 INTERNAL_ERROR: {\"error\":{\"code\":\"DEPENDENCY_UNAVAILABLE\",\"message\":\"command dispatch did not complete against the media agent\",\"retryable\":true}}"
+}
+
+===== phaseC @ 2026-09-29T05:37:50.363Z =====
+{
+  "out": {
+    "desiredRunning": true,
+    "requestedShown": true,
+    "executingShown": true,
+    "observedRunning": true,
+    "divergenceOk": true,
+    "commandCompleted": true,
+    "statesTail": [
+      "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedUnknowndivergenceokdesired=Running | requested=completed | executing=completed | observed=Unknown",
+      "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedUnknowndivergenceokdesired=Running | requested=completed | executing=completed | observed=Unknown",
+      "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedrunningdivergenceokdesired=Running | requested=completed | executing=completed | observed=running"
+    ]
+  },
+  "states": [
+    "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedUnknowndivergenceokdesired=Running | requested=completed | executing=completed | observed=Unknown",
+    "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedUnknowndivergenceokdesired=Running | requested=completed | executing=completed | observed=Unknown",
+    "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedUnknowndivergenceokdesired=Running | requested=completed | executing=completed | observed=Unknown",
+    "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedUnknowndivergenceokdesired=Running | requested=completed | executing=completed | observed=Unknown",
+    "4-state machinedesiredRunningrequestedcompleted (693c8176-4a86-58f4-bb24-548d9af4f201)executingcompletedobservedrunningdivergenceokdesired=Running | requested=completed | executing=completed | observed=running"
+  ]
+}
+
+===== phaseD @ 2026-09-29T05:38:14.871Z =====
+{
+  "before": "4-state machinedesired—requested— (—)executing—observedUnknowndivergenceokdesired=— | requested=— | executing=— | observed=Unknown",
+  "stopConverged": 3,
+  "afterStop": "4-state machinedesiredStoppedrequestedcompleted (00689ee7-8cc3-535f-a1fb-a5d87a1544e2)executingcompletedobservedreleaseddivergenceokdesired=Stopped | requested=completed | executing=completed | observed=released",
+  "stopRow": "Stop sessionStopcommand_id00689ee7-8cc3-535f-a1fb-a5d87a1544e2statecompletedcreated_at2026-09-29T05:38:11.193Zterminal_at2026-09-29T05:38:11.942Z",
+  "releaseConverged": 0,
+  "afterRelease": "4-state machinedesiredStoppedrequestedcompleted (00689ee7-8cc3-535f-a1fb-a5d87a1544e2)executingcompletedobservedreleaseddivergenceokdesired=Stopped | requested=completed | executing=completed | observed=released",
+  "releaseRow": "Release sessionReleaseno active session "
+}
+
+===== journeyCD @ 2026-09-29T05:48:34.671Z =====
+{
+  "afterStart": "4-state machinedesiredRunningrequestedcompleted (bfef07b9-39fd-5d92-a025-4db31263940c)executingcompletedobservedrunningdivergenceokdesired=Running | requested=completed | executing=completed | observed=running",
+  "startOk": true,
+  "afterStop": "4-state machinedesiredStoppedrequestedcompleted (f671193a-577c-5d1f-a090-aae6c5f74318)executingcompletedobservedreleaseddivergenceokdesired=Stopped | requested=completed | executing=completed | observed=released",
+  "stopOk": true,
+  "afterRelease": "4-state machinedesiredReleasedrequestedcompleted (c5c29660-17b2-55fc-b554-73c9131db83a)executingcompletedobservedUnknowndivergenceokdesired=Released | requested=completed | executing=completed | observed=Unknown",
+  "releaseOk": true,
+  "releasePanel": "command_idc5c29660-17b2-55fc-b554-73c9131db83astatecompletedcreated_at2026-09-29T05:48:32.093Zterminal_at2026-09-29T05:48:32.098Z "
+}
+
+===== phaseE @ 2026-09-29T05:49:36.526Z =====
+{
+  "oldPid": "3793850",
+  "failShown": true,
+  "duringFailStartSnippet": "\n    VBMF Web ConsoleHealthRuntimeSessionsEventsBuild: devOperator: configured4-state machinedesiredRunningrequested— (—)executing—observed—divergenceokdesired=Running | requested=— | executing=— | observed=—Start sessiondevice_idStartHTTP 503 INTERNAL_ERROR: {\"error\":{\"code\":\"DEPENDENCY_UNAVAILABLE\",\"message\":\"command dispatch did not complete against the media agent\",\"retryable\":true}}Stop sessionStopno command yetRelease sessionReleaseno command yetmedia-agent runtime control is unreachable\n  \n\n",
+  "recovered": false,
+  "recoverState": ""
+}
+
+===== phaseE2 @ 2026-09-29T05:50:05.846Z =====
+{
+  "devicesVisible": true,
+  "noError": true,
+  "bodyExcerpt": "\n    VBMF Web ConsoleHealthRuntimeSessionsEventsBuild: devOperator: configuredRuntime snapshot (live)generated_at_ms1790661003997observation_revision15observation_lineaged5e4c0ea-6c71-4f16-9bbe-9a117d46461bfetched_at_ms1790661004001devices3ports2resources2sessions0capabilities3Sessionsno sessionsRuntime snapshot is canonical truth. UI must NOT infer Desired state from observed snapshot alone.\n  \n\n"
+}
+
+===== phaseF @ 2026-09-29T05:51:48.556Z =====
+{
+  "streamRequests": [
+    "/events/v1/stream",
+    "/events/v1/stream?cursor=11",
+    "/events/v1/stream?cursor=11",
+    "/events/v1/stream?cursor=11"
+  ],
+  "beforeCount": 1,
+  "seqs1": [
+    11,
+    10
+  ],
+  "seqs2": [
+    11,
+    10
+  ],
+  "seqs3": [
+    13,
+    12,
+    11,
+    10
+  ],
+  "noDuplicate": true,
+  "replayStrictlyAfter": true,
+  "liveResumed": true,
+  "connState": "live"
+}
+
+===== phaseG @ 2026-09-29T05:52:17.478Z =====
+{
+  "preRunning": true,
+  "gateShown": true,
+  "converged": true,
+  "leak": {
+    "lsAny": false,
+    "ssAny": false,
+    "lsKey": false,
+    "ssKey": false,
+    "cookieKey": false,
+    "urlKey": false
+  },
+  "sid": "52928dec-f546-4e32-8a33-6a4c7376b39f",
+  "postExcerpt": " VBMF Web ConsoleHealthRuntimeSessionsEventsBuild: devOperator: configured4-state machinedesired—requested— (—)executing—observedrunningdivergenceokdesired=— | requested=— | executing=— | observed=runningStart sessiondevice_idStartno command yetStop sessionStopno command yetRelease sessionReleaseno command yet "
+}

@@ -1,0 +1,9 @@
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22/tcp                     ALLOW IN    10.0.0.0/8                 # SSH from internal
+[ 2] 50051/tcp                  ALLOW IN    172.18.0.0/16              # wcbmd01 bridge->agent (temp)
+[ 3] 8081/tcp                   ALLOW IN    10.30.5.80                 # wcbmd01 devvm browser (temp)
+[ 4] 15433/tcp                  ALLOW IN    10.30.5.80                 # wcbmd01 devvm provisioning (temp)
+
