@@ -19,7 +19,7 @@
 #   verify-runner.sh --list                       # A5 baseline capture
 set -euo pipefail
 
-REPO="${VBMF_REPO:-pwl1987/VBMF}"
+REPO="${VBMF_REPO:-pwl1987-dev/vbmf}"
 EXPECT_LABELS="${VBMF_EXPECT_LABELS:-self-hosted,Linux,X64,vbmf,vbmf-general}"
 EXPECT_CONTEXTS="${VBMF_EXPECT_CONTEXTS:-rust-format,rust-test-matrix,rust-clippy,hardware-test-compile,architecture-portability,gstreamer-build,session-lifecycle}"
 

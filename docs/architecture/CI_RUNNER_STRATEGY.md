@@ -90,9 +90,12 @@ expected(vbmf-ci-01) = { self-hosted, Linux, X64, vbmf, vbmf-general }
 
 ## 4. Repository Scope Contract（CI-RUNNER-SCOPE-01）
 
-- 只注册为 **`pwl1987/VBMF` 仓库级** runner；不做 organization-wide。
+- 只注册为 **`pwl1987-dev/vbmf` 仓库级** runner；不做 organization-wide。
 - A5 实测：owner_type=User → 无 org runner 概念，scope=本仓库（构造性保证 + API 回读双证）；
   未来若迁移到 org，必须另立 Runner Group 契约评审。
+- （2026-09-29 REPO-MIGRATION-01 事实登记：仓库已正式 transfer 至 org `pwl1987-dev/vbmf`；
+  transfer 保留 repo identity，三台 runner 保持 repo 级注册且未引入 org-wide/Runner Group，
+  本 scope 契约不变，API 回读已复核。）
 - **公共仓安全边界表述（CI-RUNNER-SEC-02）**：Phase 1 **不授予不可信 fork PR 调度
   self-hosted runner 的路径**——本阶段不修改任何 PR/push workflow 的 `runs-on`；唯一引用
   新标签的 workflow 为 `ci-infra-probe.yml`，仅 `workflow_dispatch`（fork PR 无法触发）。
@@ -296,7 +299,7 @@ source "$HOME/.cargo/env" && rustc --version && cargo --version
 ### B1-B3 Provision + systemd（root，仓库脚本）
 
 ```bash
-git clone https://github.com/pwl1987/VBMF /tmp/vbmf-repo && cd /tmp/vbmf-repo/scripts/ci
+git clone https://github.com/pwl1987-dev/vbmf /tmp/vbmf-repo && cd /tmp/vbmf-repo/scripts/ci
 
 # 生成 fresh registration token 后（GitHub → Settings → Actions → Runners → New self-hosted runner）
 export RUNNER_TOKEN=<fresh-token>          # 只经 env，不进任何文件

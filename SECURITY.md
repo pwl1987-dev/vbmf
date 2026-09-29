@@ -16,7 +16,7 @@
 
 请通过以下私密渠道报告：
 
-- **GitHub Security Advisories（首选）**：[github.com/pwl1987/VBMF/security/advisories/new](../../security/advisories/new)
+- **GitHub Security Advisories（首选）**：[github.com/pwl1987-dev/vbmf/security/advisories/new](../../security/advisories/new)
 - **Email**：待配置（开仓库前替换为真实安全邮箱；配置前请只用 Security Advisories）
 
 ### 报告内容

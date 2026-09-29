@@ -19,7 +19,7 @@
 #
 set -euo pipefail
 
-REPO_SLUG="pwl1987/VBMF"
+REPO_SLUG="pwl1987-dev/vbmf"
 REPO_URL="https://github.com/${REPO_SLUG}"
 BASE_DIR="/data/actions-runners/vbmf"
 RUNNER_USER="vbmf-ci"

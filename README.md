@@ -160,7 +160,7 @@ VBMF 是从 **V0.1 Web 视频编码器** 演进而来的，**V0.1 的所有基�
 
 ```bash
 # 克隆
-git clone https://github.com/pwl1987/VBMF.git
+git clone https://github.com/pwl1987-dev/vbmf.git
 cd VBMF
 
 # 浏览架构
@@ -211,7 +211,7 @@ start docs/phase-0.5/product/M-11-media-library.html
 
 ### Repository
 
-- **URL**: https://github.com/pwl1987/VBMF
+- **URL**: https://github.com/pwl1987-dev/vbmf
 - **License**: Apache 2.0
 - **Visibility**: Public
 

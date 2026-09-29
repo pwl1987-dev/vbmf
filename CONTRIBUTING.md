@@ -109,8 +109,8 @@ V0.2 已完成 22 轮 review，状态为 **LOCK FINAL**：
 
 ## 📞 联系方式
 
-- **GitHub Issues**：[github.com/pwl1987/VBMF/issues](../../issues)
-- **Discussions**：[github.com/pwl1987/VBMF/discussions](../../discussions)
+- **GitHub Issues**：[github.com/pwl1987-dev/vbmf/issues](../../issues)
+- **Discussions**：[github.com/pwl1987-dev/vbmf/discussions](../../discussions)
 - **Security**：见 [SECURITY.md](SECURITY.md) 私下披露
 
 ## 📜 行为准则

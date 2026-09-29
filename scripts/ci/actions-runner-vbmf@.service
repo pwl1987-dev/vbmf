@@ -19,7 +19,7 @@
 
 [Unit]
 Description=VBMF self-hosted GitHub Actions runner (%i)
-Documentation=https://github.com/pwl1987/VBMF/blob/main/docs/architecture/CI_RUNNER_STRATEGY.md
+Documentation=https://github.com/pwl1987-dev/vbmf/blob/main/docs/architecture/CI_RUNNER_STRATEGY.md
 After=network-online.target
 Wants=network-online.target
 

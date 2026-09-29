@@ -8,7 +8,7 @@
 
 ## 1. Repository / Git Authority
 
-- Repository: `pwl1987/VBMF`
+- Repository: `pwl1987-dev/vbmf`（2026-09-29 REPO-MIGRATION-01 正式 transfer 自 `pwl1987/VBMF`，见 §3.81；旧地址 GitHub 重定向仅作兼容，不再作为 canonical Authority）
 - Canonical development branch: `main`
 - Default branch: `main`
 - Git Authority policy: `main` 是唯一开发 Authority；不得再创建 `feature/*`、`fix/*`、`temp/*`、`repair/*`、`experiment/*` 等并行开发分支。
@@ -1382,21 +1382,36 @@ frozen Authority / Contract **零修改**：
 - **最小正确修复**：`import Ajv from "ajv"` → `import { Ajv } from "ajv"`（命名导入）。类型层：ajv d.ts 有真实 named `export declare class Ajv`（可构造）；运行时层：`module.exports.Ajv` 实测存在（ESM 视角 `typeof m.Ajv === "function"`）。不修改 tsconfig、不关闭 verbatimModuleSyntax、不开 esModuleInterop、不 skip 测试、不用 any 掩盖。
 - **本地全回归（Development VM，clean dependency state）**：apps/api `npm ci` + typecheck + `npm test` 56/56（32 skipped 为 DB lane）+ build 全 PASS；apps/web-console `npm ci` + typecheck + 52/52 tests + vite build 全 PASS；`scripts/check_control_plane_gate.py` PASS；`scripts/check_web_console_red_lines.py` PASS；`git diff --check` clean。
 - **Status 修正后口径**：WEB-CONSOLE-ENTRY-01 = **COMPLETE / SOFTWARE + CI VERIFIED**（media-agent 7/7 required + control-plane lane 于修复 commit exact-head 双绿后确认）**/ BMD RUNTIME ACCEPTANCE DEFERRED**（不因 CI PASS 升级为 hardware verified）。
+- **收尾确认（同日）**：修复 commit `e1435fa` exact-head CI 双绿——media-agent run `36518795888` SUCCESS；control-plane run `36518795854` 首跑失败于 web-console `npm ci` npm registry `ETIMEDOUT`（self-hosted runner 出网故障窗，§3.10/§3.11 risk 8 既有模式；Ajv 修复相关 apps/api typecheck/test/build step 首跑即全 PASS），rerun 后 SUCCESS。WCE-01-CLOSURE-RECONCILIATION 按验收条件 **COMPLETE**。
+
+## 3.81 REPO-MIGRATION-01 收口（2026-09-29）—— canonical repository transfer
+
+Status: **COMPLETE（transfer + reconciliation 已验证；收尾条件 = 迁移后 canonical exact-head CI 双绿，随本 STATE commit 的 push 触发并确认）**
+
+- **迁移前审计（GitHub API 实查）**：`pwl1987-dev` = Organization，操作账号（pwl1987）对其有 admin + active membership；目标 `pwl1987-dev/vbmf` 不存在（404）；对 `pwl1987/VBMF` 有 admin。仓库 public、默认分支 main、远端仅 main 一个 head；open PR=0、open issue=0、release=0、tag=17（phase-0.6…v0.2.0）；secrets=0、variables=0、deploy keys=0、webhooks=0、environments=0、rulesets=0、Pages 无关、GHCR packages 与本仓库无关（3 个 user packages 均非 VBMF）。classic branch protection（strict、7 required contexts、required_linear_history、禁 force push/delete、enforce_admins off）；runners 为 repo 级注册 ×3（vbmf-ci-01/02：`{self-hosted,Linux,X64,vbmf,vbmf-general}`；vbmf-ci-media：`{self-hosted,Linux,X64,vbmf,vbmf-media}`）。
+- **Transfer 方法**：GitHub 正式 Repository Transfer API `POST /repos/pwl1987/VBMF/transfer`（`new_owner=pwl1987-dev` + `new_name=vbmf`，owner/slug 一次完成）；未创建新空仓、未 mirror push、未复制 history、未删除原仓库、未造第二 Authority。org admin + active membership 下即时完成，无 pending acceptance。
+- **迁移后 reconciliation（GitHub 实查）**：live `main` SHA 不变（`e1435fa7e32da29c121ccfc22e04325486f9d35d`）；commit history 未改变；17 tags 保留；4 workflows 全 active（media-agent/control-plane/ci-infra-probe/ci-runner-action-cache）；classic branch protection 完整保留（7 required contexts 逐字一致：rust-format / rust-test-matrix / rust-clippy / hardware-test-compile / architecture-portability / gstreamer-build / session-lifecycle）；PR 历史保留（#31…#42）；**三台 repo 级 runner 全部 online 且已挂在新 canonical 下**（transfer 保留 repo identity，注册未失效，无需重注册；无 org runner group 变更）。旧路径 `github.com/pwl1987/VBMF` 重定向生效，仅作兼容机制。
+- **Development VM remote 更新**：`git remote set-url origin git@github.com:pwl1987-dev/vbmf.git`；fetch 后 local HEAD = origin/main = GitHub live main 三方一致（`e1435fa`）。本地 checkout 路径 `/home/ubuntu/dev/VBMF` 保持不变（不重命名，避免破坏脚本/runner/path 假设）。
+- **产品名裁决执行**：产品、Architecture、Contract、UI 名称全部维持 **VBMF**；仅 GitHub owner（pwl1987 → pwl1987-dev）与 repository slug（VBMF → vbmf）变更。
+- **仓内硬编码引用分类更新**（禁止全仓 search-replace，逐项裁决）：
+  - 更新（canonical metadata / 面向用户的入口 / 活跃脚本与运维文件）：`README.md`（clone URL + Repository URL）、`CONTRIBUTING.md`（issues/discussions 链接文本）、`SECURITY.md`（security advisories 链接文本）、`scripts/ci/provision-runner.sh`（REPO_SLUG）、`scripts/ci/verify-runner.sh`（REPO 默认值）、`scripts/ci/actions-runner-vbmf@.service`（Documentation URL）、`docs/architecture/CI_RUNNER_STRATEGY.md` §4 scope slug + §runbook clone URL（附 org transfer 事实注记：runner 保持 repo 级、无 Runner Group、scope 契约不变）、`.project/STATE.md` §1/§10 canonical 指向。
+  - 保留为历史事实（frozen historical evidence，不机械替换）：`evidence/**` 全部、`docs/comet/archive/**` 与 `docs/comet/specs/**`（历史 change/spec 记录）、`docs/superpowers/reports/**`（历史收口报告）、`docs/VBMF 下一阶段总架构升级方案 + PRD.md`（历史 PRD，raw.githubusercontent master 链接）、STATE 各节历史 run/commit 记录。
+- **迁移后 exact-head CI**：本 STATE/引用更新 commit push 到新 canonical 后触发；收尾条件 = media-agent CI SUCCESS（含 7 required contexts 名称不变确认）+ control-plane CI SUCCESS。
+- **迁移债务（remaining debt）**：无功能性债务。登记非阻塞事项：runner `.runner` 配置内旧 repo URL 依赖 GitHub 重定向/服务端路由（当前实测可调度；如未来 GitHub 收紧重定向，重注册 runbook = `scripts/ci/provision-runner.sh` 已指向新 slug）；fork PR 路径未实测（与迁移前状态一致）。BMD Runtime acceptance for WEB-CONSOLE-ENTRY-01 仍 **DEFERRED**（不因迁移或 CI PASS 升级）。
 
 ## 4. Current Task
 
-**WCE-01-CLOSURE-RECONCILIATION → REPO-MIGRATION-01 两个 bounded packet 连续推进（用户 2026-09-28 指令）**
+**REPO-MIGRATION-01 收尾（迁移已完成 §3.81；收尾 = 迁移后 canonical exact-head CI 双绿）**
 
-1. **WCE-01-CLOSURE-RECONCILIATION**（进行中，收尾条件 = 修复 commit exact-head 双 lane CI 绿）：Ajv NodeNext 类型导入修复 + STATE §3.80 过度声明修正（见 §3.80 Reconciliation 注记）。实现/软件回归已完成；push 后以 exact-head CI 真实结果关闭，不以旧 commit 绿色替代。
-2. **REPO-MIGRATION-01**（顺序执行）：GitHub repository transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf`（正式 Transfer API，保留 identity/history/issues/PR/settings；禁止新空仓 + mirror push）。产品名保持 **VBMF** 不变（仅 GitHub owner/slug 变更）；迁移后 remote/硬编码引用分类更新、self-hosted runners（vbmf-ci-01/02/media）与 branch protection/Actions 复核、迁移后 exact-head CI 双绿后才可标 COMPLETE。
-
-- 迁移完成后下一任务裁决（迁移收口时执行）：BMD 可访问 → 优先 `WEB-CONSOLE-BMD-ACCEPTANCE-01`；BMD 不可访问 → 保持 deferred 并裁决 `SDK-ENTRY-01`；不得把 SDK 开发写成 BMD verification 替代。
-- WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance 仍保持 **DEFERRED**，不因 repo migration 或 CI PASS 自动升级。
-- 其余 deferred 项维持原状：`vbmf-sdk`、BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
+1. **WCE-01-CLOSURE-RECONCILIATION = COMPLETE（2026-09-29·§3.80 Reconciliation + §3.81 前记）**：Ajv NodeNext 命名导入修复 commit `e1435fa` exact-head 双 lane CI 绿（media-agent `36518795888` SUCCESS；control-plane `36518795854` 出网窗 rerun 后 SUCCESS）；STATE §3.80 过度声明已修正。
+2. **REPO-MIGRATION-01 = COMPLETE / 收尾确认中（§3.81）**：transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf` 已完成且后置 reconciliation 全部验证（HEAD/history/tags/workflows/branch protection/PR/runners 保留；remote 已更新三方一致；硬编码引用分类更新完成）。收尾条件 = 本 STATE commit 在新 canonical 的 exact-head 双 lane CI 绿 + 7 required contexts 名称不变，确认后本节回填 run 编号。
+3. **迁移后下一任务裁决（CI 确认后执行）**：BMD 可访问 → 优先 `WEB-CONSOLE-BMD-ACCEPTANCE-01`（真实 Web Console → Fastify → media-agent → DeckLink 命令旅程）；BMD 不可访问 → 保持 verification deferred 并裁决 `SDK-ENTRY-01`；不得把 SDK 开发写成 BMD verification 替代。
+4. WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance 仍保持 **DEFERRED**，不因 repo migration 或 CI PASS 自动升级。
+5. 其余 deferred 项维持原状：`vbmf-sdk`、BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
 
 ## 5. Next Task
 
-**WCE-01-CLOSURE-RECONCILIATION 收尾（exact-head CI 双绿）→ REPO-MIGRATION-01（repository transfer，§4）→ 迁移后裁决 WEB-CONSOLE-BMD-ACCEPTANCE-01 vs SDK-ENTRY-01**（BMD 可访问优先清偿 BMD acceptance；不可访问则保持 deferred 并裁决 SDK；不得把 SDK 开发写成 BMD verification 替代）。
+**REPO-MIGRATION-01 收尾确认（迁移后 exact-head CI 双绿 → §4 回填）→ 裁决 `WEB-CONSOLE-BMD-ACCEPTANCE-01` vs `SDK-ENTRY-01`**（BMD 可访问优先清偿 BMD acceptance：Web Console → Fastify → media-agent → DeckLink → Start/acknowledged/executing/actual running/Stop/Release/failure/recovery/SSE reconnect/reload reconciliation；不可访问则保持 deferred 并裁决 SDK；不得把 SDK 开发写成 BMD verification 替代）。
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
@@ -1464,8 +1479,8 @@ P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance
 | **PORT-COLLISION-01** | **COMPLETE（§3.78，2026-09-25）** | PortId derive 键不含 direction/Analog 位折叠——BMD Device smoke 实证 Input/Sdi 与 Output/Sdi 同卡碰撞 ×2；专门 collision closure（port_id 稳定性 + registry fail-closed 语义复核）→ 物理 jack 槽位忠实枚举 + PortId invariant guard | 无 | 双工卡 out jack 表达需后续 Resolver 端口级 binding 演进（独立 packet） |
 | **PRODUCT-SURFACE-ENTRY-01** | **COMPLETE（§3.79，2026-09-25）—— planning 裁决** | VBMF-SDK vs WEB-CONSOLE 实施顺序裁决：以 live API + frozen Contract + dependency evidence 为依据；结论 = **WEB-CONSOLE-ENTRY-01 先行**（首个真实 TS consumer；可反向验证 Product API 消费者可用性；为后续 SDK 生成提供 real consumer evidence）；SDK 仍属 planning deferred，待 Web Console 形成稳定 wire 语义后再启 SDK-ENTRY-01 | 无 | Web Console 与 SDK 都不改 frozen Contract；仅消费 Product API |
 | **WEB-CONSOLE-ENTRY-01** | **COMPLETE（§3.80·2026-09-28 实施 + 2026-09-29 §3.80 Reconciliation 修正——原 control-plane lane "CI 全绿" 属过早声明；exact-head `c02b118` control-plane CI 实为 FAILURE，Ajv NodeNext 类型导入由 WCE-01-CLOSURE-RECONCILIATION 修复）** | 独立 TS Web Console app（Vite + React 19 + 原生 fetch + JSON Schema 派生类型），经 Fastify 反代消费 `/api/v1/*` + `/events/v1/stream`；零直连 media-agent；四状态分离（Desired/Requested/Executing/Observed）+ 命令旅程（Start/Stop/Release）+ SSE 实时 + failure/recovery 反映 + reconnect/reload 收敛；agent 原生 INDEX_HTML 路由（transport.rs）保留作 D10 离线诊断面，不删除 | §3.79（PRODUCT-SURFACE-ENTRY-01 裁决） | WCE-01A: schema 单一源（apps/api/src/routes/schemas.ts）+ contract test（ajv）；WCE-01B: apps/web-console foundation + Vite 6 + React 19 + in-memory 凭证 + same-origin 客户端红线拦截；WCE-01C/01D/01E: 4-state reducer + Start/Stop/Release 命令旅程 + SSE cursor tri-state/weak_ordering/reload-first snapshot；WCE-01F: 真实 Fastify fixture + 12 integration tests；Compose/CI: 多阶段 Dockerfile.web + ops/nginx/web.conf + 红线 gate（check_web_console_red_lines.py）+ control-plane lane 扩展。apps/api 56/56 tests + apps/web-console 52/52 tests PASS；typecheck/build/vite build/F11/F12/WCE-01 红线 gate 全绿；frozen EXTERNAL_API_CONTRACT/EVENT_CONTRACT/IMPLEMENTATION_BOUNDARIES/CANONICAL_IDENTITY 零修改。BMD Runtime acceptance = DEFERRED（VM 软件验证已闭环）。 |
-| **WCE-01-CLOSURE-RECONCILIATION** | **IN PROGRESS（2026-09-29·用户指令 bounded packet；软件回归已完成，收尾 = 修复 commit exact-head 双 lane CI 绿）** | Ajv TS2351 RCA + 最小修复（`import { Ajv } from "ajv"` 命名导入，零 tsconfig 妥协）+ STATE §3.80 过度声明修正 + 全软件回归（双 app npm ci/typecheck/test/build + 双红线 gate + diff-check） | WEB-CONSOLE-ENTRY-01（§3.80） | exact-head 修复 commit：media-agent CI 7/7 SUCCESS + control-plane CI SUCCESS（不以旧 commit 绿色替代） |
-| **REPO-MIGRATION-01** | **READY（2026-09-29·用户指令 bounded packet；WCE-01-CLOSURE-RECONCILIATION 收尾后顺序执行）** | GitHub repository transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf`（正式 Transfer API；identity/history/issues/PR/settings 连续保留；禁止新空仓+mirror push+history 复制）；产品名维持 VBMF；迁移后 origin remote 更新 + 仓内硬编码引用分类更新（canonical metadata/README clone URL+badge/active workflows 更新；frozen 历史 evidence 保留）+ runners/branch protection/Actions 复核 + 迁移后 exact-head CI 双绿 | WCE-01-CLOSURE-RECONCILIATION | transfer API 成功 + live main SHA 不变 + history/issues/PR/tags/releases 保留 + 7 required contexts 名称不变 + 迁移后 media-agent/control-plane exact-head CI 双绿 |
+| **WCE-01-CLOSURE-RECONCILIATION** | **COMPLETE（2026-09-29·§3.80 Reconciliation + §3.81 前记·`e1435fa` exact-head 双绿：media-agent `36518795888` SUCCESS + control-plane `36518795854` 出网窗 rerun 后 SUCCESS）** | Ajv TS2351 RCA + 最小修复（`import { Ajv } from "ajv"` 命名导入，零 tsconfig 妥协）+ STATE §3.80 过度声明修正 + 全软件回归（双 app npm ci/typecheck/test/build + 双红线 gate + diff-check） | WEB-CONSOLE-ENTRY-01（§3.80） | 已满足（exact-head 双 lane CI 绿，不以旧 commit 绿色替代） |
+| **REPO-MIGRATION-01** | **COMPLETE / 收尾确认中（§3.81·2026-09-29·transfer + reconciliation 已验证；收尾 = 本 STATE commit 迁移后 exact-head CI 双绿 + 7 required contexts 名称不变）** | GitHub repository transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf`（正式 Transfer API；identity/history/issues/PR/settings 连续保留；未建新仓/mirror/history 复制）；产品名维持 VBMF；remote/硬编码引用分类更新 + runners/branch protection/Actions 复核 + 迁移后 exact-head CI | WCE-01-CLOSURE-RECONCILIATION | transfer 成功 + live main SHA 不变 + history/issues/PR/tags 保留 + runners online + 7 required contexts 不变 + 迁移后双 lane CI 绿 |
 | **STANDALONE** | **BACKLOG（umbrella；首个 bounded packet = STANDALONE-ENTRY-01）** | production images/compose、readiness、shutdown/restart/upgrade/rollback、current-main BMD deployment reconciliation | Runtime feature slice | standalone install/run/restore；BMD exact commit acceptance |
 | **CONTROL-PLANE** | **BACKLOG** | Fastify + PostgreSQL/Drizzle + Worker/BullMQ + Auth/RBAC | Standalone/runtime APIs stable | Rust Runtime remains truth；Fastify 不拥有媒体生命周期 |
 | **VBMF-SDK** | **BACKLOG** | 契约测试 + 真实消费者证据后实现 Rust/TS/Python `vbmf-sdk` | stable API consumers | 不暴露 Rust/GStreamer/FFmpeg/vendor/DB internals |
@@ -1632,7 +1647,7 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 新 Chat / Work 必须按以下最小链恢复，不重新扫描整个仓库：
 
 1. 读取 Project Instructions；
-2. 确认仓库 `pwl1987/VBMF`、默认分支和 canonical branch 都是 `main`；
+2. 确认仓库 `pwl1987-dev/vbmf`（2026-09-29 transfer 自 `pwl1987/VBMF`·§3.81；旧地址重定向非 Authority）、默认分支和 canonical branch 都是 `main`；
 3. 读取 live `main` HEAD；
 4. 读取本 `.project/STATE.md`；
 5. 找到“包含当前 STATE 版本的 commit”，比较 live HEAD 是否有更新；若有，只 reconcile STATE 之后的新 commits；
