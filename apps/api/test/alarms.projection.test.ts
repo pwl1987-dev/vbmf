@@ -83,19 +83,36 @@ test("hi01a: 恢复观察 → session_failed alarm 被 clear（recovered）", ()
     [digest({ kind: "session_failed", session_id: session, summary: "fail", pipeline: null })],
     { sessionStates: { [session]: "released" } },
   );
-  // 同 drain 该 session 有新 fault → upsert 优先，无 clear。
-  assert.equal(actions.length, 1);
-  assert.equal(actions[0]!.type, "upsert");
+  // 同 drain 该 session 有新 fault → upsert 优先，无同 session clear。
+  assert.equal(actions.filter((a) => a.type === "upsert").length, 1);
+  // 但 domain 宽路径不适用（有新 session_failed）。
+  assert.equal(actions.some((a) => a.type === "clear-kind"), false);
 
-  // 下一 drain 无新 fault + session 恢复态 → clear。
+  // 下一 drain 无新 fault + 同 session 恢复态 → 窄路径 clear。
   const clearActions = deriveAlarmActions([], { sessionStates: { [session]: "released" } });
-  assert.equal(clearActions.length, 1);
-  const c = clearActions[0]!;
-  assert.equal(c.type, "clear");
-  if (c.type === "clear") {
-    assert.equal(c.fingerprint, `session_failed:session:${session}`);
-    assert.equal(c.clearReason, "recovered");
+  const narrow = clearActions.find((a) => a.type === "clear");
+  assert.ok(narrow !== undefined, "narrow clear present");
+  if (narrow!.type === "clear") {
+    assert.equal(narrow.fingerprint, `session_failed:session:${session}`);
+    assert.equal(narrow.clearReason, "recovered");
   }
+});
+
+test("hi01a: domain 宽路径 — 无新 session_failed + 任一 running 会话 → clear-kind", () => {
+  const other = "99999999-9999-9999-9999-999999999999";
+  const actions = deriveAlarmActions([], { sessionStates: { [other]: "running" } });
+  const wide = actions.find((a) => a.type === "clear-kind");
+  assert.ok(wide !== undefined, "clear-kind present");
+  if (wide!.type === "clear-kind") {
+    assert.equal(wide.kind, "session_failed");
+    assert.equal(wide.evidence.observed.length, 1);
+  }
+  // 有新 session_failed 时宽路径关闭。
+  const blocked = deriveAlarmActions(
+    [digest({ kind: "session_failed", session_id: other, summary: "x", pipeline: null })],
+    { sessionStates: { [other]: "running" } },
+  );
+  assert.equal(blocked.some((a) => a.type === "clear-kind"), false);
 });
 
 test("hi01a: 非恢复态观察不产生 clear", () => {

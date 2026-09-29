@@ -62,6 +62,23 @@ async function applyClear(db: Db, action: Extract<AlarmAction, { type: "clear" }
     .where(and(eq(alarms.fingerprint, action.fingerprint), eq(alarms.active, true)));
 }
 
+/** domain 恢复宽路径：清某 kind 的全部 active 行（evidence 快照可审计）。 */
+async function applyClearKind(
+  db: Db,
+  action: Extract<AlarmAction, { type: "clear-kind" }>,
+): Promise<void> {
+  await db
+    .update(alarms)
+    .set({
+      active: false,
+      clearedAt: new Date(),
+      clearReason: action.clearReason,
+      recoveryStatus: "recovered",
+      evidence: action.evidence as unknown as object,
+    })
+    .where(and(eq(alarms.kind, action.kind), eq(alarms.active, true)));
+}
+
 /**
  * drain 投影快照 → alarm 动作并应用。
  * 返回应用的动作数（日志/测试观测用；不作为任何决策输入）。
@@ -83,8 +100,10 @@ export async function applyAlarmProjection(db: Db, projection: AgentProjectionWi
   for (const action of actions) {
     if (action.type === "upsert") {
       await applyUpsert(db, action, counts.get(action.fingerprint) ?? 1);
-    } else {
+    } else if (action.type === "clear") {
       await applyClear(db, action);
+    } else {
+      await applyClearKind(db, action);
     }
   }
   return actions.length;

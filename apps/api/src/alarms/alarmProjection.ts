@@ -85,6 +85,13 @@ export type AlarmAction =
       fingerprint: string;
       clearReason: "recovered";
       evidence: { session_id: string; state: string };
+    }
+  | {
+      /** domain 恢复宽路径：清某 kind 的全部 active 行（evidence 记录观察）。 */
+      type: "clear-kind";
+      kind: string;
+      clearReason: "recovered";
+      evidence: { observed: Array<{ session_id: string; state: string }> };
     };
 
 /**
@@ -126,18 +133,35 @@ export function deriveAlarmActions(
     });
   }
 
-  // 恢复观察 → clear（仅本 drain 无新 fault 的 related session）。
+  // 恢复观察 → clear。两条互补规则（evidence 各自记录判定输入，可审计）：
+  // ① 同 session 恢复态（窄路径：失败 session 复活并回到恢复态）；
+  // ② domain 恢复（宽路径：失败 session 已消亡不再发事件，操作员重建了
+  //    running 会话 = 该故障域恢复——本 drain 无新 session_failed 且观察到
+  //    任一 session 处于恢复态时，清全部 active 的 session_failed）。
+  //    hardware/ambiguous/pipeline fault 不适用宽路径（各自 domain 恢复
+  //    语义不同——hardware 需设备级恢复信号，保持 manual-required 纪律）。
   const faultSessionIds = new Set(
     faults.map((f) => f.session_id).filter((s): s is string => s !== null && s !== undefined),
   );
+  const runningSessions: Array<{ session_id: string; state: string }> = [];
   for (const [sessionId, state] of Object.entries(observation.sessionStates)) {
     if (!RECOVERED_SESSION_STATES.has(state)) continue;
+    runningSessions.push({ session_id: sessionId, state });
     if (faultSessionIds.has(sessionId)) continue;
     actions.push({
       type: "clear",
       fingerprint: `session_failed:session:${sessionId}`,
       clearReason: "recovered",
       evidence: { session_id: sessionId, state },
+    });
+  }
+  const hasNewSessionFault = faults.some((f) => f.kind === "session_failed");
+  if (runningSessions.length > 0 && !hasNewSessionFault) {
+    actions.push({
+      type: "clear-kind",
+      kind: "session_failed",
+      clearReason: "recovered",
+      evidence: { observed: runningSessions },
     });
   }
   return actions;
