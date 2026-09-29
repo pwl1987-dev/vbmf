@@ -248,7 +248,7 @@ test("valid self_test source intent → 200 accepted（kind-only wire form）", 
   }
 });
 
-test("execution-detail 字段（device_number/handle/ffmpeg/gst）在 intent 内 → 400（vendor-neutral 红线）", async () => {
+test("execution-detail 字段（device_number/handle/媒体进程 argv）在 intent 内 → 400（vendor-neutral 红线）", async () => {
   const { app, plane } = await appWithPlane(new CountingPlane());
   try {
     const res = await postIntent(app, {

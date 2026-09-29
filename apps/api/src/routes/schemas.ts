@@ -180,7 +180,7 @@ export const commandOperationBodySchema = {
  * - SinkIntent = { kind }，词表 appsink/hls/rtmp —— pipeline.rs
  *   `pipeline_rt_01_sink_kind_vocabulary_snapshot` 受纳词表（fail-closed）；
  * - vendor-neutral 红线：additionalProperties:false 全层收紧（device_number/
- *   handle/ffmpeg/gst 等执行细节字段 400 拒绝，见 VENDOR_NEUTRALITY_RULES #3）。
+ *   handle/媒体进程 argv 等执行细节字段 400 拒绝，见 VENDOR_NEUTRALITY_RULES #3）。
  */
 const uuidPattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
 

@@ -8,9 +8,8 @@
  *   CommandOperation ≠ Runtime actual（S5）；
  * - 类型 100% 机械派生自 apps/api/src/routes/schemas.ts（src/generated，
  *   drift-gated），SDK 不手写 wire 类型；发布物不依赖 apps/api 源码；
- * - credential 经 provider callback 注入，SDK 不持久化（S3）。
- *
- * SDK-01A 阶段：导出类型；client（SDK-01B）与 event 流（SDK-01C）增量加入。
+ * - credential 经 provider callback 注入，SDK 不持久化（S3）；
+ * - write 命令显式 idempotency key，无自动重试（S6）。
  */
 export type {
   ErrorCode,
@@ -23,3 +22,10 @@ export type {
   HealthLiveResponse,
   SseFramePayload,
 } from "./generated/types.ts";
+
+export { VbmfApiError, networkFailureError, malformedResponseError, parseRetryAfterMs } from "./errors.ts";
+export type { CredentialProvider } from "./transport.ts";
+export { VbmfClient } from "./client.ts";
+export type { VbmfClientOptions } from "./client.ts";
+export { VbmfEventClient } from "./events.ts";
+export type { EventClientOptions, EventStreamOptions, EventStreamHandle } from "./events.ts";
