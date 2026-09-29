@@ -1502,15 +1502,27 @@ Status: **BOTH COMPLETE / SOFTWARE + CI VERIFIED（exact `885b766` 双 lane 绿�
 - **事后修正（PR-STAB-01 准备期发现）**：teardown 的 `pkill -x media-agent` 未终止改名 gstreamer agent（comm 截断 `media-agent-885` 精确匹配失败，PID 3868361 遗留占用 50051/8080 至次日发现）；已按 PID 显式 kill 并复核零进程/端口释放/device-2 完好；教训 = teardown 必须以启动时记录的 PID kill + `ps -p` 复核（evidence manifest 已补记）。无对外暴露面。
 - 终态：`/opt/vbmf/current -> /opt/vbmf/0.1.0-885b766`；BMD service 维持 inactive/disabled（未 enable，由运维决定——与 SE-01B 收尾一致）。
 
+## 3.86 HEALTH-INCIDENT-ENTRY-01 实施（2026-09-29）—— HI-01A..01D + VM 旅程（plan §D1-D7）
+
+Status: **HI-01A/01B/01C/01D COMPLETE（SOFTWARE + CI VERIFIED）+ VM 全栈旅程 VERIFIED；HI-01E（BMD bounded）PENDING**
+
+- **HI-01A**（`a55c671`，含 `309c3e1` + typecheck fix）：plan D1 修正（drain wire 只给聚合 → agent 侧 **additive** `FaultDigest` 投影块：`EventProjection.faults`（kind/device/pipeline/session/summary/retryable canonical 照抄）+ `ApiProjectionResponse.faults #[serde(default)]` 旧载荷兼容）；Fastify `alarms` 表（partial unique on active、severity/recovery enum、evidence jsonb、ack_* 三字段）+ `alarmProjection.ts` 纯派生 + `alarmStore.ts` 条件 UPDATE + drain 点接线（失败仅日志不破坏 outbox 主路径）。api 74/74 + ephemeral PG 5/5 + Rust mock 套件 + fmt/clippy。
+- **HI-01B**（`af19563`）：`GET /api/v1/alarms`（keyset 分页 first_seen desc/id desc + active/severity 过滤）+ `GET /api/v1/alarms/:id` + `POST /api/v1/alarms/:id/ack`（幂等，只写 ack_* 三字段；**ack ≠ healthy 红线**：active/recovery 不因 ack 变化）；RBAC 增 alarm 资源（viewer 读 / operator ack）+ `alarm.ack` 审计；schema 单源 3 条 + 契约测试路由清单显式扩展；db 未配置诚实 503。hermetic 74/74 + routes 4/4（401/过滤/404/viewer-403 vs operator-ack 语义/幂等重 ack/审计行/limit 400）。
+- **HI-01C**（`6444d8d`）：SDK `AlarmItem` 机械派生（drift gate）+ `VbmfClient.listAlarms/getAlarm/ackAlarm`（查询编码/401→VbmfApiError 不吞/POST note）+ index 导出；hermetic ×4，SDK 33 测试。
+- **HI-01D**（`adfab99`）：Web Console 第五表面 **Alarms**（active 列表 severity/kind/domain/related/summary/recovery×复发/ACTIVE + cleared history 折叠 + 真实错误面；数据全部经 `/api/v1/alarms` canonical——**零本地伪造**）；Ack 按钮（tooltip 明示 awareness-only；**acked 行仍显示 ACTIVE——acknowledged ≠ healthy 页面测试机械断言**）；helpers 经 @vbmf/sdk dogfood。console 72/72 + gates。
+- **VM 全栈旅程**（`534f51e` 收口，network-only agent + compose 控制面 + 真实推流者）：fault（RTMP 无推流者→SessionFailed）→ alarm 产生（outbox has_critical + session_failures 证据 + alarm 行 severity=error/domain=session/related session/evidence canonical）→ ack 后 alarm 仍 ACTIVE（红线实证）→ recovery（推流者 + 会话 running）→ **clear**（recovered + clear_reason=evidence 含恢复观察快照）→ fresh-client reload 收敛 canonical history。**旅程发现并修复真缺陷**：失败会话回滚后不再发状态事件 → 窄路径同-session 恢复不可观察 → 增 domain 宽路径（本 drain 无新 session_failed 且观察到任一恢复态会话 → 清全部 active session_failed；hardware/ambiguous/pipeline 保持 manual-required 不适用宽路径）。测试 10/10 + 5/5。
+- **HI-01E PENDING（BMD bounded）**：真机正常 DeckLink 旅程 + Alarms 页 canonical 一致性（zero-alarm 亦为真值）+ health 面；**真机 RuntimeEvent fault 注入缝不存在**（gates 注入器只在 gates binary；agent 停止=依赖不可达不发事件）——如实登记为 D1 债务演进项，VM 旅程为 §16 fault 链的软件面证据。
+- CI：`a55c671`/`af19563`/`6444d8d`/`adfab99`/`534f51e` 全部 exact-head 双 lane 绿。
+
 ## 4. Current Task
 
-**PR-STAB-01 = IN PROGRESS（2026-09-29：2h rung soak 运行中 @ exact `ec5fc68`，BMD `~/a2-8-02i-evidence/2026-09-29-pr-stab-01-2h`，240 cycles × ~30s）；并行冻结 HEALTH-INCIDENT-ENTRY-01 planning（§5.1·HI-01A..01E 子包）与 REDUNDANCY-ENTRY-01 reconciliation（§5.1·诚实基线：Redundancy/Hot-Standby/Auto-Failover 均 ≠ COMPLETE）；当前 READY = 无（等 2h rung 收口后按结果推进 8h/24h）**
+**PR-STAB-01 = IN PROGRESS（2h rung soak 运行中 @ exact `ec5fc68`，~cycle 156/240，RSS/fd/threads 稳定、sw_epoch 逐命令 +1、drops=0、device-2 红线连续存活）；HEALTH-INCIDENT-ENTRY-01 HI-01A..01D + VM 旅程 COMPLETE（§3.86，`534f51e` 双绿）；HI-01E（BMD bounded）PENDING；REDUNDANCY-ENTRY-01 reconciliation 冻结（§5.1）**
 
-1. **PR-01A COMPLETE**：Production Core Compose Truth——optional profiles（storage/gateway/worker）+ fastify 死依赖/死变量清除 + PR01A 结构 gate + worker placeholder honest-fail 修复；core 独立 up/health/smoke 全 PASS；SDK consumer 旅程 10/10；optional honest-fail 双证；三包 65+69+29 测试全绿。
-2. **PR-01B COMPLETE**：current-main BMD deployment reconciliation——exact archive 六环 provenance + 安装树 Ready devices:3 + Web Console 全栈（SDK 真机 7/7 + Browser 9/9 + failure/recovery + fastify restart）+ rollback/forward 双向 + teardown（含事后遗留进程修正，evidence manifest 已补记）+ device-2 红线 before/after 完好。`/opt/vbmf/current -> 0.1.0-885b766`。
-3. **PR-STAB-01 IN PROGRESS**：历史 soak 驱动（`r64-probe/r64-stability-long.sh`，谓词 v2 十项逐字）复刻 @ exact `ec5fc68` build 树（`~/pr-stab-01-build`）；两处环境适配（非采样变更）：SE-01D 后需显式 `VBMF_MACHINE_ID=10.30.15.10`（否则 diagnostic 绑定解析空→单输入回退）；build 树路径。首跑失败 RCA：PR-01B 遗留 agent 占 8080（见 §3.85 事后修正）。2h rung 完成后按谓词 v2 判定 → 8h（960 cycles）→ 24h（2880 cycles），gate 不放宽；**24h PASS 前不得写 stability verified**。
-4. **HEALTH-INCIDENT-ENTRY-01 PLAN FROZEN**（`docs/superpowers/plans/2026-09-29-health-incident-entry-01-planning.md`）：Alarm=Fastify 投影层派生（drain 点，PG `alarms` 表）；16-kind RuntimeEvent 机械映射；recovery_status 投影层推断（D1 债务：无显式恢复事件）；ACK=awareness only；HI-01A..01E 子包（agent 零改动）。
-5. **REDUNDANCY-ENTRY-01 PLAN FROZEN**（`docs/superpowers/plans/2026-09-29-redundancy-entry-01-planning.md`）：诚实基线落档（auto failover 类型级不可构造、readiness 轴/hysteresis/Hot-Standby policy/failover_benchmarks/RG 零实现）；§3 实现原则链（policy→READY_TO_TAKE→preflight→hysteresis→canonical command→observation→incident evidence）；RD-01A..01E 子包草案 PENDING，不自动 READY。
+1. **PR-01A COMPLETE**（§3.85·`885b766`）：Production Core Compose Truth——optional profiles + 死依赖清除 + honest-fail 双证 + SDK 旅程 10/10。
+2. **PR-01B COMPLETE**（§3.85·`885b766` BMD 全旅程）：`/opt/vbmf/current -> 0.1.0-885b766`，provenance 六环链 + rollback/forward + teardown（含 §3.85 事后修正：改名 binary pkill 失配遗留进程教训）。
+3. **PR-STAB-01 IN PROGRESS**：2h rung（240 cycles）运行中，完成后按谓词 v2 判定 → 8h（960）→ 24h（2880），gate 不放宽。
+4. **HEALTH-INCIDENT-ENTRY-01**：HI-01A..D + VM 全栈旅程 COMPLETE（§3.86）；HI-01E（BMD bounded：真机正常旅程 + Alarms canonical 一致性）PENDING——fault 注入缝缺失已如实登记（D1 债务演进项）。
+5. **REDUNDANCY-ENTRY-01**：reconciliation 冻结（诚实基线：auto failover 类型级不可构造；readiness 轴/hysteresis/Hot-Standby policy/RG/failover_benchmarks 零实现）；RD-01A..E PENDING 不自动 READY。
 
 ## 5. Next Task
 
