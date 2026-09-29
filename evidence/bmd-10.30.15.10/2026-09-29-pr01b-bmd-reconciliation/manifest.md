@@ -24,3 +24,10 @@
 ## 对账结论
 
 `/opt/vbmf/current` 从 `0.1.0-06bc01a`（2026-09-21，RCE-01A/B）对账至 `0.1.0-885b766`（live main @ PR-01A 收口），经 install-manifest provenance 六环链 + rollback/forward 双向演练 + 全栈旅程验收。安装/升级/回滚/运行/观察/恢复全旅程在 exact commit 上成立。
+
+## 事后修正（2026-09-29·PR-STAB-01 准备期间发现）——teardown 遗留进程诚实化
+
+- 上述 teardown 记录的 `pkill -x media-agent` **未能终止全栈旅程的 native gstreamer agent**（PID 3868361，`/tmp/media-agent-885b766-gst` 运行名 `media-agent-885b766-gst` 被 15 字符 comm 截断为 `media-agent-885`，`pkill -x media-agent` 精确匹配失败；"no agent" 判定因此误报）。该进程持续占用 `172.18.0.1:50051` + `127.0.0.1:8080` 直至 PR-STAB-01 soak 探针起不来时被发现。
+- 影响：无对外暴露（50051 仅 bridge IP、8080 loopback；compose 栈已 down、UFW 已撤、key 已 revoke）；不涉及任何媒体设备（DeckLink lease 属进程内存态，进程终止即释放）。
+- 处置：2026-09-29 按 PID 显式 `kill 3868361`（连同后续 probe 残留），复核 `media-agent` 进程零、`50051/8080` 释放、device-2 PID 992634 存活（argv/owner 不变）。
+- 教训登记（对应 STATE 既有 pgrep trap 记录的又一实例）：**终止改名 binary 时必须以启动时记录的 PID 为准，不得依赖 `pkill -x <原始名>`**；后续验收 teardown 模板必须 `kill "$AGENT_PID"` + `ps -p` 复核。
