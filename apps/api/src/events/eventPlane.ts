@@ -22,6 +22,7 @@ import { eventOutbox } from "../db/schema.ts";
 import { gt, asc, sql } from "drizzle-orm";
 import type pg from "pg";
 import type { AgentProjectionWire } from "../agent/types.ts";
+import { applyAlarmProjection } from "../alarms/alarmStore.ts";
 
 /** advisory lock key（任意常量；"VBMF-EVENTS" 的 32 位折叠）。 */
 const EVENT_DRAIN_LOCK_KEY = 0x56424d46;
@@ -115,6 +116,13 @@ export class ProjectionDrainLoop {
           await this.db.insert(eventOutbox).values({
             snapshot: projection as unknown as object,
           });
+          // HI-01A: 同一 drain 的 fault 摘要 → alarm 投影（无 Runtime 写回；
+          // 失败仅记日志，不影响 outbox/drain 主路径）。
+          try {
+            await applyAlarmProjection(this.db, projection);
+          } catch (alarmErr) {
+            this.log.warn({ err: (alarmErr as Error).message }, "alarm projection apply failed");
+          }
         }
         if (this.retentionMs > 0) {
           await this.db.execute(

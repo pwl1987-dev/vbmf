@@ -391,6 +391,10 @@ pub struct ApiProjectionResponse {
     pub session_states: BTreeMap<String, String>,
     pub session_failures: BTreeMap<String, usize>,
     pub has_critical: bool,
+    /// 故障类事件摘要 (HEALTH-INCIDENT-ENTRY-01 D1: additive 扩展; 旧载荷无此字段
+    /// 时反序列化为空——非破坏 versioning)。字段照抄 canonical RuntimeEvent 载荷。
+    #[serde(default)]
+    pub faults: Vec<crate::event_projection::FaultDigest>,
 }
 
 impl From<&EventProjection> for ApiProjectionResponse {
@@ -402,6 +406,7 @@ impl From<&EventProjection> for ApiProjectionResponse {
             session_states: p.session_states.clone(),
             session_failures: p.session_failures.clone(),
             has_critical: p.has_critical,
+            faults: p.faults.clone(),
         }
     }
 }
@@ -743,6 +748,7 @@ mod tests {
             session_states: BTreeMap::new(),
             session_failures: BTreeMap::new(),
             has_critical: false,
+            faults: Vec::new(),
         };
         let pj = serde_json::to_string(&p).unwrap();
         assert!(

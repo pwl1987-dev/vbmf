@@ -36,6 +36,28 @@ pub struct EventProjection {
     pub session_failures: BTreeMap<String, usize>,
     /// 输入中存在过故障类事件 (`RuntimeEvent::is_fault()`)。
     pub has_critical: bool,
+    /// 故障类事件摘要 (HEALTH-INCIDENT-ENTRY-01 D1 修正: additive wire 扩展)。
+    /// 字段照抄 RuntimeEvent canonical 载荷 (无翻译/无归并); 顺序 = 事件序。
+    /// 仅 fault 词表 (`is_fault()`): pipeline_fault / hardware_fault /
+    /// ambiguous_identity / session_failed。观测类事件不入此块。
+    pub faults: Vec<FaultDigest>,
+}
+
+/// 故障类事件的 canonical 摘要 (wire 投影, 供控制面 Alarm 派生; 非 Runtime truth)。
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct FaultDigest {
+    /// canonical kind 字符串 (与 RuntimeEvent serde tag 一致)。
+    pub kind: String,
+    /// related device (hardware_fault / ambiguous_identity)。
+    pub device_id: Option<String>,
+    /// related pipeline (pipeline_fault)。
+    pub pipeline: Option<String>,
+    /// related session (session_failed)。
+    pub session_id: Option<String>,
+    /// 故障摘要/原因原文 (canonical 字符串, vendor 细节已在映射时消化)。
+    pub summary: String,
+    /// 可重试标志 (pipeline_fault 携带; 其余 fault kind 无此语义)。
+    pub retryable: Option<bool>,
 }
 
 /// 纯函数: 事件切片 → 投影。不改事件流、无副作用 (消费侧行为, drain 之后调用)。
@@ -46,9 +68,10 @@ pub fn project(events: &[RuntimeEvent]) -> EventProjection {
     };
     for ev in events {
         let kind = ev.kind().to_string();
-        *p.kind_counts.entry(kind).or_insert(0) += 1;
+        *p.kind_counts.entry(kind.clone()).or_insert(0) += 1;
         if ev.is_fault() {
             p.has_critical = true;
+            p.faults.push(fault_digest(ev, kind));
         }
         match ev {
             RuntimeEvent::SessionStateChanged { session_id, to, .. } => {
@@ -63,6 +86,62 @@ pub fn project(events: &[RuntimeEvent]) -> EventProjection {
         }
     }
     p
+}
+
+/// fault 词表事件 → FaultDigest (字段照抄; 非词表事件不可达——`project` 只对
+/// `is_fault()` 事件调用本函数)。
+fn fault_digest(ev: &RuntimeEvent, kind: String) -> FaultDigest {
+    match ev {
+        RuntimeEvent::PipelineFault {
+            pipeline,
+            summary,
+            retryable,
+        } => FaultDigest {
+            kind,
+            device_id: None,
+            pipeline: Some(pipeline.to_string()),
+            session_id: None,
+            summary: summary.clone(),
+            retryable: Some(*retryable),
+        },
+        RuntimeEvent::HardwareFault { device_id, summary } => FaultDigest {
+            kind,
+            device_id: Some(device_id.to_string()),
+            pipeline: None,
+            session_id: None,
+            summary: summary.clone(),
+            retryable: None,
+        },
+        RuntimeEvent::AmbiguousIdentity {
+            device_id,
+            candidates,
+        } => FaultDigest {
+            kind,
+            device_id: Some(device_id.to_string()),
+            pipeline: None,
+            session_id: None,
+            summary: format!("ambiguous identity: {} candidates", candidates.len()),
+            retryable: None,
+        },
+        RuntimeEvent::SessionFailed { session_id, reason } => FaultDigest {
+            kind,
+            device_id: None,
+            pipeline: None,
+            session_id: Some(session_id.to_string()),
+            summary: reason.clone(),
+            retryable: None,
+        },
+        // 非词表事件: project() 只对 is_fault() 事件折叠 faults——不可达。
+        // 返回带原始 kind 的占位摘要 (防御性, 不 panic)。
+        _ => FaultDigest {
+            kind,
+            device_id: None,
+            pipeline: None,
+            session_id: None,
+            summary: String::new(),
+            retryable: None,
+        },
+    }
 }
 
 #[cfg(all(test, feature = "mock"))]
@@ -146,6 +225,76 @@ mod tests {
         assert!(p1.has_critical);
         // 零副作用: 输入切片仍完整可用 (借用语义 + 未被消费)。
         assert_eq!(events.len(), 4);
+    }
+
+    /// **HEALTH-INCIDENT-ENTRY-01 D1** — faults 摘要块: 仅 fault 词表入块,
+    /// 字段照抄 canonical 载荷 (kind/related/retryable), 顺序 = 事件序,
+    /// 观测类事件不入块; ApiProjectionResponse 透传 (additive wire)。
+    #[test]
+    fn evt_proj_hi01_faults_digest_additive() {
+        let s1 = Uuid::new_v4();
+        let dev = Uuid::new_v4();
+        let pipe = Uuid::new_v4();
+        let events = vec![
+            ev_state_changed(s1, "Running"),
+            RuntimeEvent::PipelineFault {
+                pipeline: pipe,
+                summary: "bus error".into(),
+                retryable: true,
+            },
+            RuntimeEvent::HardwareFault {
+                device_id: dev,
+                summary: "decklink lost".into(),
+            },
+            RuntimeEvent::AmbiguousIdentity {
+                device_id: dev,
+                candidates: vec!["a".into(), "b".into()],
+            },
+            ev_failed(s1),
+        ];
+        let p = project(&events);
+        assert_eq!(p.faults.len(), 4, "仅 fault 词表入块; state_changed 不入");
+        assert_eq!(p.faults[0].kind, "pipeline_fault");
+        assert_eq!(
+            p.faults[0].pipeline.as_deref(),
+            Some(pipe.to_string().as_str())
+        );
+        assert_eq!(p.faults[0].device_id, None);
+        assert_eq!(p.faults[0].summary, "bus error");
+        assert_eq!(p.faults[0].retryable, Some(true));
+        assert_eq!(p.faults[1].kind, "hardware_fault");
+        assert_eq!(
+            p.faults[1].device_id.as_deref(),
+            Some(dev.to_string().as_str())
+        );
+        assert_eq!(
+            p.faults[1].retryable, None,
+            "hardware fault 无 retryable 语义"
+        );
+        assert_eq!(p.faults[2].kind, "ambiguous_identity");
+        assert_eq!(
+            p.faults[2].device_id.as_deref(),
+            Some(dev.to_string().as_str())
+        );
+        assert_eq!(p.faults[3].kind, "session_failed");
+        assert_eq!(
+            p.faults[3].session_id.as_deref(),
+            Some(s1.to_string().as_str())
+        );
+        // wire 透传 + 旧载荷兼容 (serde default → 空 faults)。
+        let api = crate::api_boundary::ApiProjectionResponse::from(&p);
+        assert_eq!(api.faults, p.faults);
+        let legacy = serde_json::json!({
+            "snapshot_kind": "event_projection_snapshot",
+            "total": 1,
+            "kind_counts": {},
+            "session_states": {},
+            "session_failures": {},
+            "has_critical": false
+        });
+        let decoded: crate::api_boundary::ApiProjectionResponse =
+            serde_json::from_value(legacy).expect("旧载荷 (无 faults 字段) 必须可解码");
+        assert!(decoded.faults.is_empty());
     }
 
     /// **丢失语义** — log 满时两级丢弃行为不变; 投影只反映 drain 所见,

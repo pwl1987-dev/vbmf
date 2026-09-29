@@ -64,8 +64,16 @@
 
 ## 3. 冻结决策
 
-- **D1 载体**：Alarm/Incident = **Fastify 投影层派生**（drain 消费点），持久化于 PG 新表
-  `alarms`；不新增 Runtime 代码、不新增 agent 事件 kind、不改 frozen V0.2。
+- **D1 载体（2026-09-29 实施前修正）**：初版"零 Runtime 改动"不成立——drain 消费的
+  `AgentProjectionWire` 是**聚合**（total/kind_counts/has_critical/session_states/
+  session_failures；"RuntimeEvent 原文不出 agent"），无 device/summary/retryable 字段，
+  无法派生 D2 字段。修正裁决：**agent 侧 additive wire 扩展**——`EventProjection`
+  纯函数增 `faults: Vec<FaultDigest>`（kind/device_id/pipeline/summary/retryable，
+  canonical 字段照抄 RuntimeEvent，无翻译），`ApiProjectionResponse`（internal
+  `events.projection` + prototype 投影）增可选 `faults` 块；既有字段逐字不动、
+  SSE/outbox consumer 不受影响（additive 非破坏）。Alarm 投影引擎仍在 Fastify
+  drain 点（PG `alarms` 表）；Runtime 决策语义零改动；EVENT_CONTRACT"Projection 层
+  翻译/过滤/投影"语义内。
 - **D2 模型（最小字段，全部可从事件流/命令面取得）**：
   `alarm_id` / `fingerprint`（kind+failure_domain+related 主键去重键）/ `severity`
   （warning|error）/ `kind`（触发事件 kind）/ `failure_domain`

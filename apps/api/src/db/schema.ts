@@ -31,6 +31,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /** C8 冻结词表：pending（claimed 未终态）/ completed / failed / timeout / conflict / rejected。 */
 export const commandState = pgEnum("command_state", [
@@ -236,5 +237,71 @@ export const apiKeys = pgTable(
     index("api_keys_key_idx").on(t.key),
     index("api_keys_reference_id_idx").on(t.referenceId),
     index("api_keys_config_id_idx").on(t.configId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// alarms（HEALTH-INCIDENT-ENTRY-01 HI-01A）。
+//
+// Alarm = **投影层派生事实**（drain 点从 agent faults 摘要块折叠），不是
+// Runtime truth——媒体生命周期/恢复决策归 Runtime/Supervisor/canonical
+// command（红线：本表无任何写回 Runtime 的路径）。operator ACK 仅是
+// awareness state（ack_at/ack_by/ack_note 三字段），绝不解释为 Runtime
+// healthy 或故障消失。recovery_status 由投影层从事件序列机械推断
+// （规则见 alarms/alarmProjection.ts，判定输入存 evidence 可审计）。
+// ---------------------------------------------------------------------------
+
+/** 派生严重级（机械映射：retryable pipeline fault=warning，其余 fault=error）。 */
+export const alarmSeverity = pgEnum("alarm_severity", ["warning", "error"]);
+
+/** 投影层恢复状态推断（active=未清；escalating=backoff 窗口内复发；recovered=清）。 */
+export const alarmRecovery = pgEnum("alarm_recovery_status", [
+  "active",
+  "escalating",
+  "recovered",
+]);
+
+export const alarms = pgTable(
+  "alarms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** 派生去重键：kind + failure_domain + related 主标识。 */
+    fingerprint: text("fingerprint").notNull(),
+    severity: alarmSeverity("severity").notNull(),
+    /** 触发事件 kind（fault 词表，canonical）。 */
+    kind: text("kind").notNull(),
+    /** 失败域（source|pipeline|hardware|identity|session|resource 机械映射）。 */
+    failureDomain: text("failure_domain").notNull(),
+    relatedSessionId: uuid("related_session_id"),
+    relatedDeviceId: uuid("related_device_id"),
+    relatedPipelineId: uuid("related_pipeline_id"),
+    /** 事件 summary/reason 原文（canonical，不翻译）。 */
+    summary: text("summary").notNull(),
+    /** PipelineFault retryable；其余 kind null。 */
+    retryable: boolean("retryable"),
+    recoveryStatus: alarmRecovery("recovery_status").notNull().default("active"),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    /** 同 fingerprint 复发计数（含首次）。 */
+    eventCount: integer("event_count").notNull().default(1),
+    active: boolean("active").notNull().default(true),
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+    /** cleared=恢复事件驱动 | superseded=同 fingerprint 新行接管（登记用）。 */
+    clearReason: text("clear_reason"),
+    /** 判定输入快照（触发 fault digest + clear/复发判定依据；审计用）。 */
+    evidence: jsonb("evidence").notNull(),
+    // ACK = operator awareness only（红线：不改变 active/恢复状态）。
+    ackAt: timestamp("ack_at", { withTimezone: true }),
+    ackBy: text("ack_by"),
+    ackNote: text("ack_note"),
+  },
+  (t) => [
+    // Partial unique：同 fingerprint 至多一行 active（cleared 历史行不受约束，
+    // 复发重开为新行，历史保留）。
+    uniqueIndex("alarms_fingerprint_active_idx")
+      .on(t.fingerprint)
+      .where(sql`${t.active}`),
+    index("alarms_active_idx").on(t.active),
+    index("alarms_last_seen_idx").on(t.lastSeenAt),
   ],
 );

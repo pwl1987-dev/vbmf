@@ -52,4 +52,21 @@ export interface AgentProjectionWire {
   session_states: Record<string, string>;
   session_failures: Record<string, number>;
   has_critical: boolean;
+  /**
+   * HEALTH-INCIDENT-ENTRY-01 D1（additive；旧 agent 载荷无此字段）：故障类
+   * 事件 canonical 摘要。字段照抄 RuntimeEvent 载荷（无翻译/无归并）；
+   * 仅 fault 词表（pipeline_fault/hardware_fault/ambiguous_identity/
+   * session_failed），顺序 = 事件序。
+   */
+  faults?: AgentFaultDigest[];
+}
+
+/** agent `events.projection` 的故障摘要块（canonical 照抄；非 Runtime truth）。 */
+export interface AgentFaultDigest {
+  kind: string;
+  device_id?: string | null;
+  pipeline?: string | null;
+  session_id?: string | null;
+  summary: string;
+  retryable?: boolean | null;
 }
