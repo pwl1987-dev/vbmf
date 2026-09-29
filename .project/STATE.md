@@ -41,7 +41,7 @@ Agent foundation（2026-09-15 复核）：`/home/ubuntu/dev/_shared/bin/agent-pr
 
 ## 2. Current Phase
 
-**Runtime Features ACTIVE；RF-FF-02/RF-FF-03 + RH-CLOCK-01 + RF-NORM-01 + RF-MASTER-01 + RF-SRC-RTMP-01 COMPLETE；RF-SRC-01 BLOCKED；RF-SRC-RTMP-02 COMPLETE（closure reconciliation 已收口·§3.60）；STANDALONE-ENTRY-01 全链 COMPLETE（SE-01A/SE-01C/SE-01D/SE-01B·§3.62–§3.65 + SE-01B-FIX reconciliation 收口·§3.66–§3.67）；RUNTIME-CONTROL-ENTRY-01 全链 COMPLETE（§3.68–§3.70）+ RCE-D3 COMPLETE（§3.71）+ CONTROL-PLANE-ENTRY-01 PLAN FROZEN（§3.72·C1–C14）+ **CP-01A COMPLETE（§3.73·2026-09-23）+ CP-01B COMPLETE（§3.74·2026-09-23·RH-IDEM-01 清偿）+ CP-01C COMPLETE（§3.75·2026-09-24·Auth/RBAC/限流/审计硬化）+ CP-01D COMPLETE（§3.76·2026-09-24·Event plane）+ CP-01E COMPLETE（§3.77·2026-09-25·全栈/BMD 集成验收）→ **CONTROL-PLANE-ENTRY-01 全链 COMPLETE**；**PRODUCTION-READINESS-ENTRY-01 PLAN FROZEN（§3.84·2026-09-29·Reality Review + Production Core Dependency Rule）；当前 READY = PR-01A（§4/§5.1）**
+**Runtime Features ACTIVE；RF-FF-02/RF-FF-03 + RH-CLOCK-01 + RF-NORM-01 + RF-MASTER-01 + RF-SRC-RTMP-01 COMPLETE；RF-SRC-01 BLOCKED；RF-SRC-RTMP-02 COMPLETE（closure reconciliation 已收口·§3.60）；STANDALONE-ENTRY-01 全链 COMPLETE（SE-01A/SE-01C/SE-01D/SE-01B·§3.62–§3.65 + SE-01B-FIX reconciliation 收口·§3.66–§3.67）；RUNTIME-CONTROL-ENTRY-01 全链 COMPLETE（§3.68–§3.70）+ RCE-D3 COMPLETE（§3.71）+ CONTROL-PLANE-ENTRY-01 PLAN FROZEN（§3.72·C1–C14）+ **CP-01A COMPLETE（§3.73·2026-09-23）+ CP-01B COMPLETE（§3.74·2026-09-23·RH-IDEM-01 清偿）+ CP-01C COMPLETE（§3.75·2026-09-24·Auth/RBAC/限流/审计硬化）+ CP-01D COMPLETE（§3.76·2026-09-24·Event plane）+ CP-01E COMPLETE（§3.77·2026-09-25·全栈/BMD 集成验收）→ **CONTROL-PLANE-ENTRY-01 全链 COMPLETE**；**PRODUCTION-READINESS-ENTRY-01 PLAN FROZEN（§3.84·2026-09-29·Reality Review + Production Core Dependency Rule）；PR-01A/PR-01B COMPLETE（§3.85）+ HEALTH-INCIDENT-ENTRY-01 全链 COMPLETE（§3.86–§3.87）；当前 = PR-STAB-01 IN PROGRESS（PRE-HI baseline 8h 收口中 + current-main 新 ladder PENDING·§3.88）+ RD-01A planning-only 并行（§4/§5.1）**
 
 Phase 2 与 STAB-O3.1/O4 均已收口；本阶段只处理进入 Runtime Features 前会扩大故障面的关键 hardening。采用“按依赖按需清偿”而非一次清空全部历史债务：已被 BMD 实证的多输入 Bus/故障观测缺陷最高优先，随后是会被新 Source/Output 生命周期放大的 D1/D3/D7；D11+D13 在 Clock/Timecode 下一触碰点前清偿，D15 在多流 Audio/Metadata 前清偿，durable idempotency 在外部持久控制面前清偿。
 
@@ -1532,19 +1532,47 @@ Status: **2h RUNG PASS 10/10（谓词 v2，exact `ec5fc68` binary）；HI-01E CO
 - teardown 零残留（显式 PID kill + `down -v` + UFW 撤 + /tmp 清理 + 0 容器）；device-2 红线 before/after 完好（25d7h+ 连续）。
 - 诚实边界登记：真机可控 RuntimeEvent fault 注入缝不存在（gates-only）；agent 停止=依赖不可达不发事件；bootstrap lease 60s 窗口语义已知非缺陷。
 
+## 3.88 PR-STAB-01 BASELINE RECONCILIATION + STATE 控制面对齐（2026-09-29·用户指令）
+
+Status: **RECONCILED（docs-only；历史证据全部保留）**
+
+### exact-commit 事实（协调者独立确认 + 本轮冷启动复核一致）
+
+- `git diff ec5fc68..9e68043 -- services/media-agent`：唯一变化在 `309c3e1`（HI-01A faults wire）——`api_boundary.rs` +6 / `event_projection.rs` +151（`EventProjection.faults` / `FaultDigest` / `ApiProjectionResponse.faults`，additive），合计 **+156/-1，并非 docs-only**；
+- `git diff 309c3e1..9e68043 -- services/media-agent`：**空**（HI-01A 之后 media-agent 源码零推进；`a55c671` 仅 api test helper，TS 侧）；
+- 因此 §3.87 的 2h/8h soak binary（ec5fc68 build tree）**不能证明 current main（9e68043）stability**——这是 Verification Authority 口径问题，不是 soak 无价值。
+
+### 处置（裁决）
+
+1. **在跑的 8h 不停止**：14:47Z 只读核验健康（driver `soak-run.sh` + agent PID 3908949 活、104/960 cycles、sw_epoch 逐 +1、frames_v/a 递增、dropped=0 clock_lost=0、watchdog tick 递增、events 全部 `critical=False`、switch executed+preserved、observed==target、device-2 PID 992634 完好）——按原十项谓词 v2 自然收口；
+2. **verdict 口径**：ec5fc68 2h/8h 证据统一记为 **PRE-HI RUNTIME BASELINE**（regression/comparison evidence，保留不删）；8h PASS 只能写 "PRE-HI RUNTIME BASELINE 8h PASS"，不得写 current-main stability verified；
+3. **ec5fc68 24h NOT RUN**：runtime source advanced at `309c3e1`，旧 baseline ladder 在 8h 后 STOP progression——"不跑旧 24h" 是 superseded baseline 结论，不是失败；
+4. **current Runtime stability 正式 baseline 重立**：新 ladder 从最新 canonical HEAD（含 HI-01A Rust wire）重新 **2h→8h→24h 全跑**；启动前必须重新证明 `git diff 309c3e1..HEAD -- services/media-agent` 为空；从该 HEAD 生成 exact archive/artifact 并记录 git SHA / archive checksum / binary sha256 / manifest checksum / build features / BMD environment / DeckLink identities / device-2 PID·argv·owner；谓词 v2 十项与 `r64-stability-long.sh` 原样，gate 不放宽（禁 malloc_trim / 放宽 +50MB / 换采样 / 减 workload / 降 switch 频率）；
+5. **Runtime freeze window**：自新 2h rung 启动至 24h closure 前，`services/media-agent/**`、影响 agent 的 `Cargo.toml`/`Cargo.lock`、media runtime scripts、BMD Runtime configuration semantics 原则冻结；仅 stability RCA 必需修复可改，改则当前 ladder 作废→记录 evidence→修复→focused regression→exact-head CI→受影响 rung 重跑；
+6. **STABILITY VERIFIED 门槛**：新 ladder 2h+8h+24h 全 PASS 且绑定 exact commit/binary hash/BMD environment/hardware/scope 后才可写；此后仅 docs/control-plane 变化且 media-agent artifact 可证 bit-identical 时，可记 "Runtime stability evidence remains applicable to identical media-agent binary"，不得笼统写整 repository HEAD stability verified。
+
+### 并行推进边界（soak/freeze 期间）
+
+- 允许：RD-01A planning-only（细化 planning/reconciliation，不编码）、docs、read-only architecture/code audit、test-design、acceptance/failure matrix、STATE 一致性维护；
+- 禁止（避免重改变 stability target）：RD-01A Runtime implementation、watchdog 行为改动、switch execution 改动、readiness Runtime state 写入、hysteresis implementation、Redundancy Group Runtime wiring、auto failover implementation。
+
+### 优先级链（用户 2026-09-29 指令 §19）
+
+STATE-CONTROL-PLANE-RECONCILIATION（本节）→ ec5fc68 8h 自然收口 → RD-01A planning only → current Runtime exact baseline 2h → 8h → 24h → STABILITY VERIFIED closure → RD-01A implementation。
+
 ## 4. Current Task
 
-**PR-STAB-01 = 2h PASS（10/10·§3.87）→ 8h IN PROGRESS（960 cycles，BMD `~/a2-8-02i-evidence/2026-09-29-pr-stab-01-8h`，预计 2026-09-30 早晨）→ 24h PENDING；HEALTH-INCIDENT-ENTRY-01 全链（HI-01A..01E）COMPLETE（§3.86/§3.87）；REDUNDANCY-ENTRY-01 reconciliation 冻结（§5.1，RD 子包 PENDING）**
+**PR-STAB-01 = PRE-HI RUNTIME BASELINE 2h PASS（10/10·§3.87）→ 8h IN PROGRESS（ec5fc68 binary·960 cycles·BMD `~/a2-8-02i-evidence/2026-09-29-pr-stab-01-8h`·预计 2026-09-30 早晨自然收口）→ 旧 baseline 24h NOT RUN（STOP progression·§3.88）→ current-main 新 ladder（2h→8h→24h 全重跑）PENDING；并行 RD-01A planning-only（§5.1）；HEALTH-INCIDENT-ENTRY-01 全链（HI-01A..01E）COMPLETE（§3.86/§3.87）；REDUNDANCY-ENTRY-01 plan frozen（§5.1）**
 
 1. **PR-01A COMPLETE**（§3.85·`885b766`）：Production Core Compose Truth——optional profiles + 死依赖清除 + honest-fail 双证 + SDK 旅程 10/10。
 2. **PR-01B COMPLETE**（§3.85·`885b766` BMD 全旅程）：`/opt/vbmf/current -> 0.1.0-885b766`，provenance 六环链 + rollback/forward + teardown（含 §3.85 事后修正教训）。
-3. **PR-STAB-01**：2h rung **PASS 10/10**（RSS +1.6MB vs gate +50MB；谓词 v2 原样复刻）；8h 运行中；24h 后继。FAIL 路径纪律不变（evidence→RCA→最小修复→重跑受影响梯级）；**24h PASS 前不得写 stability verified**。
+3. **PR-STAB-01**：**exact-commit 口径已修正（§3.88）**——2h/8h 属 **PRE-HI RUNTIME BASELINE**（binary = ec5fc68；HI-01A `309c3e1` 后 media-agent Rust 已推进 +156/-1）；2h PASS 10/10（RSS +1.6MB vs gate +50MB）；8h 自然跑完（不打断），verdict 只能写 PRE-HI RUNTIME BASELINE 8h PASS；**旧 baseline 24h NOT RUN（runtime source advanced）**；current-main 新 ladder 从最新 canonical HEAD 重新 2h→8h→24h（启动前证 `git diff 309c3e1..HEAD -- services/media-agent` 为空 + exact artifact 钉扎）；FAIL 路径纪律不变；**新 24h PASS 前不得写 stability verified**。
 4. **HEALTH-INCIDENT-ENTRY-01 COMPLETE**（§3.86+§3.87）：HI-01A..D 软件+CI、VM 全栈旅程、HI-01E BMD bounded（真机 fault→alarm→recovery→clear 真实链 + Browser canonical + teardown 零残留）。
-5. **REDUNDANCY-ENTRY-01**：reconciliation 冻结（诚实基线：auto failover 类型级不可构造；readiness 轴/hysteresis/Hot-Standby policy/RG/failover_benchmarks 零实现）；RD-01A..E PENDING——8h/24h 长跑期间可推进 RD-01A 细化 planning（不编码）。
+5. **REDUNDANCY-ENTRY-01**：plan frozen（诚实基线：auto failover 类型级不可构造；readiness 轴/hysteresis/Hot-Standby policy/RG/failover_benchmarks 零实现）；**RD-01A planning-only 并行推进中（用户 2026-09-29 指令；只 planning 不编码，Runtime 写入面冻结见 §3.88 并行边界）**；RD-01B..E 待 RD-01A planning 收口。
 
 ## 5. Next Task
 
-**PR-STAB-01（READY·见 §5.1）—— soak 长跑期间并行 HEALTH-INCIDENT-ENTRY-01 planning（不空等）→ HEALTH-INCIDENT-ENTRY-01 → REDUNDANCY-ENTRY-01**——链与依据见 §3.84 / plan §6；顺序如 Reality Audit 证据要求可调，但必须写明依据。
+**RD-01A planning-only（READY·见 §5.1·soak 期间并行，不空等）→ ec5fc68 8h 自然收口（PRE-HI BASELINE 口径·§3.88）→ current-main 新 ladder 2h→8h→24h → STABILITY VERIFIED closure → RD-01A implementation**——顺序与依据见 §3.88 优先级链 / §3.84 plan §6；顺序如 Reality Audit 证据要求可调，但必须写明依据。
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
@@ -1619,9 +1647,9 @@ P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance
 | **PRODUCTION-READINESS-ENTRY-01** | **COMPLETE — PLAN FROZEN（§3.84·2026-09-29）** | Post-SDK Reality Review：12-Engine/H/X Capability Reality Matrix + 生产编排 audit（Fastify 唯一外部依赖=PostgreSQL；六个死变量+placeholder worker+失效镜像阻塞 core）+ **Production Core Dependency Rule 冻结**（core=db/media-agent/fastify/web/nginx；storage/gateway/worker=optional profiles）+ packet 链 + 六维真实完成度矩阵 | 用户 2026-09-29 指令 | plan=`docs/superpowers/plans/2026-09-29-production-readiness-entry-01-planning.md`；frozen Contract 零修改 |
 | **PR-01A** | **COMPLETE（§3.85·2026-09-29·exact `885b766` 双 lane CI 绿）** | Production Core Compose Truth：optional profiles 化 + fastify 死依赖/死变量清除 + PR01A 结构 gate + worker placeholder honest-fail 修复 + ops 文档同步 | PRODUCTION-READINESS-ENTRY-01 plan frozen | 已满足（config×N/core 独立 up/SDK 旅程 10/10/optional honest-fail 双证/65+69+29 测试/gates/Rust 零改动） |
 | **PR-01B** | **COMPLETE（§3.85·2026-09-29·exact `885b766` BMD 全旅程 + rollback/forward + teardown 零残留）** | Current-main BMD Deployment Reconciliation：exact archive + versioned install + install-manifest + atomic current + rollback/forward；不动 `/opt/vbmf-dev/repo`；device-2 红线 before/after | PR-01A COMPLETE | 已满足（`/opt/vbmf/current -> 0.1.0-885b766`；evidence `evidence/bmd-10.30.15.10/2026-09-29-pr01b-bmd-reconciliation/`） |
-| **PR-STAB-01** | **IN PROGRESS（2h PASS 10/10 §3.87；8h 运行中；24h PENDING）** | Current Main Stability Rebaseline：2h→8h→24h 原阶梯原 gate（`rss_bounded` +50MB 不放宽；禁 malloc_trim 掩盖/采样变更造绿）；soak 驱动 = 历史 `r64-stability-long.sh` 原样复刻（谓词 v2 十项逐字），仅环境适配（VBMF_MACHINE_ID·SE-01D 后必需；build 树路径） | PR-01A COMPLETE | 24h PASS 前不得写 stability verified；旧 FAIL 9/10 立档不覆盖；FAIL 则 evidence→RCA→最小正确处理→重跑受影响梯级 |
+| **PR-STAB-01** | **IN PROGRESS（2h PASS 10/10 §3.87 = PRE-HI RUNTIME BASELINE @ ec5fc68；8h 运行中（自然收口）；旧 baseline 24h NOT RUN；current-main 新 ladder 2h→8h→24h PENDING·§3.88）** | Stability Rebaseline 双层口径：①ec5fc68 旧 baseline——2h/8h 证据保留为 regression/comparison evidence，8h 自然跑完按 PRE-HI RUNTIME BASELINE verdict 收口，STOP before 24h；②current-main 新 ladder——从最新 canonical HEAD（含 HI-01A Rust wire）重新 2h→8h→24h 原阶梯原 gate（`rss_bounded` +50MB 不放宽；禁 malloc_trim 掩盖/采样变更造绿/减 workload/降 switch 频率）；启动前证 `git diff 309c3e1..HEAD -- services/media-agent` 为空 + exact archive/binary/manifest 钉扎 + BMD env/DeckLink/device-2 记录；新 2h 启动起 Runtime freeze window（§3.88 处置 5）；soak 驱动 = 历史 `r64-stability-long.sh` 原样复刻（谓词 v2 十项逐字），仅环境适配（VBMF_MACHINE_ID·SE-01D 后必需；build 树路径） | PR-01A COMPLETE | 新 ladder 24h PASS 前不得写 stability verified；ec5fc68 证据不得写成 current-main stability；旧 FAIL 9/10 立档不覆盖；FAIL 则 evidence→RCA→最小正确处理→重跑受影响梯级 |
 | **HEALTH-INCIDENT-ENTRY-01** | **COMPLETE — 全链 HI-01A..01E（§3.86+§3.87·2026-09-29）** | Alarm/Incident 从 RuntimeEvent/Supervisor/Health projection **派生投影**（禁止第二 Runtime 状态机；恢复归 Runtime/Supervisor/canonical command）；alarm identity/severity/failure domain/first_seen/last_seen/active-cleared/retryable-manual-required/related/recovery status/evidence；operator ACK = awareness state only；Fastify Product API → SDK → Web Console Alarms 页；plan=`docs/superpowers/plans/2026-09-29-health-incident-entry-01-planning.md`（16-kind 映射表 + D1-D7 决策 + HI-01A..01E 子包 + §16 旅程验收锚） | 用户 2026-09-29 指令 §13–§16 | fault→alarm→actual degraded→recovery→cleared→reload canonical 收敛全旅程（非本地 React 状态）；frozen Contract 零修改（additive 资源按 V0.2 §5 incidents/X4 Authority + versioning 非破坏条款，ADR 登记） |
-| **REDUNDANCY-ENTRY-01** | **PLAN FROZEN（2026-09-29·reconciliation complete；RD-01A..01E 子包 PENDING 不自动 READY）** | 诚实基线：auto failover 类型级不可构造（watchdog 冻结 #10 不推翻）；readiness 轴（READY_TO_TAKE）/failover+failback hysteresis/Hot-Standby COLD-WARM-HOT policy/failover_benchmarks/Redundancy Group **零实现**；**Redundancy/Hot-Standby/Auto-Failover 均 ≠ COMPLETE**；实现原则链冻结（policy permits→READY_TO_TAKE→preflight→hysteresis→canonical command→observation→incident evidence）；plan=`docs/superpowers/plans/2026-09-29-redundancy-entry-01-planning.md` | HEALTH-INCIDENT-ENTRY-01 边界稳定后（RD 子包细化另冻结） | §3 原则链逐环可验收；禁止 watchdog/adapter/UI 自行倒换 |
+| **REDUNDANCY-ENTRY-01** | **PLAN FROZEN（2026-09-29·reconciliation complete）+ RD-01A PLANNING-ONLY ACTIVE（并行·用户 2026-09-29 指令·只 planning 不编码）** | 诚实基线：auto failover 类型级不可构造（watchdog 冻结 #10 不推翻）；readiness 轴（READY_TO_TAKE）/failover+failback hysteresis/Hot-Standby COLD-WARM-HOT policy/failover_benchmarks/Redundancy Group **零实现**；**Redundancy/Hot-Standby/Auto-Failover 均 ≠ COMPLETE**；实现原则链冻结（policy permits→READY_TO_TAKE→preflight→hysteresis→canonical command→observation→incident evidence）；plan=`docs/superpowers/plans/2026-09-29-redundancy-entry-01-planning.md`；RD-01A planning 范围 = 重读 ARCHITECTURE_V0.2 §3/§8 + live watchdog/switch/runtime_state 等 owner map、Readiness≠Health 三轴（Lifecycle/Readiness/Health）语义、failure-first matrix、RD-01B..E 分解核对；**禁止**（§3.88 并行边界）：Runtime 实现/watchdog 行为/switch execution/readiness 写入/hysteresis/RG wiring/auto failover | HEALTH-INCIDENT-ENTRY-01 边界稳定（已满足） | §3 原则链逐环可验收；禁止 watchdog/adapter/UI 自行倒换；RD-01A planning 产出须冻结后 RD-01B..E 才可逐包转 READY |
 | **STANDALONE** | **FOUNDATION COMPLETE — SE-01A/C/D/B 全链（§3.62–§3.67）；剩余子能力已移交 Production Readiness 链** | 版本化安装+atomic current+rollback+readiness/shutdown 语义已 BMD 实证 @ `a238558`；production compose 真值化 → PR-01A；current-main BMD 对账 → PR-01B | — | umbrella 不再作为独立 READY 来源 |
 | **CONTROL-PLANE** | **PRODUCT FOUNDATION COMPLETE — CP-01A..01E 全链（§3.73–§3.77）** | Product API/Auth/RBAC/限流/审计/Event plane（SSE+cursor）= COMPLETE（含 BMD 集成验收）；**Worker/BullMQ = DEFERRED**（无当前 consumer；Production Core Dependency Rule 裁决为 optional `worker` profile，禁止为绿灯临时实现） | — | Rust Runtime remains truth；Fastify 不拥有媒体生命周期 |
 | **VBMF-SDK** | **PARTIAL — TypeScript COMPLETE（SDK-ENTRY-01·§3.83）；npm publish = DEFERRED；Python/Rust = BACKLOG** | TS `@vbmf/sdk`（schema 单源派生+client+SSE+Web Console dogfood+CI lane+npm pack 自包含）全链 COMPLETE | — | 不暴露 Rust/GStreamer/FFmpeg/vendor/DB internals |
@@ -1711,6 +1739,11 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 
 **NOT VERIFIED / verification debt remains.**
 
+PR-STAB-01 当前口径（§3.88 baseline reconciliation 后）：
+
+- ec5fc68 **PRE-HI RUNTIME BASELINE**：2h PASS 10/10（§3.87）；8h 运行中（自然收口，verdict 只能写 PRE-HI RUNTIME BASELINE 8h PASS）；24h NOT RUN（runtime source advanced at `309c3e1`）——保留作 regression/comparison evidence，**不证明 current main stability**；
+- current-main 新 ladder：PENDING——最新 canonical HEAD 重新 2h→8h→24h（启动前证 `git diff 309c3e1..HEAD -- services/media-agent` 为空 + exact artifact 钉扎）；新 24h PASS 前 stability 仍是 debt。
+
 已登记 Step 15 历史：
 
 - 2h rung PASS；
@@ -1736,7 +1769,7 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 
 ### Active risks
 
-1. **24h RSS stability debt**：`rss_bounded` 历史 FAIL 尚未由最终修复 + 新 24h rung 关闭。
+1. **24h RSS stability debt + exact-commit 纪律**：`rss_bounded` 历史 FAIL 尚未由最终修复 + 新 24h rung 关闭；且 ec5fc68 soak 证据（2h/8h）只属 PRE-HI RUNTIME BASELINE，**不得冒充 current-main stability**——current-main 须以含 HI-01A Rust wire 的 canonical HEAD 重新走 2h→8h→24h（§3.88）；新 ladder 期间 Runtime freeze window 防"stability 永远追不上 main"。
 2. **P2-C toolchain prerequisite — CLOSED**：双机 exact 1.98.1 pin + current-SHA 收口 + parity re-probe 全部完成（§3.6/§3.7/§3.8）。P2-C4 迁 `rust-format.runs-on` 前置满足；self-hosted job env 必须带显式 `RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo`（§3.6 RCA，probe 已实证不带则报错）。
 3. **shared physical failure domain**：`vbmf-ci-01` 与 `vbmf-ci-02` 同 devbox 物理故障域，只提供维护冗余/并发/parity，不等价于物理 HA。
 4. **BMD deployment divergence — RECONCILED（2026-09-29·PR-01B·§3.85）**：`/opt/vbmf/current -> 0.1.0-885b766`（live main @ PR-01A 收口），exact provenance 六环链 + 全栈旅程 + rollback/forward 验收完成；`/opt/vbmf-dev/repo`（7cc33dd 未提交 ops 改动）仍未触碰（保育，非 Authority）。后续 main 推进后仍须按 PR-01B 模式重新对账，hardware evidence 不跨 commit 继承。
@@ -1771,7 +1804,7 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 
 ## 9. Verification Debt
 
-- 24h stability：需要在 RCA / fix 真正关闭后重新跑完整 24h rung；旧 FAIL 不得被短跑或诊断 run 覆盖。
+- 24h stability：需要在 RCA / fix 真正关闭后重新跑完整 24h rung；旧 FAIL 不得被短跑或诊断 run 覆盖；**current-main stability ladder 须整体重跑（§3.88）**——ec5fc68 证据属 PRE-HI baseline，新 ladder 从含 HI-01A Rust wire 的 canonical HEAD 由 2h 重新开始（2h→8h→24h），STABILITY VERIFIED 必须绑定 exact commit/binary hash/BMD environment/hardware/scope。
 - branch rename hygiene：**P2-B CLOSED**；workflow/runbook 操作性路径已统一 `main`，required context 名称未变。
 - P2-C/P2-D/P2-E：全部收口（§3.6–§3.13）。fork `runs-on` 分支未 live 实测（无现成 fork PR），已在 §3.9 登记残余风险与核验口径。
 - runner 出网稳定性：codeload 缓解已从 rerun 升级为 immutable Action archive cache，并已在 general×2 + media×1 probe 及 required CI `35248227420` 7/7 验证；残余仅为持续观察 archive cache miss/Action SHA 更新流程，不再是未实施 Verification Debt。
@@ -1794,9 +1827,9 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 3. 读取 live `main` HEAD；
 4. 读取本 `.project/STATE.md`；
 5. 找到“包含当前 STATE 版本的 commit”，比较 live HEAD 是否有更新；若有，只 reconcile STATE 之后的新 commits；
-6. 读取 **Current Task = PR-01A Production Core Compose Truth（READY·用户 2026-09-29 裁决 PRODUCTION-READINESS-ENTRY-01·§3.84 plan §7）**——SDK-ENTRY-01 已 COMPLETE（§3.83·exact `144ea60`）；RCE 全链 + RCE-D3（§3.71）+ CONTROL-PLANE-ENTRY-01（§3.72–§3.77）+ WEB-CONSOLE-ENTRY-01（§3.80·BMD RUNTIME ACCEPTED 2026-09-29）+ WEB-CONSOLE-BMD-ACCEPTANCE-01（§3.82·exact `dc780c8`）已全链收口；链 PR-01A→PR-01B→PR-STAB-01→HEALTH-INCIDENT-ENTRY-01→REDUNDANCY-ENTRY-01（§5.1）；deferred 项未经新裁决不得擅入（历史 Authority 链含：`/api/v1/*`=prototype 裁定、internal=JSON-RPC@`/internal/v1/*`、两平面语义映射、RH-IDEM 维持 DEFER；frozen Contract 零修改）。历史 Authority 链备查：`docs/superpowers/plans/2026-09-19-standalone-entry-01-planning.md` + `docs/superpowers/plans/2026-09-20-runtime-control-entry-01-planning.md`（D1–D8/F1–F10）+ `docs/architecture/STANDALONE_MEDIA_AGENT_OPERATIONS.md` + SE 系列四份收口报告 + SE-01B-FIX reconciliation 报告 + RUNTIME_RESOURCE_MODEL/RUNTIME_SESSION_MODEL/RUNTIME_BINDING_MODEL + `MEDIA_BACKEND_CONTRACT.md`；
+6. 读取 **Current Task = PR-STAB-01 IN PROGRESS（§3.88·PRE-HI RUNTIME BASELINE 8h 收口中 + current-main 新 ladder PENDING）+ RD-01A planning-only 并行（§4/§5.1）**——SDK-ENTRY-01 已 COMPLETE（§3.83·exact `144ea60`）；PR-01A/PR-01B（§3.85·exact `885b766`）+ HEALTH-INCIDENT-ENTRY-01 全链（§3.86–§3.87）已 COMPLETE；当前链 = ec5fc68 8h 自然收口 → current-main 新 ladder 2h→8h→24h → STABILITY VERIFIED → RD-01A implementation（§3.88 优先级链）；deferred 项未经新裁决不得擅入（历史 Authority 链含：`/api/v1/*`=prototype 裁定、internal=JSON-RPC@`/internal/v1/*`、两平面语义映射、RH-IDEM 维持 DEFER；frozen Contract 零修改）。历史 Authority 链备查：`docs/superpowers/plans/2026-09-19-standalone-entry-01-planning.md` + `docs/superpowers/plans/2026-09-20-runtime-control-entry-01-planning.md`（D1–D8/F1–F10）+ `docs/architecture/STANDALONE_MEDIA_AGENT_OPERATIONS.md` + SE 系列四份收口报告 + SE-01B-FIX reconciliation 报告 + RUNTIME_RESOURCE_MODEL/RUNTIME_SESSION_MODEL/RUNTIME_BINDING_MODEL + `MEDIA_BACKEND_CONTRACT.md`；
 7. 核对 P2-C implementation chain through `0f375c8…`、maintenance failure `34921727757`、encrypted route probes 与最新 `media-agent CI`（P2-M2 后 `gstreamer-build` 应 @vbmf-media 且 artifact 非空）；
-8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个 `READY` Work Packet；RF-ENTRY-01、RF-FF-01A、RF-FF-01B、RF-FF-01C、RF-FF-01D、RF-FF-01E、RF-FF-01F、RF-FF-02、RF-FF-03、RH-CLOCK-01、RF-NORM-01、RF-MASTER-01、RF-SRC-RTMP-01 与对应 adjudication 已 COMPLETE；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·严格 D10 进程级 BMD 重验）**；STANDALONE-ENTRY-01 planning 已冻结（§3.61）、SE-01A（§3.62）、SE-01C（§3.63）、SE-01D（§3.64）、SE-01B（§3.65 + reconciliation §3.66–§3.67）全链完成；CONTROL-PLANE 全链 COMPLETE（§3.72–§3.77）；REPO-MIGRATION-01 COMPLETE（§3.81）；**WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82）+ SDK-ENTRY-01 COMPLETE（§3.83）+ PRODUCTION-READINESS-ENTRY-01 PLAN FROZEN（§3.84）→ 当前 READY = PR-01A，链 PR-01A→PR-01B→PR-STAB-01→HEALTH-INCIDENT-ENTRY-01→REDUNDANCY-ENTRY-01**；PORT-COLLISION-01 登记 BACKLOG 不越级；
+8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个 `READY` Work Packet；RF-ENTRY-01、RF-FF-01A、RF-FF-01B、RF-FF-01C、RF-FF-01D、RF-FF-01E、RF-FF-01F、RF-FF-02、RF-FF-03、RH-CLOCK-01、RF-NORM-01、RF-MASTER-01、RF-SRC-RTMP-01 与对应 adjudication 已 COMPLETE；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·严格 D10 进程级 BMD 重验）**；STANDALONE-ENTRY-01 planning 已冻结（§3.61）、SE-01A（§3.62）、SE-01C（§3.63）、SE-01D（§3.64）、SE-01B（§3.65 + reconciliation §3.66–§3.67）全链完成；CONTROL-PLANE 全链 COMPLETE（§3.72–§3.77）；REPO-MIGRATION-01 COMPLETE（§3.81）；**WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82）+ SDK-ENTRY-01 COMPLETE（§3.83）+ PRODUCTION-READINESS-ENTRY-01 PLAN FROZEN（§3.84）+ PR-01A/PR-01B COMPLETE（§3.85）+ HEALTH-INCIDENT-ENTRY-01 全链 COMPLETE（§3.86–§3.87）+ REDUNDANCY-ENTRY-01 PLAN FROZEN → 当前 = PR-STAB-01 IN PROGRESS（§3.88 baseline reconciliation：ec5fc68 PRE-HI 8h 收口 + current-main 新 ladder PENDING）+ RD-01A planning-only 并行**；PORT-COLLISION-01 登记 BACKLOG 不越级；
 9. 不回退到已经 COMPLETE 的 0.6 / 0.7 / A2-8 / P2-A；
 10. 不从历史 feature/fix/实验 branch 恢复开发；所有验证通过的改动直接推进 `main`；
 11. 完成独立任务后，同一轮更新本 STATE 的 Last Completed / Current Task / Next Task / verification / risks / debt / handoff；
@@ -1814,5 +1847,6 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 - **STAB-O3.1 已收口**（E2/E3A 恢复登记 + INCONCLUSIVE-at-allocation-path + 候选空间收敛·§3.17）；
 - **STAB-O4/FIX 已收口**（§3.18：E4-1 观测完成 + NO-FIX-IN-REPO·ladder 不触发·24h FAIL 立档）；
 - **RUNTIME-HARDEN immediate gates 已完成（§3.20–§3.24）；Runtime Features entry review + RF-FF-01A/B/C/D/E/F、post-01F adjudication、RF-FF-02 HLS、RF-FF-03 RTMP 单输入 egress/recovery、RH-CLOCK-01、RF-NORM-01 Phase A/B、RF-MASTER-01、RF-SRC-RTMP-01 已完成（§3.25–§3.49）；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·含严格 D10 进程级 BMD 重验 @ `d13f1fd`）**；STANDALONE-ENTRY-01 全链完成（含 SE-01B-FIX reconciliation·§3.66–§3.67）；**RUNTIME-CONTROL-ENTRY-01 全链完成 + RCE-D3 reconciliation（§3.71）+ CONTROL-PLANE-ENTRY-01 planning 冻结（§3.72）+ CP-01A/01B/01C/01D/01E 收口（§3.73–§3.77）——全链 COMPLETE，无 READY packet**；当前仍不能扩展 Network umbrella/Program multi-input/Output expansion 或 24h stability**；
-- Runtime / Web 新业务功能当前不应越过 §5.1 queue 推进；
-- 24h RSS stability 仍是明确 verification debt，不能宣称 stability verified。
+- Runtime / Web 新业务功能当前不应越过 §5.1 queue 推进；Runtime 写入面在新 stability ladder 期间冻结（§3.88 并行边界）；
+- PR-STAB-01：ec5fc68 证据 = PRE-HI RUNTIME BASELINE（2h PASS；8h 收口中；24h NOT RUN），不证明 current-main stability；
+- 24h RSS stability 仍是明确 verification debt，不能宣称 stability verified——须 current-main 新 ladder 2h+8h+24h 全 PASS 并绑定 exact commit/binary/environment 后方可。
