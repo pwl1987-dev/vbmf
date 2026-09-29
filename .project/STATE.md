@@ -1432,18 +1432,56 @@ Status: **COMPLETE / BMD HARDWARE VERIFIED（exact commit `dc780c8`; 非 24h soa
 - **24h Stability**: 不在本包范围（不写 stability verified）；§3.18 结论维持。
 - media-agent Rust 源在本链零改动（fad0072→dc780c8 五 commit 的 gst artifact 位元一致）；Rust 侧既有 BMD 验收（RCE/CP-01E 等）不受影响。
 
+## 3.83 SDK-ENTRY-01 收口（2026-09-29）—— TypeScript SDK 全链（planning → 01A..01E + dogfood BMD regression）
+
+Status: **COMPLETE / SOFTWARE + CI VERIFIED（含新 SDK lane）/ BMD BOUNDED REGRESSION VERIFIED（SDK-01D dogfood @ `144ea60`）/ frozen Architecture·Contract 零修改**
+
+### 推进链（7 commits on `main`）
+
+| Commit | 内容 | exact-head CI（media / control） |
+|---|---|---|
+| `375971f` | Planning 冻结：`docs/superpowers/plans/2026-09-29-sdk-entry-01-planning.md`（Reality Matrix 8 endpoints × 12 维、schema debt A-D、S1-S8 决策、SDK-01A..E 分解、验证/failure 矩阵） | `36533273842` / `36533273851` |
+| `f98a120` | **SDK-01A**：Debt A 清偿（`graphRuntimeIntentSchema` = graph_intent.rs 冻结 wire 精确表达；source tagged union decklink/rtmp/self_test；sink enum appsink/hls/rtmp = pipeline.rs 词表快照；全层 additionalProperties:false）+ Fastify 全局 `removeAdditional:false`（未知字段 400 拒绝不静默剥离）+ failure-first 契约测试 9 项（missing pipeline → 400 + zero submit；BUG-F 类缺陷锁死于 route 层）+ Debt D 清偿（contract test 未声明 status = FAIL；SSE 帧对 `sseFramePayloadSchema` 机械验证）+ `packages/vbmf-sdk` 骨架（json-schema-to-typescript compile 物化生成 `src/generated/types.ts` + drift gate + red-line gate） | `36534836360` / `36534836391`（control-plane 首跑 FAIL：F12 gate 拦截 api 注释内 vendor 字面量 → `606a1d7` 修正；结构性中间态已记录） |
+| `606a1d7` | **SDK-01B/01C**：`VbmfClient`（S3-S6：credential provider / VbmfApiError(status+envelope+request_id+retryable+Retry-After) / 显式 idempotency-key / 无自动 write retry / AbortSignal / 路径编码）+ `VbmfEventClient`（S7：BMD 验证 SSE 语义——帧解析/cursor tri-state/dedupe/weak_ordering/EOF→重连/malformed→终止旧流/单 transport/operator-close 不误报）+ hermetic 27 测试 + 真实 Fastify fixture 集成（含 missing-pipeline 端到端 400）；F12 字面量修正 | `36536452274` / 后续 commit 补验 |
+| `40fca02` | gitignore SDK dist + parity 测试 import 修正 | `36535672639` / `36535672683`（同 f98a120 结构性红——web-console typecheck 缺 SDK 构建前置） |
+| `aa7f1fa` | **SDK-01D dogfood**：Web Console transport/types/SSE 切换 `@vbmf/sdk`（file: symlink）；手工 TS mirror 删除（Debt C 清偿——净删 163 行）；UI/credential 流/4-state machine 零改动；`apiFetch` + same-origin 红线拦截器保留本地（gate 依赖）；Dockerfile.web 双阶段构建（SDK build:tsc 用 committed generated，容器构建不触 apps/api 源码）+ dist chmod 修复（setgid 目录 750 → nginx worker EACCES，本地容器 smoke 发现） | `36536452274` / `36536452414`（control-plane FAIL=结构性：lane 缺 SDK 构建前置，配套 workflow 在下一 commit） |
+| `f926419` | **SDK-01E CI lane**：control-plane lane 增 SDK steps（drift gate/red-line gate/typecheck/29 tests/build/pack smoke；SDK 先于 Web Console 构建）；required contexts/branch protection 不动。本地 SDK-01E 验收：npm pack 19 文件自包含（零 app 源码）、fresh Node consumer（typed runtime + error envelope + Retry-After）、Vite ESM consumer bundle、d.ts 自包含 | `36536732586` / `36536732560` |
+| `144ea60` | **BUG-H 修复**（BMD dogfood regression 发现）：SDK 默认 fetch 未 bind → 真浏览器 `Illegal invocation`（Node 注入路径掩盖）；transport+events 双处 bind + this 敏感 fetch 替身 regression | `36539013523` / `36539013617` |
+
+### 软件验证终态
+
+- apps/api **65/65**（+9 intent 契约；全 fixture 升级 canonical wire）、apps/web-console **69/69**（dogfood 后零退化——BUG-A..G 生命周期套件全绿于 SDK transport 上）、packages/vbmf-sdk **29/29**（hermetic + Fastify 集成 + fetch-binding + parity/drift）；三包 typecheck/build 全绿；control-plane/WCE/SDK 三重红线 gate PASS；`git diff --check` clean。
+- 验收 commit `144ea60` exact-head 双绿（media-agent `36539013523` 7/7 required + control-plane `36539013617` 含新 SDK lane）。
+
+### BMD bounded regression（SDK-01D 触发 · exact `144ea60`，archive `c09edf44…`，agent binary `/proc/<pid>/exe` 位元一致 `3426108d…`）
+
+- 旅程全 PASS：credential/Health 分层/Runtime（devices=3）/Events（SDK SSE transport：事件驱动零重连）/Start→4-state 收敛 running/Stop→released/Release→completed 幂等/**failure visible**（agent 完全死亡 → UI 如实 DEPENDENCY_UNAVAILABLE）/重启恢复/**SSE 断流（docker restart fastify）→ 重连全 `?cursor=13` strictly-after → 零重复 → live 恢复**/reload→gate→canonical 收敛。
+- 证据：`evidence/bmd-10.30.15.10/2026-09-29-sdk-01d-bmd-regression/`（manifest + screens + browser-journey.log；无 key/secret）。
+- 边界：device-2 PID 992634 before/after 存活；teardown 零残留（key 官方 revoke / compose down -v / ufw 3 规则撤 / 双端 /tmp 清 / 零进程容器 listener）。
+
+### 结构性中间态记录（诚实披露）
+
+`f98a120`/`40fca02`/`aa7f1fa` 三个 commit 的 control-plane lane 在各自 exact-head 上 FAIL——原因全部为同一变更集内的**配套缺失**（F12 字面量修正与 SDK 构建前置 workflow 分别在后续 commit 才到位），非代码缺陷回归；变更集完整形态 `f926419` 起双绿。media-agent lane 全程绿（7/7 required 从未受影响）。
+
+### Verification Level
+
+- **Software + CI**: COMPLETE（三包测试/typecheck/build + 新 SDK lane CI）。
+- **BMD bounded regression（SDK-01D dogfood）**: VERIFIED @ `144ea60`。
+- **Rust/媒体面**: 零改动（dc780c8→144ea60 全链 apps/packages/ops-only；gst artifact 位元一致）。
+- SDK npm public publish / Python SDK / V0.3 endpoint 扩张：维持 deferred（§3.79/planning 非目标不变）。
+
 ## 4. Current Task
 
-**无进行中 packet——`WEB-CONSOLE-BMD-ACCEPTANCE-01` 已 COMPLETE（§3.82·2026-09-29·exact commit `dc780c8` BMD 真机全旅程验收 PASS）；WEB-CONSOLE-ENTRY-01 BMD Runtime acceptance 已升级 BMD RUNTIME ACCEPTED；下一任务已裁决 = `SDK-ENTRY-01` planning/reconciliation（见 §5）**
+**无进行中 packet——`SDK-ENTRY-01` 已 COMPLETE（§3.83·2026-09-29：planning → SDK-01A 契约/类型 → 01B client → 01C events → 01D dogfood + BMD bounded regression → 01E CI lane/distribution；最终 exact commit `144ea60` 双绿）；无自动裁决的下一 READY（见 §5）**
 
-1. **WEB-CONSOLE-BMD-ACCEPTANCE-01 = COMPLETE（2026-09-29·§3.82）**：验收前修复 7 个真 bug（BUG-A/B/C `fad0072` + BUG-D `59324cc` + BUG-E `5b9cadb` + BUG-F `ec12f2b` + BUG-G `dc780c8`，每个 commit exact-head 双 lane CI 绿）；最终 exact commit `dc780c8`（CI `36527255975`/`36527256048`）真机旅程全 PASS（credential/health/runtime/start/stop/release/failure/recovery/SSE reconnect-replay/reload/credential 零落盘）；device-2 保护边界不变；teardown 零残留。
-2. **WEB-CONSOLE-ENTRY-01 = COMPLETE / SOFTWARE + CI VERIFIED / BMD RUNTIME ACCEPTED（2026-09-29 升级）**：DEFERRED 债务由 §3.82 清偿。
-3. **下一任务（已裁决）= `SDK-ENTRY-01` — planning/reconciliation**：Web Console 真实 consumer 证据已齐（≥3 命令旅程 + SSE reconnect/replay 实证）→ 按 §3.79/§3.81 既有裁决进入 SDK 边界规划：Fastify JSON Schema authority → external API stability → TypeScript SDK boundary → standalone compatibility，形成 bounded packet；SDK implementation plan 冻结前不大规模写 SDK。SDK 永久约束：非第二 Runtime truth、不暴露 Fastify DB model / Rust / GStreamer / FFmpeg / DeckLink internals、复用已验证 Product API schema、TS 首语言。
-4. 其余 deferred 项维持原状：BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
+1. **SDK-ENTRY-01 = COMPLETE（2026-09-29·§3.83）**：`@vbmf/sdk`（packages/vbmf-sdk）作为 Product/Event/Health API 的 TS consumer library 落地——类型由 apps/api JSON Schema 单源机械派生（drift-gated codegen，手写 mirror 全部消灭），Web Console 已 dogfood（transport/SSE/类型单一实现，净删 163 行，69 测试零退化），BMD bounded regression 全项 PASS。
+2. **发现并修复的真 bug**：BUG-F 家族（intent schema 过宽 → route 层 400 拦截）+ Dockerfile 权限（setgid dist）+ **BUG-H**（SDK 默认 fetch 未 bind → 真浏览器 Illegal invocation；Node 注入路径掩盖）。
+3. **下一任务**：无 READY packet——Task Queue 待用户裁决（候选：见 §5.1 BACKLOG 与 §3.79 deferred 清单：BullMQ/Worker、跨主机 mTLS、agent UUID wire、agent durable 事件面、Resource PUT/ChangeSet、webhook、多实例分发、rustfs/srs image pin、storage/SRS packet、Web Console 长稳）。
+4. 其余 deferred 项维持原状（SDK npm publish、Python SDK、V0.3 endpoint 扩张等）。
 
 ## 5. Next Task
 
-**`SDK-ENTRY-01` — planning/reconciliation（已裁决·2026-09-29，WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE 后进入）**——Web Console 真实 consumer 证据链已闭合（Start/Stop/Release 命令旅程 + SSE reconnect/cursor replay + reload 收敛 + 真机 BMD 验收），按 §3.79 冻结裁决启动 TypeScript SDK 边界规划：以 Fastify route JSON Schema（`apps/api/src/routes/schemas.ts` 单一源）为 authority，评估 external API stability → SDK boundary → standalone compatibility，形成 bounded implementation packet（子包分解 + 验收矩阵）；**SDK implementation plan 冻结前不大规模写 SDK**。SDK 永久约束：不能成为第二 Runtime truth；不能暴露 Fastify DB model；不能暴露 Rust/GStreamer/FFmpeg/DeckLink internals；必须复用已验证 Product API schema；TS 首语言（Python 后续）。
+**无自动进入的下一 READY——SDK-ENTRY-01 收口后 Task Queue 无 READY 项，需用户裁决下一个 bounded packet 方向。** 候选（按既有登记排序）：Web Console 长稳观察、BullMQ/Worker 异步面、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复（storage/SRS packet 前置）、Python SDK（TS SDK 稳定运行后）。
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
@@ -1514,7 +1552,7 @@ P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance
 | **WCE-01-CLOSURE-RECONCILIATION** | **COMPLETE（2026-09-29·§3.80 Reconciliation + §3.81 前记·`e1435fa` exact-head 双绿：media-agent `36518795888` SUCCESS + control-plane `36518795854` 出网窗 rerun 后 SUCCESS）** | Ajv TS2351 RCA + 最小修复（`import { Ajv } from "ajv"` 命名导入，零 tsconfig 妥协）+ STATE §3.80 过度声明修正 + 全软件回归（双 app npm ci/typecheck/test/build + 双红线 gate + diff-check） | WEB-CONSOLE-ENTRY-01（§3.80） | 已满足（exact-head 双 lane CI 绿，不以旧 commit 绿色替代） |
 | **REPO-MIGRATION-01** | **COMPLETE（§3.81·2026-09-29·transfer + reconciliation + closure commit `8d78ddf` exact-head 双绿：media-agent `36519490264` 7/7 required + control-plane `36519490258`）** | GitHub repository transfer `pwl1987/VBMF` → `pwl1987-dev/vbmf`（正式 Transfer API；identity/history/issues/PR/settings 连续保留；未建新仓/mirror/history 复制）；产品名维持 VBMF；remote/硬编码引用分类更新 + runners/branch protection/Actions 复核 + 迁移后 exact-head CI | WCE-01-CLOSURE-RECONCILIATION | 已满足（live main SHA 不变 + history/PR/tags 保留 + runners online + 7 required contexts 不变 + 迁移后双 lane CI 绿） |
 | **WEB-CONSOLE-BMD-ACCEPTANCE-01** | **COMPLETE（§3.82·2026-09-29·exact commit `dc780c8` BMD 真机全旅程 PASS；验收前修复 BUG-A..G 七个真 bug，每 commit exact-head 双 lane CI 绿）** | 清偿 WEB-CONSOLE-ENTRY-01 的 BMD Runtime acceptance：production Web Console → Fastify → media-agent → DeckLink 真实命令旅程 + failure/recovery/SSE/reload；device-2 现存输出不动 | REPO-MIGRATION-01 COMPLETE（§3.81） | 已满足（WEB-CONSOLE-ENTRY-01 已标 BMD RUNTIME ACCEPTED；证据 `evidence/bmd-10.30.15.10/2026-09-29-web-console-bmd-acceptance/`；teardown 零残留） |
-| **SDK-ENTRY-01** | **READY（2026-09-29 裁决·§3.79/§3.82 后置；planning/reconciliation 首入）** | TypeScript SDK 边界规划：Fastify JSON Schema authority → external API stability → SDK boundary → standalone compatibility；形成 bounded packet；plan 冻结前不大规模写 SDK | WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82） | bounded planning 文档冻结（复用 Product API schema 单一源；非第二 Runtime truth；不暴露 internals；TS 首语言）；实施子包按 planning 分解后入场 |
+| **SDK-ENTRY-01** | **COMPLETE（§3.83·2026-09-29·planning + SDK-01A..01E 全链 + dogfood BMD bounded regression @ `144ea60` 双绿）** | `@vbmf/sdk` TS consumer library：schema 单源机械派生类型（drift gate）+ VbmfClient/VbmfEventClient + Web Console dogfood（transport/SSE/types 单一实现）+ control-plane SDK CI lane + npm pack 自包含 | WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82） | 已满足（Reality Matrix/debt A-D 清偿/29+69+65 测试/BMD bounded regression/teardown 零残留；plan=`docs/superpowers/plans/2026-09-29-sdk-entry-01-planning.md`） |
 | **STANDALONE** | **BACKLOG（umbrella；首个 bounded packet = STANDALONE-ENTRY-01）** | production images/compose、readiness、shutdown/restart/upgrade/rollback、current-main BMD deployment reconciliation | Runtime feature slice | standalone install/run/restore；BMD exact commit acceptance |
 | **CONTROL-PLANE** | **BACKLOG** | Fastify + PostgreSQL/Drizzle + Worker/BullMQ + Auth/RBAC | Standalone/runtime APIs stable | Rust Runtime remains truth；Fastify 不拥有媒体生命周期 |
 | **VBMF-SDK** | **BACKLOG** | 契约测试 + 真实消费者证据后实现 Rust/TS/Python `vbmf-sdk` | stable API consumers | 不暴露 Rust/GStreamer/FFmpeg/vendor/DB internals |
@@ -1687,9 +1725,9 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 3. 读取 live `main` HEAD；
 4. 读取本 `.project/STATE.md`；
 5. 找到“包含当前 STATE 版本的 commit”，比较 live HEAD 是否有更新；若有，只 reconcile STATE 之后的新 commits；
-6. 读取 **Current Task = 无进行中 packet；下一 READY = `SDK-ENTRY-01` planning/reconciliation（§4/§5，2026-09-29 裁决）**——RCE 全链 + RCE-D3（§3.71）+ CONTROL-PLANE-ENTRY-01（§3.72–§3.77）+ WEB-CONSOLE-ENTRY-01（§3.80·BMD RUNTIME ACCEPTED 2026-09-29）+ WEB-CONSOLE-BMD-ACCEPTANCE-01（§3.82·exact `dc780c8`）已全链收口；deferred 项未经新裁决不得擅入（历史 Authority 链含：`/api/v1/*`=prototype 裁定、internal=JSON-RPC@`/internal/v1/*`、两平面语义映射、RH-IDEM 维持 DEFER；frozen Contract 零修改）。历史 Authority 链备查：`docs/superpowers/plans/2026-09-19-standalone-entry-01-planning.md` + `docs/superpowers/plans/2026-09-20-runtime-control-entry-01-planning.md`（D1–D8/F1–F10）+ `docs/architecture/STANDALONE_MEDIA_AGENT_OPERATIONS.md` + SE 系列四份收口报告 + SE-01B-FIX reconciliation 报告 + RUNTIME_RESOURCE_MODEL/RUNTIME_SESSION_MODEL/RUNTIME_BINDING_MODEL + `MEDIA_BACKEND_CONTRACT.md`；
+6. 读取 **Current Task = 无进行中 packet；Task Queue 无 READY 项——SDK-ENTRY-01 已 COMPLETE（§3.83·2026-09-29·exact `144ea60`），下一 bounded packet 需用户裁决**——RCE 全链 + RCE-D3（§3.71）+ CONTROL-PLANE-ENTRY-01（§3.72–§3.77）+ WEB-CONSOLE-ENTRY-01（§3.80·BMD RUNTIME ACCEPTED 2026-09-29）+ WEB-CONSOLE-BMD-ACCEPTANCE-01（§3.82·exact `dc780c8`）已全链收口；deferred 项未经新裁决不得擅入（历史 Authority 链含：`/api/v1/*`=prototype 裁定、internal=JSON-RPC@`/internal/v1/*`、两平面语义映射、RH-IDEM 维持 DEFER；frozen Contract 零修改）。历史 Authority 链备查：`docs/superpowers/plans/2026-09-19-standalone-entry-01-planning.md` + `docs/superpowers/plans/2026-09-20-runtime-control-entry-01-planning.md`（D1–D8/F1–F10）+ `docs/architecture/STANDALONE_MEDIA_AGENT_OPERATIONS.md` + SE 系列四份收口报告 + SE-01B-FIX reconciliation 报告 + RUNTIME_RESOURCE_MODEL/RUNTIME_SESSION_MODEL/RUNTIME_BINDING_MODEL + `MEDIA_BACKEND_CONTRACT.md`；
 7. 核对 P2-C implementation chain through `0f375c8…`、maintenance failure `34921727757`、encrypted route probes 与最新 `media-agent CI`（P2-M2 后 `gstreamer-build` 应 @vbmf-media 且 artifact 非空）；
-8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个 `READY` Work Packet；RF-ENTRY-01、RF-FF-01A、RF-FF-01B、RF-FF-01C、RF-FF-01D、RF-FF-01E、RF-FF-01F、RF-FF-02、RF-FF-03、RH-CLOCK-01、RF-NORM-01、RF-MASTER-01、RF-SRC-RTMP-01 与对应 adjudication 已 COMPLETE；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·严格 D10 进程级 BMD 重验）**；STANDALONE-ENTRY-01 planning 已冻结（§3.61）、SE-01A（§3.62）、SE-01C（§3.63）、SE-01D（§3.64）、SE-01B（§3.65 + reconciliation §3.66–§3.67）全链完成；CONTROL-PLANE 全链 COMPLETE（§3.72–§3.77）；REPO-MIGRATION-01 COMPLETE（§3.81）；**WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82·2026-09-29）→ 当前第一个 READY = `SDK-ENTRY-01` planning**；PORT-COLLISION-01 登记 BACKLOG 不越级；
+8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个 `READY` Work Packet；RF-ENTRY-01、RF-FF-01A、RF-FF-01B、RF-FF-01C、RF-FF-01D、RF-FF-01E、RF-FF-01F、RF-FF-02、RF-FF-03、RH-CLOCK-01、RF-NORM-01、RF-MASTER-01、RF-SRC-RTMP-01 与对应 adjudication 已 COMPLETE；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·严格 D10 进程级 BMD 重验）**；STANDALONE-ENTRY-01 planning 已冻结（§3.61）、SE-01A（§3.62）、SE-01C（§3.63）、SE-01D（§3.64）、SE-01B（§3.65 + reconciliation §3.66–§3.67）全链完成；CONTROL-PLANE 全链 COMPLETE（§3.72–§3.77）；REPO-MIGRATION-01 COMPLETE（§3.81）；**WEB-CONSOLE-BMD-ACCEPTANCE-01 COMPLETE（§3.82）+ SDK-ENTRY-01 COMPLETE（§3.83）→ 当前无 READY packet（下一任务待用户裁决）**；PORT-COLLISION-01 登记 BACKLOG 不越级；
 9. 不回退到已经 COMPLETE 的 0.6 / 0.7 / A2-8 / P2-A；
 10. 不从历史 feature/fix/实验 branch 恢复开发；所有验证通过的改动直接推进 `main`；
 11. 完成独立任务后，同一轮更新本 STATE 的 Last Completed / Current Task / Next Task / verification / risks / debt / handoff；
