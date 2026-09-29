@@ -30,7 +30,7 @@ function projection(
     session_states: sessionStates,
     session_failures: {},
     has_critical: (faults?.length ?? 0) > 0,
-    faults,
+    ...(faults !== undefined ? { faults } : {}),
   };
 }
 
