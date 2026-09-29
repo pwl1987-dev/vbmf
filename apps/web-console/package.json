@@ -1,0 +1,30 @@
+{
+  "name": "@vbmf/web-console",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VBMF Web Console — TypeScript Runtime Console that observes and commands VBMF Runtime via Fastify Product API + SSE Event API. Zero direct agent access (C13).",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "@types/react": "19.0.0",
+    "@types/react-dom": "19.0.0",
+    "@vitejs/plugin-react": "4.3.4",
+    "jsdom": "25.0.1",
+    "typescript": "5.9.3",
+    "vite": "6.0.5",
+    "vitest": "2.1.8"
+  }
+}

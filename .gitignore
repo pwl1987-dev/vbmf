@@ -38,6 +38,8 @@ evidence/**/*.json
 # Node control-plane (apps/api) local artifacts — never commit
 node_modules/
 apps/api/dist/
+apps/web-console/dist/
+apps/web-console/node_modules/
 npm-debug.log*
 
 # Mimosa 安全扫描 hook 本地状态 (同 .codegraph: 本机文件不入库)。
