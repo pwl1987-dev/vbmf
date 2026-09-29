@@ -1266,12 +1266,120 @@ Status: **PLANNING COMPLETE / first bounded implementation packet marked READY**
 
 `vbmf-sdk`（在 SDK-ENTRY-01 后）、BullMQ/Worker 异步面、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
 
+## 3.80 WEB-CONSOLE-ENTRY-01 closure（2026-09-28）—— 首个真实 TS consumer 落地
+
+Status: **COMPLETE / SOFTWARE + CI 7/7 + control-plane lane + 静态红线 gate VERIFIED / BMD RUNTIME = DEFERRED**（VM 软件验证已完成；BMD 真机命令旅程将在后续验收窗口执行）
+
+### 实现链路（5 commits on `main`，HEAD = `e65f001`）
+
+1. `a3c5351` — WCE-01A Product API schema authority reconciliation
+2. `bd967ca` — WCE-01B/01C/01D/01E web-console foundation + 4-state + journeys + SSE
+3. `29a849d` — WCE-01F failure-first integration (real Fastify fixture)
+4. `e65f001` — WCE-01 docker/ci/red-lines integration
+
+### WCE-01A — Product API Schema Authority（`a3c5351`）
+
+- `apps/api/src/routes/schemas.ts`：单一源 JSON Schema 表（ErrorCode 12 词表 / RuntimeSnapshot / ProductSession / CommandOperationBody / StartSessionBody / HealthLayers / SSE 帧 payload）。ROUTE_SCHEMAS manifest 按 METHOD+PATH 暴露请求 schema 与响应 shape 字典。
+- 路由 schema 入口：`runtime.ts` / `health.ts` / `commands.ts` / `events.ts` 全部 attach `schema:`；server.ts error handler 把 `FST_ERR_VALIDATION*` 映射到 400 VALIDATION_ERROR（与 ApiError envelope 统一）。
+- `apps/api/test/routes.schema.contract.test.ts`：Ajv-based contract test 校验真实 `app.inject` 响应 vs 声明 schema，覆盖 200/400/404/503 各状态路径 + 12-code ErrorCode 词汇漂移 guard。
+- package.json：ajv ^8.20.0 dev dep。
+- 既有 49 focused tests 全绿 + 7 新增 schema contract = **56/56 PASS**。frozen EXTERNAL_API_CONTRACT / EVENT_CONTRACT / IMPLEMENTATION_BOUNDARIES / CANONICAL_IDENTITY 零修改。
+
+### WCE-01B — Web Console Foundation（`bd967ca`）
+
+- 独立 TS app @ `apps/web-console/`（Vite 6 + React 19 + TS strict + native fetch，无 SDK）。
+- `src/api/schemas.ts` re-exports from `apps/api/src/routes/schemas.ts` + 手工 mirror TS 类型（single-source 验证由 `test/schemas.authority.test.ts` 兜底）。
+- `src/auth/credentials.ts`：in-memory closure-scoped api key；reload = 清空；`assertNoPersistentStorage()` 静态自检 localStorage/sessionStorage/credentials-module-state。
+- `src/api/client.ts`：same-origin-only fetch wrapper（运行时拦截 `media-agent` / `:50051` / `/internal/` / 跨 host 字面量）；强类型 helpers `getRuntime` / `postStartSession` / `postStopSession` / `postReleaseSession` / `getCommand` / `getHealthz` / `getHealthLive`；ErrorEnvelope surface mapping。
+- `src/api/sse.ts`：`fetch + ReadableStream + 自写 SSE frame parser`（`event:`/`id:`/`data:`/`retry:`/`:` heartbeat）；cursor tri-state（undefined=tail; number=strictly-after）；sequence dedupe（Set）；`weak_ordering=true` 透传；StreamHandle `{ close, lastSequence, retryHintMs }`。
+- `src/state/fourStateMachine.ts`：pure reducer for Desired/Requested/Executing/Observed；divergence 检测。
+- `pages/CredentialGate`：memory-only 凭证 bootstrap，UI 显式回到 credential-required on reload。
+- `pages/HealthPage`：分层 health `/healthz`（api/runtime/db/auth/events）+ `/health/live`。
+- `pages/RuntimePage`：live snapshot + freshness envelope（`generated_at_ms`/`observation_revision`/`observation_lineage`）+ sessions table + 选中详情。
+- `pages/SessionsPage`：Start/Stop/Release 按钮 + idempotency-key + 4-state panel + command polling（GET `/api/v1/commands/:id` until terminal）。
+- `pages/EventsPage`：SSE + reconnect backoff `[500/1000/2000/5000/10000]ms` + last sequence + weak_ordering 显示 + reload-first snapshot。
+- **40/40 unit tests PASS**（schemas authority + SSE parser + 4-state reducer + error envelope + credentials bootstrap）；typecheck PASS；vite build PASS（210KB JS / 65KB gzipped）。
+
+### WCE-01C/01D/01E — UI 集成（合并 `bd967ca`）
+
+- 4-state reducer 覆盖 Desired → Requested → Executing → Observed 全链；divergence 由 snapshot.observed ≠ desired 触发 UI 提示。
+- 命令旅程：Start/Stop/Release 全部接入 POST 端点；命令面板真实显示 `state ∈ {pending, completed, failed, timeout, conflict, rejected}` + classification + detail。
+- SSE：reload 先 re-fetch canonical snapshot，再 connect SSE；reconnect 从 `lastSequence` strictly-after 重放；dedupe by `id:`。
+
+### WCE-01F — Failure-first integration（`29a849d`）
+
+- 真实 Fastify fixture（`buildAppHandle + FixtureAuthenticator + StubPlane`），Web Console client helpers 通过 `setTestFetchImpl` 桥接 `app.inject`。
+- **12 integration tests PASS**（happy path Start→Stop→Release 3 完整命令旅程 + 401 invalid/expired + 403 role-denied + 429 rate-limit zero-dispatch + 503 agent-down + command plane 503 RESOURCE_UNAVAILABLE + 4-state DIVERGENT + getCommand 200 形状）。
+- 总计 **52/52 web-console tests PASS**；typecheck clean；vite build clean。
+
+### Compose/Docker + CI（`e65f001`）
+
+- `ops/Dockerfile.web`：多阶段 `node:24-alpine build → nginx:1.27-alpine runtime`；Vite 产物 dist/ 由容器 nginx 5173 服务；healthcheck wget。
+- `ops/nginx/web.conf`：容器内静态资源服务（SPA fallback + immutable cache + 安全 headers），与 compose nginx (`ops/nginx/default.conf`) 区分职责。
+- `ops/docker-compose.yml`：web build context 修复（`.` → `..` 与 fastify 一致）；删除 `VITE_API_BASE/VITE_WS_BASE/VITE_EVENTS_BASE`（前端走相对路径，Nginx same-origin 反代）；healthcheck 改 wget。
+- `ops/compose.dev.yml`：旧 `./web/src` 废弃（仓库无此路径）；改用独立 `web-dev` 服务（node:24-alpine + bind mount + Vite HMR，`profiles: ["dev"]`）。
+- `scripts/check_web_console_red_lines.py`：13 类 production-source 静态红线 gate（`media-agent:50051` / `:50051` / `/internal/v1/agent` / `localStorage.setItem` / `sessionStorage.setItem` / `document.cookie` / `VITE_API_BASE` 等）。允许 `client.ts` 自身 FORBIDDEN_PATTERNS 运行时拦截器与 `test/` 下 `expect.toThrow(/red line/)` 自防回归。
+- `.github/workflows/control-plane.yml`：扩展 lane（仍**非 required context**），timeout 15m→25m；新增 WCE-01 红线 gate → apps/api typecheck/test/build → apps/web-console typecheck/test/build。
+- 媒体端 **7/7 required context 不动**。
+
+### 关键红线验收
+
+| 红线 | 状态 |
+|---|---|
+| 浏览器零直连 media-agent | PASS（client.ts 运行时拦截 + 红线 gate 静态拦截） |
+| 浏览器零访问 `/internal/*` | PASS（同上） |
+| 浏览器零访问 `:50051` | PASS（同上） |
+| UI 不发明 Runtime 状态 | PASS（4-state machine Desired 来自 operator，Observed 来自 runtime snapshot） |
+| HTTP 200 ≠ Runtime success | PASS（command.state/classification/detail 真实显示；status=200 + state=failed 显示 failed，不显示 success） |
+| Desired/Requested/Executing/Observed 四态分离 | PASS（pure reducer + describe + divergence） |
+| 4xx/5xx 真实显示 | PASS（ErrorEnvelope 透传 + integration tests 覆盖 401/403/429/503） |
+| SSE cursor 三态 + replay strictly-after + dedupe | PASS（api.sse.test.ts 6/6 + EventsPage backoff） |
+| `weak_ordering=true` 如实处理 | PASS（payload 透传到 UI + UI 显式标注"projection is content-based; no global order"） |
+| reload 重新收敛 canonical Runtime truth | PASS（EventsPage 先 fetch `/api/v1/runtime`，SSE 仅是增量） |
+| frozen Authority/Contract 零修改 | PASS（无 EXTERNAL_API_CONTRACT/EVENT_CONTRACT/IMPLEMENTATION_BOUNDARIES/CANONICAL_IDENTITY 修改） |
+| `transport.rs::INDEX_HTML` 保留 D10/offline diagnostic | PASS（agent 源码未触碰） |
+
+### 命令旅程覆盖
+
+| 旅程 | 状态 |
+|---|---|
+| Start → completed (StubPlane + happy path) | PASS |
+| Stop → completed | PASS |
+| Release → completed | PASS |
+| command plane 503 RESOURCE_UNAVAILABLE (DB-less) | PASS |
+| agent-down 503 DEPENDENCY_UNAVAILABLE | PASS |
+| 401 / 403 / 429 拒绝路径零 dispatch | PASS |
+| expired credential → 401 with no specific reason leaked | PASS |
+
+### Authority/Contract 状态
+
+frozen Authority / Contract **零修改**：
+- `EXTERNAL_API_CONTRACT`（§5 error envelope + §6 默认安全模型 + §7 health/liveness/readiness）保持冻结形态；Web Console 仅消费既有 endpoint + envelope。
+- `EVENT_CONTRACT`（§1/§2 Projection 归属 Control Plane + §WeakOrdering + Cursor tri-state）保持冻结形态；SSE client 实现符合 cursor 语义。
+- `IMPLEMENTATION_BOUNDARIES` / `CANONICAL_IDENTITY` 未触碰；Web Console 仅消费 wire 形态，不发明 contract。
+
+### BMD Runtime acceptance
+
+**DEFERRED**：本轮 BMD 真机命令旅程验收尚未执行（VM 软件验证已闭环）。按用户任务规范 "BMD 不可访问 → verification deferred" 明确登记。后续验收窗口将执行：
+- 真实 Web Console (production vite build) → Fastify → media-agent DeckLink Start/Stop/Release 旅程
+- device-2 / 现存输出边界保持不动（与 PORT-COLLISION-01 closure + SE-01B 一致）
+- SSE reconnect/reload 实证（弱序、cursor strictly-after）
+- failure injection → UI 显示 alarm → recovery → reload 重新收敛
+
+### Verification Level
+
+- **Software + CI**: COMPLETE（56 API + 52 web-console tests PASS；apps/api + apps/web-console typecheck/build PASS；control-plane lane 红线 gate + F11/F12 gate PASS）。
+- **BMD Runtime**: DEFERRED（明确登记；不写为 hardware verified）。
+- **24h Stability**: 仍为独立 debt（与 WCE-01 无关）；按 §3.18 STAB-O4 既有结论维持。
+
 ## 4. Current Task
 
-**WEB-CONSOLE-ENTRY-01（§3.79 裁决后首包, READY）**——独立 TS Web Console app 经 Fastify 反代消费 Product API + SSE Event API；零直连 agent；四状态分离；命令旅程全链；frozen Authority/Contract 零修改。
+**无 READY packet——CONTROL-PLANE-ENTRY-01 全链 + PORT-COLLISION-01 + PRODUCT-SURFACE-ENTRY-01 + WEB-CONSOLE-ENTRY-01 全部收口**
 
-- 上一阶段（CONTROL-PLANE-ENTRY-01 全链 + PORT-COLLISION-01 + PRODUCT-SURFACE-ENTRY-01 裁决）已收口。
-- 详见 §5.1 Task Queue `WEB-CONSOLE-ENTRY-01` 行。
+- WEB-CONSOLE-ENTRY-01 全链 COMPLETE（§3.80 WCE-01A–01F + Compose/CI/red-lines gate）；§5.1 Task Queue 中 `WEB-CONSOLE-ENTRY-01` 行更新为 COMPLETE。
+- 详见 §5.1 Task Queue 行 + §3.80 收口报告。
+- 后续 deferred 项（按 §3.79/§3.80 登记，未变）：`vbmf-sdk`（SDK-ENTRY-01 待 Web Console wire 稳定后启）、BullMQ/Worker、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发、`rustfs/srs` docker.io pinned tags 修复。
+- 登记发现（非阻塞）：BMD Runtime acceptance for WEB-CONSOLE-ENTRY-01 = DEFERRED（待后续验收窗口执行）。
 - 其它 deferred 项维持原状：`vbmf-sdk`（待 Web Console wire 稳定后启 SDK-ENTRY-01）、BullMQ/Worker 异步面、跨主机 mTLS、agent UUID wire 增补、agent 侧 durable 事件面、Resource PUT/ChangeSet 流、webhook 签名投递、多实例事件分发。
 - 登记发现（非阻塞）：`rustfs/rustfs:2026.8.1` 与 `ossrs/srs:6.0.42` docker.io pinned tags 已失效（§3.77 诚实披露）——storage/SRS 相关 packet 入场前需先裁决镜像基线。
 
@@ -1344,7 +1452,7 @@ P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance
 | **CP-01D** | **COMPLETE — SOFTWARE + CI + VM PG 注入 + 真实 HTTP SSE（§3.76·2026-09-24·BMD DEFERRED to CP-01E）** | Event plane：drain→outbox→SSE（单实例约束·B9）+ cursor | CP-01B（§3.74）+ CP-01C（§3.75） | hermetic 49/49 + DB 29/29（B9 双实例抢锁/cursor/retention/真实 HTTP SSE）+ CI 双 lane |
 | **PORT-COLLISION-01** | **COMPLETE（§3.78，2026-09-25）** | PortId derive 键不含 direction/Analog 位折叠——BMD Device smoke 实证 Input/Sdi 与 Output/Sdi 同卡碰撞 ×2；专门 collision closure（port_id 稳定性 + registry fail-closed 语义复核）→ 物理 jack 槽位忠实枚举 + PortId invariant guard | 无 | 双工卡 out jack 表达需后续 Resolver 端口级 binding 演进（独立 packet） |
 | **PRODUCT-SURFACE-ENTRY-01** | **COMPLETE（§3.79，2026-09-25）—— planning 裁决** | VBMF-SDK vs WEB-CONSOLE 实施顺序裁决：以 live API + frozen Contract + dependency evidence 为依据；结论 = **WEB-CONSOLE-ENTRY-01 先行**（首个真实 TS consumer；可反向验证 Product API 消费者可用性；为后续 SDK 生成提供 real consumer evidence）；SDK 仍属 planning deferred，待 Web Console 形成稳定 wire 语义后再启 SDK-ENTRY-01 | 无 | Web Console 与 SDK 都不改 frozen Contract；仅消费 Product API |
-| **WEB-CONSOLE-ENTRY-01** | **READY（§3.79 裁决后·2026-09-25）** | 独立 TS Web Console app（Vite + 原生 fetch + zod/JSON Schema 类型），经 Fastify 反代消费 `/api/v1/*` + `/events/v1/stream`；零直连 media-agent；四状态分离（Desired/Requested/Executing/Observed）+ 命令旅程（Start/Stop/Release）+ SSE 实时 + failure/recovery 反映 + reconnect/reload 收敛；agent 原生 INDEX_HTML 路由（transport.rs）保留作 D10 离线诊断面，不删除 | §3.79（PRODUCT-SURFACE-ENTRY-01 裁决） | （1）UI 不得乐观假成功——必须 4xx/5xx 全如实显示，HTTP 200 ≠ Runtime success 必须保留 §C2 判据；（2）零直连 agent（C13 边界）；（3）类型来自 Fastify route JSON Schema 单一源（不发明 parallel schema）；（4）reconnect 必须按 Event Contract §弱序约束 `weak_ordering` 重放；（5）frozen Authority/Contract 零修改 |
+| **WEB-CONSOLE-ENTRY-01** | **COMPLETE（§3.80·2026-09-28·WCE-01A–01F + Compose/CI/red-lines gate 全绿）** | 独立 TS Web Console app（Vite + React 19 + 原生 fetch + JSON Schema 派生类型），经 Fastify 反代消费 `/api/v1/*` + `/events/v1/stream`；零直连 media-agent；四状态分离（Desired/Requested/Executing/Observed）+ 命令旅程（Start/Stop/Release）+ SSE 实时 + failure/recovery 反映 + reconnect/reload 收敛；agent 原生 INDEX_HTML 路由（transport.rs）保留作 D10 离线诊断面，不删除 | §3.79（PRODUCT-SURFACE-ENTRY-01 裁决） | WCE-01A: schema 单一源（apps/api/src/routes/schemas.ts）+ contract test（ajv）；WCE-01B: apps/web-console foundation + Vite 6 + React 19 + in-memory 凭证 + same-origin 客户端红线拦截；WCE-01C/01D/01E: 4-state reducer + Start/Stop/Release 命令旅程 + SSE cursor tri-state/weak_ordering/reload-first snapshot；WCE-01F: 真实 Fastify fixture + 12 integration tests；Compose/CI: 多阶段 Dockerfile.web + ops/nginx/web.conf + 红线 gate（check_web_console_red_lines.py）+ control-plane lane 扩展。apps/api 56/56 tests + apps/web-console 52/52 tests PASS；typecheck/build/vite build/F11/F12/WCE-01 红线 gate 全绿；frozen EXTERNAL_API_CONTRACT/EVENT_CONTRACT/IMPLEMENTATION_BOUNDARIES/CANONICAL_IDENTITY 零修改。BMD Runtime acceptance = DEFERRED（VM 软件验证已闭环）。 |
 | **STANDALONE** | **BACKLOG（umbrella；首个 bounded packet = STANDALONE-ENTRY-01）** | production images/compose、readiness、shutdown/restart/upgrade/rollback、current-main BMD deployment reconciliation | Runtime feature slice | standalone install/run/restore；BMD exact commit acceptance |
 | **CONTROL-PLANE** | **BACKLOG** | Fastify + PostgreSQL/Drizzle + Worker/BullMQ + Auth/RBAC | Standalone/runtime APIs stable | Rust Runtime remains truth；Fastify 不拥有媒体生命周期 |
 | **VBMF-SDK** | **BACKLOG** | 契约测试 + 真实消费者证据后实现 Rust/TS/Python `vbmf-sdk` | stable API consumers | 不暴露 Rust/GStreamer/FFmpeg/vendor/DB internals |
