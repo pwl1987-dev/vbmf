@@ -14,6 +14,7 @@ import {
   reduceFourState,
 } from "../state/fourStateMachine.ts";
 import type { CommandOperationBody, RuntimeSnapshot } from "../api/schemas.ts";
+import { buildDecklinkCaptureIntent } from "../api/intent.ts";
 
 interface CmdRow {
   label: string;
@@ -82,8 +83,10 @@ export function SessionsPage(): React.JSX.Element {
     }
     dispatchFour({ kind: "DESIRE", target: "Running" });
     const idem = genIdempotencyKey("wc-start");
+    // canonical GraphRuntimeIntent（decklink 采集 + appsink sink）——缺
+    // pipeline 会被真实 agent 拒绝（invalid_intent；BMD 实证 2026-09-29）。
     const res = await postStartSession(
-      { intent: { version: "1.0", devices: [{ device_id: deviceId, role: "CAPTURE" }] } },
+      { intent: buildDecklinkCaptureIntent(deviceId) },
       idem,
     );
     if (res.kind === "error") {
