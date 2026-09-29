@@ -191,7 +191,9 @@ services:
       fastify:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      # 127.0.0.1 literal: busybox wget may resolve localhost to ::1 while
+      # the listener is IPv4 — deterministic probe (BMD acceptance RCA).
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:5173/"]
       interval: 10s
       timeout: 3s
       retries: 5

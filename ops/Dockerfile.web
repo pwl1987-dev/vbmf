@@ -38,5 +38,9 @@ COPY --from=build /src/dist /usr/share/nginx/html
 
 EXPOSE 5173
 
+# 127.0.0.1 literal (not "localhost"): busybox wget resolves localhost to
+# ::1 first on some hosts while nginx historically listened IPv4-only —
+# the flapping connection-refused healthcheck found in BMD acceptance
+# (WEB-CONSOLE-BMD-ACCEPTANCE-01). web.conf now dual-stacks 5173 as well.
 HEALTHCHECK --interval=10s --timeout=3s --retries=5 --start-period=10s \
-  CMD wget -qO- http://localhost:5173/ >/dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:5173/ >/dev/null || exit 1
