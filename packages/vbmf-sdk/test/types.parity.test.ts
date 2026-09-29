@@ -10,7 +10,7 @@
 import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
 import type { CommandOperationBody, ErrorCode, GraphRuntimeIntent, RuntimeSnapshot } from "../src/generated/types.ts";
-import type { expectTypeOf } from "vitest";
+import { expectTypeOf } from "vitest";
 
 describe("SDK-01A mechanical type derivation", () => {
   it("generated types.ts is in sync with the schema authority (drift)", () => {
