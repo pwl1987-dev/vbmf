@@ -177,20 +177,21 @@ services:
 
   web:
     build:
-      context: .
+      # §3.77 docker-compose.yml build context fix (. → ..); web 同样：
+      # compose 项目目录 = ops/，仓库根 = ..。Dockerfile.web 自身以 .. 为根。
+      context: ..
       dockerfile: ops/Dockerfile.web
-    # DEPLOY-UI-01: never point browser at localhost. Use same-origin /api (routed by Nginx).
-    environment:
-      VITE_API_BASE: /api
-      VITE_WS_BASE: /ws
-      VITE_EVENTS_BASE: /events
+    # DEPLOY-UI-01 + WEB-CONSOLE-ENTRY-01: browser never connects directly to
+    # media-agent / :50051 / /internal/. Use same-origin /api /events /health
+    # routed by nginx. Vite 已无 VITE_API_BASE / VITE_WS_BASE 等代理配置
+    # ——前端代码使用相对路径。
     expose:
       - "5173"
     depends_on:
       fastify:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
       interval: 10s
       timeout: 3s
       retries: 5

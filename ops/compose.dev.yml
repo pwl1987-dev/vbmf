@@ -1,15 +1,18 @@
 # VBMF DEV overlay (FLOW-01 / §11 DEV profile)
-# Usage: docker compose -f docker-compose.yml -f compose.dev.yml up --build
-# Dev: HMR + bind mount + publish convenience ports (5173/3000). NOT for prod.
+# Usage: docker compose -f docker-compose.yml -f compose.dev.yml up --build web-dev
+# Dev: Vite HMR via separate `web-dev` service (not the prod container);
+# bind mount source for instant edit, publish 5173 only. NOT for prod.
 
 services:
-  web:
-    # Vite dev server with HMR; bind-mount source, no rebuild per edit (§4)
+  web-dev:
+    image: node:24-alpine
+    working_dir: /src
     volumes:
-      - ./web/src:/app/src:ro
+      - ../apps/web-console:/src:rw
     command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
     ports:
       - "5173:5173"
+    profiles: ["dev"]
 
   # Dev convenience: publish Fastify directly too (still behind Nginx normally)
   fastify:

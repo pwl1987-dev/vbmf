@@ -1,8 +1,10 @@
 name: control-plane CI
 
-# CONTROL-PLANE-ENTRY-01 / CP-01A: Fastify Control Plane (apps/api) lane.
-# Validates typecheck + focused contract tests + build and the machine-checked
-# boundary gates (F11 deployment wiring / F12 Gate A lexical).
+# CONTROL-PLANE-ENTRY-01 / CP-01A + WEB-CONSOLE-ENTRY-01 / WCE-01..06:
+# Fastify Control Plane (apps/api) + Web Console (apps/web-console) lane.
+# Validates typecheck + focused contract tests + build + integration and
+# the machine-checked boundary gates (F11 deployment wiring / F12 Gate A
+# lexical / WCE-01 same-origin client red lines).
 #
 # NOT a required context yet: required-ization is a deliberate branch-
 # protection change to be adjudicated at CP-01A closure per the frozen
@@ -32,15 +34,15 @@ jobs:
     # Same trusted/fork boundary as media-agent CI (§15.6): trusted events use
     # the pinned self-hosted vbmf-general pool; fork PRs stay GitHub-hosted.
     runs-on: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.head.repo.fork) && fromJSON('["self-hosted","Linux","X64","vbmf","vbmf-general"]') || 'ubuntu-latest' }}
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: apps/api
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Boundary gate — F11 deployment wiring + F12 Gate A lexical
         working-directory: ${{ github.workspace }}
         run: python3 scripts/check_control_plane_gate.py
+      - name: Boundary gate — WCE-01 same-origin client red lines
+        working-directory: ${{ github.workspace }}
+        run: python3 scripts/check_web_console_red_lines.py
       # DEPLOY-BASELINE: Node 24 Active LTS. setup-node v7 pinned by commit
       # SHA on both runner paths (the vbmf runners are Rust/Python-provisioned
       # and carry no system Node install).
@@ -48,11 +50,31 @@ jobs:
         uses: actions/setup-node@680d1e489b82f1243de15bc7665c0007e3c9a860 # v7.0.0
         with:
           node-version: 24
-      - name: Install dependencies (npm ci, lockfile-pinned)
+
+      # ---- Fastify (apps/api) ----
+      - name: Install Fastify deps (npm ci, lockfile-pinned)
+        working-directory: apps/api
         run: npm ci
-      - name: Typecheck
+      - name: Fastify typecheck
+        working-directory: apps/api
         run: npm run typecheck
-      - name: Focused contract tests (adapter vs mock JSON-RPC server)
+      - name: Fastify focused contract tests (adapter vs mock JSON-RPC server)
+        working-directory: apps/api
         run: npm test
-      - name: Build
+      - name: Fastify build
+        working-directory: apps/api
+        run: npm run build
+
+      # ---- Web Console (apps/web-console) ----
+      - name: Install Web Console deps (npm ci, lockfile-pinned)
+        working-directory: apps/web-console
+        run: npm ci
+      - name: Web Console typecheck
+        working-directory: apps/web-console
+        run: npm run typecheck
+      - name: Web Console tests (vitest — SSE/4-state/error envelope/schema authority/integration)
+        working-directory: apps/web-console
+        run: npm test
+      - name: Web Console build (vite production bundle)
+        working-directory: apps/web-console
         run: npm run build

@@ -160,8 +160,28 @@ export async function apiCall<T>(path: string, init?: RequestInit): Promise<T> {
 
 // ---------- 强类型 endpoint helpers（与 ROUTE_SCHEMAS 一一对应） ----------
 
+/**
+ * 测试用：注入 fetch 实现。生产路径不传；测试走 buildApp + app.inject 后
+ * 的 fetch 桥（通过 fetchImpl）。Web Console 在真实浏览器运行时使用全局 fetch。
+ */
+let testFetchImpl: typeof fetch | null = null;
+
+export function setTestFetchImpl(impl: typeof fetch | null): void {
+  testFetchImpl = impl;
+}
+
+function fetchOpts(signal?: AbortSignal, headers?: Record<string, string>): Pick<RequestInit, "headers" | "signal"> {
+  const out: { headers?: Record<string, string>; signal?: AbortSignal } = {};
+  if (headers !== undefined) out.headers = headers;
+  if (signal !== undefined) out.signal = signal;
+  return out;
+}
+
 export function getRuntime(signal?: AbortSignal): Promise<ApiResult<RuntimeSnapshot>> {
-  return apiFetch<RuntimeSnapshot>("/api/v1/runtime", { ...(signal !== undefined ? { signal } : {}) });
+  return apiFetch<RuntimeSnapshot>("/api/v1/runtime", {
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+    ...fetchOpts(signal),
+  });
 }
 
 export function postStartSession(
@@ -172,8 +192,8 @@ export function postStartSession(
   return apiFetch<CommandOperationBody>("/api/v1/sessions", {
     method: "POST",
     body,
-    headers: { "idempotency-key": idempotencyKey },
-    ...(signal !== undefined ? { signal } : {}),
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+    ...fetchOpts(signal, { "idempotency-key": idempotencyKey }),
   });
 }
 
@@ -185,8 +205,8 @@ export function postStopSession(
   return apiFetch<CommandOperationBody>(`/api/v1/sessions/${sessionId}/stop`, {
     method: "POST",
     body: {},
-    headers: { "idempotency-key": idempotencyKey },
-    ...(signal !== undefined ? { signal } : {}),
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+    ...fetchOpts(signal, { "idempotency-key": idempotencyKey }),
   });
 }
 
@@ -198,8 +218,8 @@ export function postReleaseSession(
   return apiFetch<CommandOperationBody>(`/api/v1/sessions/${sessionId}/release`, {
     method: "POST",
     body: {},
-    headers: { "idempotency-key": idempotencyKey },
-    ...(signal !== undefined ? { signal } : {}),
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+    ...fetchOpts(signal, { "idempotency-key": idempotencyKey }),
   });
 }
 
@@ -208,14 +228,21 @@ export function getCommand(
   signal?: AbortSignal,
 ): Promise<ApiResult<CommandOperationBody>> {
   return apiFetch<CommandOperationBody>(`/api/v1/commands/${commandId}`, {
-    ...(signal !== undefined ? { signal } : {}),
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+    ...fetchOpts(signal),
   });
 }
 
 export function getHealthz(signal?: AbortSignal): Promise<ApiResult<HealthLayersResponse>> {
-  return apiFetch<HealthLayersResponse>("/healthz", { ...(signal !== undefined ? { signal } : {}) });
+  return apiFetch<HealthLayersResponse>("/healthz", {
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+    ...fetchOpts(signal),
+  });
 }
 
 export function getHealthLive(signal?: AbortSignal): Promise<ApiResult<HealthLiveResponse>> {
-  return apiFetch<HealthLiveResponse>("/health/live", { ...(signal !== undefined ? { signal } : {}) });
+  return apiFetch<HealthLiveResponse>("/health/live", {
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+    ...fetchOpts(signal),
+  });
 }
