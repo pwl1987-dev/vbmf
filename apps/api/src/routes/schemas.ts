@@ -438,6 +438,133 @@ const eventsResponses = {
   503: errorEnvelopeSchema,
 } as const;
 
+// ---------- HI-01B: alarms 资源（GET 列表/单条 + POST ack） ----------
+
+const alarmsListGetRequest: FastifySchema = {
+  querystring: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      active: { type: "string", enum: ["true", "false"] },
+      severity: { type: "string", enum: ["warning", "error"] },
+      limit: { type: "string", pattern: "^\\d{1,3}$" },
+      before_id: { type: "string", minLength: 1, maxLength: 256 },
+    },
+  },
+};
+
+const alarmGetRequest: FastifySchema = {
+  params: {
+    type: "object",
+    additionalProperties: false,
+    required: ["id"],
+    properties: { id: { type: "string", minLength: 1, maxLength: 256 } },
+  },
+};
+
+const alarmAckPostRequest: FastifySchema = {
+  params: {
+    type: "object",
+    additionalProperties: false,
+    required: ["id"],
+    properties: { id: { type: "string", minLength: 1, maxLength: 256 } },
+  },
+  body: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      note: { type: "string", minLength: 1, maxLength: 1024 },
+    },
+  },
+};
+
+/** alarm wire 行（DB 行平铺直映射；snake_case 与既有 wire 一致）。 */
+export const alarmItemSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "id",
+    "fingerprint",
+    "severity",
+    "kind",
+    "failure_domain",
+    "related_session_id",
+    "related_device_id",
+    "related_pipeline_id",
+    "summary",
+    "retryable",
+    "recovery_status",
+    "first_seen_at",
+    "last_seen_at",
+    "event_count",
+    "active",
+    "cleared_at",
+    "clear_reason",
+    "ack_at",
+    "ack_by",
+    "ack_note",
+  ],
+  properties: {
+    id: { type: "string", format: "uuid" },
+    fingerprint: { type: "string", minLength: 1 },
+    severity: { type: "string", enum: ["warning", "error"] },
+    kind: { type: "string", minLength: 1 },
+    failure_domain: { type: "string", minLength: 1 },
+    related_session_id: { type: ["string", "null"], format: "uuid" },
+    related_device_id: { type: ["string", "null"], format: "uuid" },
+    related_pipeline_id: { type: ["string", "null"], format: "uuid" },
+    summary: { type: "string", minLength: 1 },
+    retryable: { type: ["boolean", "null"] },
+    recovery_status: { type: "string", enum: ["active", "escalating", "recovered"] },
+    first_seen_at: { type: "string" },
+    last_seen_at: { type: "string" },
+    event_count: { type: "integer", minimum: 1 },
+    active: { type: "boolean" },
+    cleared_at: { type: ["string", "null"] },
+    clear_reason: { type: ["string", "null"] },
+    // ACK = operator awareness only（不改变 active/恢复状态——HI 红线）。
+    ack_at: { type: ["string", "null"] },
+    ack_by: { type: ["string", "null"] },
+    ack_note: { type: ["string", "null"] },
+  },
+} as const;
+
+const alarmsResponses = {
+  200: {
+    oneOf: [
+      {
+        type: "object",
+        additionalProperties: false,
+        required: ["alarms", "count"],
+        properties: {
+          alarms: { type: "array", items: alarmItemSchema },
+          count: { type: "integer", minimum: 0 },
+        },
+      },
+      alarmItemSchema,
+    ],
+  },
+  400: errorEnvelopeSchema,
+  401: errorEnvelopeSchema,
+  403: errorEnvelopeSchema,
+  404: errorEnvelopeSchema,
+  429: errorEnvelopeSchema,
+} as const;
+
+// ---------- SSE 帧 shape（Web Console parser 用；Fastify schema 对流式响应不生效） ----------
+
+export const sseFramePayloadSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["sequence", "observed_at_ms", "weak_ordering", "snapshot"],
+  properties: {
+    sequence: { type: "integer", minimum: 0 },
+    observed_at_ms: { type: "integer", minimum: 0 },
+    weak_ordering: { type: "boolean", const: true },
+    snapshot: { type: "object", additionalProperties: true },
+  },
+} as const;
+
 export const ROUTE_SCHEMAS: readonly RouteSchemaEntry[] = [
   {
     method: "GET",
@@ -487,18 +614,22 @@ export const ROUTE_SCHEMAS: readonly RouteSchemaEntry[] = [
     schema: eventsStreamGetRequest,
     response: eventsResponses as unknown as Record<string, unknown>,
   },
-] as const;
-
-// ---------- SSE 帧 shape（Web Console parser 用；Fastify schema 对流式响应不生效） ----------
-
-export const sseFramePayloadSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["sequence", "observed_at_ms", "weak_ordering", "snapshot"],
-  properties: {
-    sequence: { type: "integer", minimum: 0 },
-    observed_at_ms: { type: "integer", minimum: 0 },
-    weak_ordering: { type: "boolean", const: true },
-    snapshot: { type: "object", additionalProperties: true },
+  {
+    method: "GET",
+    url: "/api/v1/alarms",
+    schema: alarmsListGetRequest,
+    response: alarmsResponses as unknown as Record<string, unknown>,
   },
-} as const;
+  {
+    method: "GET",
+    url: "/api/v1/alarms/:id",
+    schema: alarmGetRequest,
+    response: alarmsResponses as unknown as Record<string, unknown>,
+  },
+  {
+    method: "POST",
+    url: "/api/v1/alarms/:id/ack",
+    schema: alarmAckPostRequest,
+    response: alarmsResponses as unknown as Record<string, unknown>,
+  },
+] as const;

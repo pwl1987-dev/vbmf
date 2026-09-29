@@ -159,11 +159,14 @@ function assertValidates(
 test("schema entry set 与声明路径一致", () => {
   const urls = ROUTE_SCHEMAS.map((s) => `${s.method} ${s.url}`).sort();
   assert.deepEqual(urls, [
+    "GET /api/v1/alarms",
+    "GET /api/v1/alarms/:id",
     "GET /api/v1/commands/:id",
     "GET /api/v1/runtime",
     "GET /events/v1/stream",
     "GET /health/live",
     "GET /healthz",
+    "POST /api/v1/alarms/:id/ack",
     "POST /api/v1/sessions",
     "POST /api/v1/sessions/:id/release",
     "POST /api/v1/sessions/:id/stop",

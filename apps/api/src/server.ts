@@ -16,6 +16,7 @@ import { AgentControlClient } from "./agent/agentControlClient.ts";
 import { runtimeRoutes, type RouteDeps } from "./routes/runtime.ts";
 import { healthRoutes } from "./routes/health.ts";
 import { commandRoutes } from "./routes/commands.ts";
+import { alarmRoutes } from "./routes/alarms.ts";
 import { ApiError, errorEnvelope, internalError, notFound } from "./lib/errors.ts";
 import { AgentWireSessionIdError } from "./lib/sessionIds.ts";
 import { CommandService, type CommandPlane } from "./command/commandService.ts";
@@ -187,6 +188,11 @@ export async function buildAppHandle(config: AppConfig, opts: BuildOptions = {})
   await app.register(healthRoutes, { agent, db, authenticator, drainLoop });
   await app.register(commandRoutes, { commandService });
   await app.register(eventsRoutes, { db, ssePollMs: config.eventsSsePollMs });
+  // HI-01B: alarms 投影只读面 + awareness ack。
+  await app.register(alarmRoutes, {
+    db,
+    audit: db !== null ? new SecurityAudit(db) : null,
+  });
 
   app.addHook("onClose", async () => {
     if (drainLoop !== null) await drainLoop.stop();
