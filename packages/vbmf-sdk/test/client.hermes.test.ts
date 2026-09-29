@@ -160,3 +160,73 @@ describe("VbmfClient core (hermetic)", () => {
     expect(captured).toContain("/api/v1/sessions/a%2Fb%3Fc%3Dd/stop");
   });
 });
+
+describe("VbmfClient alarms (HI-01C hermetic)", () => {
+  const alarmItem = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
+    id: "11111111-1111-1111-1111-111111111111",
+    fingerprint: "pipeline_fault:pipeline:33333333-3333-3333-3333-333333333333",
+    severity: "warning",
+    kind: "pipeline_fault",
+    failure_domain: "pipeline",
+    related_session_id: null,
+    related_device_id: null,
+    related_pipeline_id: "33333333-3333-3333-3333-333333333333",
+    summary: "bus error",
+    retryable: true,
+    recovery_status: "active",
+    first_seen_at: "2026-09-29T00:00:00.000Z",
+    last_seen_at: "2026-09-29T00:00:01.000Z",
+    event_count: 1,
+    active: true,
+    cleared_at: null,
+    clear_reason: null,
+    ack_at: null,
+    ack_by: null,
+    ack_note: null,
+    ...over,
+  });
+
+  it("listAlarms 200 → typed list + query 编码", async () => {
+    let calledUrl = "";
+    const c = makeClient((async (input: RequestInfo | URL) => {
+      calledUrl = String(input);
+      return jsonResponse(200, { alarms: [alarmItem()], count: 1 });
+    }) as typeof fetch);
+    const out = await c.listAlarms({ active: true, severity: "error", limit: 25 });
+    expect(out.count).toBe(1);
+    expect(out.alarms[0]!.kind).toBe("pipeline_fault");
+    expect(calledUrl).toContain("/api/v1/alarms?active=true&severity=error&limit=25");
+  });
+
+  it("listAlarms 无过滤 → 无 query string", async () => {
+    let calledUrl = "";
+    const c = makeClient((async (input: RequestInfo | URL) => {
+      calledUrl = String(input);
+      return jsonResponse(200, { alarms: [], count: 0 });
+    }) as typeof fetch);
+    await c.listAlarms();
+    expect(calledUrl.endsWith("/api/v1/alarms")).toBe(true);
+  });
+
+  it("getAlarm 404 → VbmfApiError RESOURCE_NOT_FOUND（不吞错误）", async () => {
+    const c = makeClient((async () => jsonResponse(404, envelope("RESOURCE_NOT_FOUND", false))) as typeof fetch);
+    const err = await expectApiError(c.getAlarm("11111111-1111-1111-1111-111111111111"));
+    expect(err.status).toBe(404);
+    expect(err.code).toBe("RESOURCE_NOT_FOUND");
+  });
+
+  it("ackAlarm POST + note body → acked item（awareness only 字段如实）", async () => {
+    let method = "";
+    let body: unknown = undefined;
+    const c = makeClient((async (_input: RequestInfo | URL, init?: RequestInit) => {
+      method = init?.method ?? "GET";
+      body = init?.body;
+      return jsonResponse(200, alarmItem({ ack_by: "user-1", ack_note: "seen", ack_at: "2026-09-29T01:00:00.000Z", active: true }));
+    }) as typeof fetch);
+    const out = await c.ackAlarm("11111111-1111-1111-1111-111111111111", "seen");
+    expect(method).toBe("POST");
+    expect(JSON.parse(String(body))).toEqual({ note: "seen" });
+    expect(out.ack_by).toBe("user-1");
+    expect(out.active).toBe(true);
+  });
+});

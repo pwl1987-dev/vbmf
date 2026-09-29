@@ -26,6 +26,7 @@ import {
   healthLayersSchema,
   healthLiveSchema,
   sseFramePayloadSchema,
+  alarmItemSchema,
 } from "../../../apps/api/src/routes/schemas.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -58,6 +59,8 @@ async function main(): Promise<void> {
     [healthLayersSchema, "HealthLayersResponse", { bannerComment: "" }],
     [healthLiveSchema, "HealthLiveResponse", { bannerComment: "" }],
     [sseFramePayloadSchema, "SseFramePayload", { bannerComment: "" }],
+    // HI-01C: alarm wire 行（GET/ack 响应载荷）。
+    [alarmItemSchema, "AlarmItem", { bannerComment: "" }],
   ];
   for (const [schema, name, opts] of jobs) {
     // json-schema-to-typescript 处理整棵子 schema（含引用展开），输出为

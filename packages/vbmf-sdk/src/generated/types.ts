@@ -311,3 +311,26 @@ export interface SseFramePayload {
     [k: string]: unknown;
   };
 }
+
+export interface AlarmItem {
+  id: string;
+  fingerprint: string;
+  severity: "warning" | "error";
+  kind: string;
+  failure_domain: string;
+  related_session_id: string | null;
+  related_device_id: string | null;
+  related_pipeline_id: string | null;
+  summary: string;
+  retryable: boolean | null;
+  recovery_status: "active" | "escalating" | "recovered";
+  first_seen_at: string;
+  last_seen_at: string;
+  event_count: number;
+  active: boolean;
+  cleared_at: string | null;
+  clear_reason: string | null;
+  ack_at: string | null;
+  ack_by: string | null;
+  ack_note: string | null;
+}

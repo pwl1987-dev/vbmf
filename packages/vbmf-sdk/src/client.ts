@@ -13,6 +13,7 @@
  * 头）；v0.1 无自动 write retry —— 重试决策与键管理归调用方。
  */
 import type {
+  AlarmItem,
   CommandOperationBody,
   HealthLayersResponse,
   HealthLiveResponse,
@@ -98,6 +99,46 @@ export class VbmfClient {
       method: "POST",
       body,
       headers: { "idempotency-key": idempotencyKey },
+      signal,
+    });
+  }
+
+  // ---------- HI-01C: alarms（投影派生事实；只读 + awareness ack） ----------
+
+  /**
+   * Alarm 列表（keyset 分页）。返回的是控制面投影事实，**不是** Runtime
+   * truth；`AlarmItem.ack_*` 是 operator awareness only——acked ≠ healthy。
+   */
+  async listAlarms(
+    opts: { active?: boolean; severity?: "warning" | "error"; limit?: number; beforeId?: string } = {},
+    signal?: AbortSignal,
+  ): Promise<{ alarms: AlarmItem[]; count: number }> {
+    const params = new URLSearchParams();
+    if (opts.active !== undefined) params.set("active", String(opts.active));
+    if (opts.severity !== undefined) params.set("severity", opts.severity);
+    if (opts.limit !== undefined) params.set("limit", String(opts.limit));
+    if (opts.beforeId !== undefined) params.set("before_id", opts.beforeId);
+    const qs = params.size > 0 ? `?${params.toString()}` : "";
+    return this.transport.request<{ alarms: AlarmItem[]; count: number }>(
+      `/api/v1/alarms${qs}`,
+      { signal },
+    );
+  }
+
+  /** 单条 alarm（404 → VbmfApiError RESOURCE_NOT_FOUND）。 */
+  getAlarm(alarmId: string, signal?: AbortSignal): Promise<AlarmItem> {
+    return this.transport.request<AlarmItem>(`/api/v1/alarms/${encodeURIComponent(alarmId)}`, { signal });
+  }
+
+  /**
+   * Operator awareness ACK（幂等）。只写 ack_* 三字段；**绝不**改变 alarm
+   * active/恢复状态，也绝不代表 Runtime healthy——UI 必须与 Runtime 真实
+   * 状态并列展示（HI 红线）。
+   */
+  ackAlarm(alarmId: string, note?: string, signal?: AbortSignal): Promise<AlarmItem> {
+    return this.transport.request<AlarmItem>(`/api/v1/alarms/${encodeURIComponent(alarmId)}/ack`, {
+      method: "POST",
+      ...(note !== undefined ? { body: { note } } : {}),
       signal,
     });
   }
