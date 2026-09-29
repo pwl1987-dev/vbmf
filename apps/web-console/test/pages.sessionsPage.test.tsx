@@ -21,16 +21,22 @@ const h = vi.hoisted(() => {
   let commandPendingSteps = 0;
   let snapshot: RuntimeSnapshot | null = null;
   const startCalls: unknown[] = [];
+  const stopCalls: string[] = [];
+  const releaseCalls: string[] = [];
   const reset = (): void => {
     runtimeCalls = 0;
     commandCalls = 0;
     commandPendingSteps = 0;
     snapshot = null;
     startCalls.length = 0;
+    stopCalls.length = 0;
+    releaseCalls.length = 0;
   };
   return {
     reset,
     startCalls,
+    stopCalls,
+    releaseCalls,
     get runtimeCalls() {
       return runtimeCalls;
     },
@@ -90,16 +96,22 @@ vi.mock("../src/api/client.ts", () => ({
       },
     };
   },
-  postStopSession: async () => ({
-    kind: "ok" as const,
-    status: 200,
-    body: { command_id: "cmd-stop-1", state: "pending", kind: "stop_session", created_at: "2026-09-29T00:00:00.000Z" },
-  }),
-  postReleaseSession: async () => ({
-    kind: "ok" as const,
-    status: 200,
-    body: { command_id: "cmd-rel-1", state: "pending", kind: "release_session", created_at: "2026-09-29T00:00:00.000Z" },
-  }),
+  postStopSession: async (sessionId: string) => {
+    h.stopCalls.push(sessionId);
+    return {
+      kind: "ok" as const,
+      status: 200,
+      body: { command_id: "cmd-stop-1", state: "pending", kind: "stop_session", created_at: "2026-09-29T00:00:00.000Z" },
+    };
+  },
+  postReleaseSession: async (sessionId: string) => {
+    h.releaseCalls.push(sessionId);
+    return {
+      kind: "ok" as const,
+      status: 200,
+      body: { command_id: "cmd-rel-1", state: "pending", kind: "release_session", created_at: "2026-09-29T00:00:00.000Z" },
+    };
+  },
 }));
 
 import { SessionsPage } from "../src/pages/SessionsPage.tsx";
@@ -234,6 +246,31 @@ describe("SessionsPage polling lifecycle (BUG-B regression)", () => {
     });
     expect(h.runtimeCalls).toBe(2);
     // command terminal state displayed honestly
+    expect(container.textContent).toContain("completed");
+  });
+
+  it("5. Release targets the latest non-terminated session when none is running (canonical idempotent removal); Stop still refuses", async () => {
+    // 真实 BMD Runtime 语义（2026-09-29 实证）：stop 对非 running 会话 =
+    // failed(permanent) 诚实拒绝；release 对已 released 会话 = 幂等 executed。
+    h.setSnapshot(makeSnapshot(["released"]));
+    render();
+    await settle();
+    const buttons = container.querySelectorAll("button");
+    const stopBtn = [...buttons].find((b) => b.textContent === "Stop")!;
+    const releaseBtn = [...buttons].find((b) => b.textContent === "Release")!;
+    await act(async () => {
+      stopBtn.click();
+    });
+    expect(h.stopCalls).toHaveLength(0); // Stop refuses: no running session
+    expect(container.textContent).toContain("no active session");
+    await act(async () => {
+      releaseBtn.click();
+    });
+    expect(h.releaseCalls).toHaveLength(1); // Release issues the real command
+    expect(h.releaseCalls[0]).toBe("sess-1");
+    await settle();
+    // command journey result displayed honestly (id + terminal state)
+    expect(container.textContent).toContain("cmd-rel-1");
     expect(container.textContent).toContain("completed");
   });
 });

@@ -117,7 +117,7 @@ export function SessionsPage(): React.JSX.Element {
   }
 
   async function onRelease(): Promise<void> {
-    const sid = pickSessionId();
+    const sid = pickReleaseSessionId();
     if (sid === null) {
       updateRow(2, { error: "no active session" });
       return;
@@ -171,6 +171,21 @@ export function SessionsPage(): React.JSX.Element {
     }
     const firstRunning = runtimeRef.current?.sessions.find((s) => s.state === "running")?.id;
     return firstRunning ?? null;
+  }
+
+  /**
+   * Release 目标选择（真实 Runtime 语义，2026-09-29 BMD 实证）：
+   * - running 会话优先；
+   * - 无 running 时 fallback 最近一个非 terminated 会话 —— release 对已
+   *   released 会话是 canonical 幂等 removal（agent executed），而 stop 对
+   *   非 running 会话是 failed(permanent) 诚实拒绝，两者语义不同。
+   */
+  function pickReleaseSessionId(): string | null {
+    const sessions = runtimeRef.current?.sessions ?? [];
+    const running = sessions.find((s) => s.state === "running");
+    if (running !== undefined) return running.id;
+    const last = sessions.filter((s) => s.state !== "terminated").at(-1);
+    return last?.id ?? null;
   }
 
   return (
