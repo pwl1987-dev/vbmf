@@ -60,7 +60,9 @@ export class VbmfTransport {
     }
     this.baseUrl = opts.baseUrl.replace(/\/+$/, "");
     this.credentialProvider = opts.credentialProvider;
-    this.fetchImpl = opts.fetchImpl ?? globalThis.fetch;
+    // bind(globalThis)：浏览器中未绑定的 fetch 引用裸调用抛 Illegal
+    // invocation（真浏览器 BMD 实证 BUG-H；Node 注入路径此前掩盖）。
+    this.fetchImpl = opts.fetchImpl ?? globalThis.fetch.bind(globalThis);
   }
 
   async request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
