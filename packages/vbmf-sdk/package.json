@@ -24,7 +24,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "build": "npm run gen:types && tsc -p tsconfig.build.json",
-    "pack:smoke": "npm pack --pack-destination /tmp >/dev/null && ls -1 /tmp/vbmf-sdk-*.tgz | tail -1"
+    "pack:smoke": "npm pack --pack-destination /tmp >/dev/null && ls -1 /tmp/vbmf-sdk-*.tgz | tail -1",
+    "build:tsc": "tsc -p tsconfig.build.json"
   },
   "devDependencies": {
     "@types/node": "^24.7.0",

@@ -161,27 +161,42 @@ export async function apiCall<T>(path: string, init?: RequestInit): Promise<T> {
 // ---------- 强类型 endpoint helpers（与 ROUTE_SCHEMAS 一一对应） ----------
 
 /**
- * 测试用：注入 fetch 实现。生产路径不传；测试走 buildApp + app.inject 后
- * 的 fetch 桥（通过 fetchImpl）。Web Console 在真实浏览器运行时使用全局 fetch。
+ * SDK-01D dogfood：端点 helpers 切换到 @vbmf/sdk（VbmfClient）。本文件保留：
+ * - `apiFetch`（泛型 ApiResult 包装 + same-origin 红线拦截器 ——
+ *   check_web_console_red_lines.py 静态 gate 依赖的运行时自防回归）；
+ * - `ApiClientError` 与既有导出形态（pages/tests 消费面不变）。
+ * SDK 的 VbmfApiError 在此被映射回 ApiResult error 分支 —— UI 消费语义零变化。
  */
+import { VbmfClient, VbmfApiError } from "@vbmf/sdk";
+
 let testFetchImpl: typeof fetch | null = null;
 
 export function setTestFetchImpl(impl: typeof fetch | null): void {
   testFetchImpl = impl;
 }
 
-function fetchOpts(signal?: AbortSignal, headers?: Record<string, string>): Pick<RequestInit, "headers" | "signal"> {
-  const out: { headers?: Record<string, string>; signal?: AbortSignal } = {};
-  if (headers !== undefined) out.headers = headers;
-  if (signal !== undefined) out.signal = signal;
-  return out;
+function sdkClient(): VbmfClient {
+  return new VbmfClient({
+    baseUrl: "",
+    credentialProvider: () => getApiKey() ?? "",
+    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
+  });
+}
+
+/** SDK 抛错 → ApiResult error 分支（保留 status/envelope 形态）。 */
+async function toResult<T>(p: Promise<T>): Promise<ApiResult<T>> {
+  try {
+    return { kind: "ok", status: 200, body: await p };
+  } catch (err) {
+    if (err instanceof VbmfApiError) {
+      return { kind: "error", status: err.status, envelope: err.envelope };
+    }
+    throw err;
+  }
 }
 
 export function getRuntime(signal?: AbortSignal): Promise<ApiResult<RuntimeSnapshot>> {
-  return apiFetch<RuntimeSnapshot>("/api/v1/runtime", {
-    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
-    ...fetchOpts(signal),
-  });
+  return toResult(sdkClient().getRuntime(undefined, signal));
 }
 
 export function postStartSession(
@@ -189,12 +204,7 @@ export function postStartSession(
   idempotencyKey: string,
   signal?: AbortSignal,
 ): Promise<ApiResult<CommandOperationBody>> {
-  return apiFetch<CommandOperationBody>("/api/v1/sessions", {
-    method: "POST",
-    body,
-    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
-    ...fetchOpts(signal, { "idempotency-key": idempotencyKey }),
-  });
+  return toResult(sdkClient().startSession(body, idempotencyKey, signal));
 }
 
 export function postStopSession(
@@ -202,12 +212,7 @@ export function postStopSession(
   idempotencyKey: string,
   signal?: AbortSignal,
 ): Promise<ApiResult<CommandOperationBody>> {
-  return apiFetch<CommandOperationBody>(`/api/v1/sessions/${sessionId}/stop`, {
-    method: "POST",
-    body: {},
-    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
-    ...fetchOpts(signal, { "idempotency-key": idempotencyKey }),
-  });
+  return toResult(sdkClient().stopSession(sessionId, idempotencyKey, signal));
 }
 
 export function postReleaseSession(
@@ -215,34 +220,20 @@ export function postReleaseSession(
   idempotencyKey: string,
   signal?: AbortSignal,
 ): Promise<ApiResult<CommandOperationBody>> {
-  return apiFetch<CommandOperationBody>(`/api/v1/sessions/${sessionId}/release`, {
-    method: "POST",
-    body: {},
-    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
-    ...fetchOpts(signal, { "idempotency-key": idempotencyKey }),
-  });
+  return toResult(sdkClient().releaseSession(sessionId, idempotencyKey, signal));
 }
 
 export function getCommand(
   commandId: string,
   signal?: AbortSignal,
 ): Promise<ApiResult<CommandOperationBody>> {
-  return apiFetch<CommandOperationBody>(`/api/v1/commands/${commandId}`, {
-    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
-    ...fetchOpts(signal),
-  });
+  return toResult(sdkClient().getCommand(commandId, signal));
 }
 
 export function getHealthz(signal?: AbortSignal): Promise<ApiResult<HealthLayersResponse>> {
-  return apiFetch<HealthLayersResponse>("/healthz", {
-    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
-    ...fetchOpts(signal),
-  });
+  return toResult(sdkClient().health(signal));
 }
 
 export function getHealthLive(signal?: AbortSignal): Promise<ApiResult<HealthLiveResponse>> {
-  return apiFetch<HealthLiveResponse>("/health/live", {
-    ...(testFetchImpl !== null ? { fetchImpl: testFetchImpl } : {}),
-    ...fetchOpts(signal),
-  });
+  return toResult(sdkClient().healthLive(signal));
 }

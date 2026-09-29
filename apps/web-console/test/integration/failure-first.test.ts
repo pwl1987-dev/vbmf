@@ -23,6 +23,7 @@ import {
 } from "../../../api/test/helpers/fixtureAuth.ts";
 import type { CommandPlane, ServiceResponse, SubmitInput } from "../../../api/src/command/commandService.ts";
 import { setApiKey } from "../../src/auth/credentials.ts";
+import type { StartSessionBody } from "../../src/api/schemas.ts";
 import {
   getRuntime,
   postStartSession,
@@ -338,7 +339,7 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
     const plane = new StubPlane();
     handle = await buildHandle({ plane });
     useInjectBridge();
-    const r = await postStartSession({ intent: { version: "1.0", devices: [] } }, "int-validation-1");
+    const r = await postStartSession({ intent: { version: "1.0", devices: [] } as unknown as StartSessionBody["intent"] }, "int-validation-1");
     expect(r.kind).toBe("error");
     if (r.kind === "error") {
       expect(r.status).toBe(400);
