@@ -7,6 +7,18 @@
 #   compose.acceptance.yml    = ACCEPTANCE overlay (pinned, Nginx 443 + SRS media ports)
 #   compose.prod.yml          = PROD overlay (Nginx 443 only, no HMR, immutable)
 #
+# Production Core Dependency Rule (PRODUCTION-READINESS-ENTRY-01 / PR-01A, 2026-09-29):
+#   "no current consumer != production core dependency".
+#   CORE (no profile, started by default): db + media-agent + fastify + web + nginx.
+#     Fastify's only external dependency is PostgreSQL (verified: zero
+#     redis/valkey/rustfs/srs consumers in apps/api/src).
+#   OPTIONAL capability profiles — core must run normally when they are absent;
+#   when explicitly enabled the capability fails honestly on its own:
+#     --profile storage -> rustfs   (no live consumer yet)
+#     --profile gateway -> srs      (no live consumer yet)
+#     --profile worker  -> cache + worker (BullMQ placeholder; implementing a
+#                        worker just to make compose green is FORBIDDEN)
+#
 # Conventions (from Deployment SoT):
 #   - PostgreSQL host = "db", Valkey host = "cache", RustFS host = "rustfs"
 #   - Media Agent = DeckLink/GStreamer/Live FFmpeg sole owner (Ownership SoT F2/F4/F11)
@@ -20,7 +32,7 @@
 #       Alternative: runtime: runc + seccomp/AppArmor/capabilities (MEDIA-SEC-01 Option B).
 
 services:
-  # ---------- Infra (internal only, no host publish) ----------
+  # ---------- Core infra (internal only, no host publish) ----------
   db:
     image: postgres:17-alpine
     environment:
@@ -39,25 +51,18 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  cache:
-    image: valkey/valkey:8-alpine
-    command: ["valkey-server", "--save", "", "--appendonly", "no"]
-    expose:
-      - "6379"
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 5s
-    restart: unless-stopped
-
+  # ---------- Optional capability: storage (PR-01A profile) ----------
+  # No live consumer in the control plane yet (apps/api/src has zero rustfs
+  # references). Kept as the future object-storage entry point (EXTERNAL_API_CONTRACT
+  # §8 presigned-URL flows); fails honestly at pull time while the pinned tag
+  # drifts (BMD evidence) — pins are kept per DEPLOY-BASELINE-01, never latest.
   rustfs:
     image: rustfs/rustfs:2026.8.1   # pin release tag; NEVER latest (DEPLOY-BASELINE-01)
+    profiles: ["storage"]
     command: ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER: ${RUSTFS_ACCESS:-vbmf}
-      MINIO_ROOT_PASSWORD: ${RUSTFS_SECRET:?set RUSTFS_SECRET in .env}
+      MINIO_ROOT_PASSWORD: ${RUSTFS_SECRET:-set RUSTFS_SECRET in .env when enabling storage}
     volumes:
       - rustfsdata:/data
     expose:
@@ -71,9 +76,13 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  # ---------- Optional capability: gateway (PR-01A profile) ----------
+  # Media protocol plane: RTMP/SRT/HLS/WHEP. No live consumer yet (Output Engine
+  # egress is direct HLS/RTMP; SRS Gateway Adapter is future work). Published only
+  # via profile overlays; pinned tag currently fails to pull (BMD evidence).
   srs:
     image: ossrs/srs:6.0.42   # pin specific patch (DEPLOY-BASE-01); SRS 6 line
-    # Media protocol plane: RTMP/SRT/HLS/WHEP. Published only via profile overlays.
+    profiles: ["gateway"]
     expose:
       - "1935"   # RTMP
       - "1985"   # SRS HTTP API
@@ -88,11 +97,30 @@ services:
       start_period: 10s
     restart: unless-stopped
 
-  # ---------- App (internal only, behind Nginx) ----------
-  fastify:
+  # ---------- Optional capability: worker (PR-01A profile) ----------
+  # cache (Valkey) + worker (BullMQ). EVENT_CONTRACT §1: Valkey is only an
+  # External-event/webhook queue — never a Runtime event source. Zero live
+  # consumers today; both stay behind the worker profile.
+  cache:
+    image: valkey/valkey:8-alpine
+    profiles: ["worker"]
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  worker:
     build:
+      # §3.77 same class of fix: compose project dir = ops/, repo root = ..
       context: ..
-      dockerfile: ops/Dockerfile.fastify
+      dockerfile: ops/Dockerfile.worker
+    profiles: ["worker"]
     environment:
       DATABASE_HOST: db
       DATABASE_PORT: "5432"
@@ -103,8 +131,37 @@ services:
       REDIS_PORT: "6379"
       RUSTFS_ENDPOINT: http://rustfs:9000
       RUSTFS_ACCESS: ${RUSTFS_ACCESS:-vbmf}
-      RUSTFS_SECRET: ${RUSTFS_SECRET:?set RUSTFS_SECRET in .env}
-      SRS_API: http://srs:1985
+      RUSTFS_SECRET: ${RUSTFS_SECRET:-set RUSTFS_SECRET in .env when enabling worker}
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    # DEPLOY-03: Worker MUST expose a deterministic health endpoint.
+    # Contract: Worker runs a lightweight HTTP health server on :3000/health/worker.
+    # PR-01A honest-fail contract: Dockerfile.worker is a deliberate placeholder
+    # (no CMD) — the container exits immediately and this healthcheck FAILS.
+    # That is the intended truthful signal until a real consumer exists; never
+    # fake it green and never implement a stub worker just to satisfy compose.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health/worker"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # ---------- Core app (internal only, behind Nginx) ----------
+  fastify:
+    build:
+      context: ..
+      dockerfile: ops/Dockerfile.fastify
+    environment:
+      DATABASE_HOST: db
+      DATABASE_PORT: "5432"
+      DATABASE_USER: ${POSTGRES_USER:-vbmf}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      DATABASE_NAME: ${POSTGRES_DB:-vbmf}
       # CP-01A (RCE-D3 canonical): internal JSON-RPC Runtime Control at
       # media-agent:50051 /internal/v1/agent (compose private network only).
       # 8080 is the agent health/diagnostic listener, NOT the control plane.
@@ -121,54 +178,18 @@ services:
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
       RATE_LIMIT_READ_MAX: ${RATE_LIMIT_READ_MAX:-240}
       RATE_LIMIT_WRITE_MAX: ${RATE_LIMIT_WRITE_MAX:-60}
+      # PR-01A: REDIS_*/RUSTFS_*/SRS_API wiring removed — apps/api has zero
+      # consumers for them (Production Core Dependency Rule); the optional
+      # services carry their own env under their profiles.
     expose:
       - "3000"
     depends_on:
       db:
         condition: service_healthy
-      cache:
-        condition: service_healthy
-      rustfs:
-        condition: service_healthy
-      srs:
-        condition: service_healthy
       media-agent:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health/live"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-      start_period: 15s
-    restart: unless-stopped
-
-  worker:
-    build:
-      context: .
-      dockerfile: ops/Dockerfile.worker
-    environment:
-      DATABASE_HOST: db
-      DATABASE_PORT: "5432"
-      DATABASE_USER: ${POSTGRES_USER:-vbmf}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
-      DATABASE_NAME: ${POSTGRES_DB:-vbmf}
-      REDIS_HOST: cache
-      REDIS_PORT: "6379"
-      RUSTFS_ENDPOINT: http://rustfs:9000
-      RUSTFS_ACCESS: ${RUSTFS_ACCESS:-vbmf}
-      RUSTFS_SECRET: ${RUSTFS_SECRET:?set RUSTFS_SECRET in .env}
-    depends_on:
-      db:
-        condition: service_healthy
-      cache:
-        condition: service_healthy
-      rustfs:
-        condition: service_healthy
-    # DEPLOY-03: Worker MUST expose a deterministic health endpoint.
-    # Contract: Worker runs a lightweight HTTP health server on :3000/health/worker.
-    # If not implemented by Phase 1, replace with a process-alive CLI probe.
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health/worker"]
       interval: 10s
       timeout: 3s
       retries: 5

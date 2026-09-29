@@ -265,6 +265,84 @@ def gate_wce_bmd_web_console(violations: list[str]) -> None:
         )
 
 
+def gate_pr01a_core_dependency_rule(violations: list[str]) -> None:
+    """PR-01A Production Core Dependency Rule (planning §4, 2026-09-29 frozen).
+
+    "no current consumer != production core dependency" — machine-checked
+    structure so the compose truth cannot silently regress:
+
+      - the four optional services carry profiles: rustfs=storage,
+        srs=gateway, cache/worker=worker;
+      - the core services (db/fastify/web/media-agent/nginx) carry NO
+        profiles (started by default);
+      - the fastify service must NOT depend on cache/rustfs/srs (apps/api
+        has zero consumers for them) and must not carry their env wiring;
+      - the worker healthcheck contract line stays (honest placeholder
+        fail, no fake green).
+    """
+    base = REPO / BASE_COMPOSE
+    text = base.read_text(encoding="utf-8", errors="replace")
+
+    def service_block(name: str) -> str | None:
+        m = re.search(rf"^  {re.escape(name)}:\s*$", text, flags=re.M)
+        if m is None:
+            return None
+        rest = text[m.end():]
+        nxt = re.search(r"^  [A-Za-z0-9_.-]+:\s*$", rest, flags=re.M)
+        return rest[: nxt.start()] if nxt else rest
+
+    expected_profiles = {
+        "rustfs": "storage",
+        "srs": "gateway",
+        "cache": "worker",
+        "worker": "worker",
+    }
+    core_services = ["db", "fastify", "web", "media-agent", "nginx"]
+    for name, profile in expected_profiles.items():
+        block = service_block(name)
+        if block is None:
+            violations.append(f"PR01A: {BASE_COMPOSE}: service {name} missing")
+            continue
+        m = re.search(r'profiles:\s*\[?"([a-z]+)"\]?', block)
+        if not m or m.group(1) != profile:
+            violations.append(
+                f"PR01A: {BASE_COMPOSE}: {name} must declare "
+                f'profiles: ["{profile}"] (optional capability service)'
+            )
+    for name in core_services:
+        block = service_block(name)
+        if block is None:
+            violations.append(f"PR01A: {BASE_COMPOSE}: core service {name} missing")
+            continue
+        if re.search(r"^\s+profiles:", block, flags=re.M):
+            violations.append(
+                f"PR01A: {BASE_COMPOSE}: core service {name} must have NO "
+                "profiles (core starts by default)"
+            )
+
+    fastify = service_block("fastify") or ""
+    for dep in ("cache", "rustfs", "srs"):
+        if re.search(rf"^\s+- {re.escape(dep)}:\s*$", fastify, flags=re.M):
+            violations.append(
+                f"PR01A: {BASE_COMPOSE}: fastify must not depend_on {dep} "
+                "(no current consumer — Production Core Dependency Rule)"
+            )
+    for env in ("REDIS_HOST", "REDIS_PORT", "RUSTFS_ENDPOINT", "RUSTFS_ACCESS",
+                "RUSTFS_SECRET", "SRS_API"):
+        if re.search(rf"^\s+{env}:", fastify, flags=re.M):
+            violations.append(
+                f"PR01A: {BASE_COMPOSE}: fastify must not wire {env} "
+                "(dead variable — apps/api has zero consumers)"
+            )
+
+    worker = service_block("worker") or ""
+    if "/health/worker" not in worker:
+        violations.append(
+            f"PR01A: {BASE_COMPOSE}: worker must keep its /health/worker "
+            "healthcheck contract (honest placeholder failure)"
+        )
+
+
 def main() -> int:
     violations: list[str] = []
     gate_f12(violations)
@@ -272,6 +350,7 @@ def main() -> int:
     gate_f11_nginx(violations)
     gate_cp01c_security(violations)
     gate_wce_bmd_web_console(violations)
+    gate_pr01a_core_dependency_rule(violations)
     if violations:
         print("control-plane gate: FAIL")
         for v in violations:
@@ -279,7 +358,7 @@ def main() -> int:
         return 1
     print(
         "control-plane gate: PASS (F11 deployment wiring + F12 Gate A lexical + "
-        "CP01C security + WCE-BMD real-web-console)"
+        "CP01C security + WCE-BMD real-web-console + PR01A core dependency rule)"
     )
     return 0
 

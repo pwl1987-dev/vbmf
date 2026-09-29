@@ -1,8 +1,10 @@
-# VBMF SOFTWARE-ACCEPTANCE overlay (CONTROL-PLANE-ENTRY-01 CP-01E / §11).
+# VBMF SOFTWARE-ACCEPTANCE overlay (CONTROL-PLANE-ENTRY-01 CP-01E / §11;
+# PR-01A: core-only up — cache/rustfs/srs/worker are optional profiles and
+# are no longer part of this lane).
 # Usage:
 #   docker compose --env-file .env \
 #     -f ops/docker-compose.yml -f ops/compose.software-acceptance.yml \
-#     up -d --build db cache rustfs srs media-agent fastify nginx
+#     up -d --build db media-agent fastify nginx
 #
 # VM software verification of the full chain (Nginx→Fastify→internal→agent)
 # WITHOUT DeckLink hardware: the media-agent container runs the NETWORK-ONLY

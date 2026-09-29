@@ -1,8 +1,14 @@
 # BullMQ Job Worker (Node.js) - async jobs, SRS recorder handoff
-# TODO(Phase 1): wire real build context once worker/src exists.
-FROM node:24-alpine   # DEPLOY-BASELINE: Node 24 Active LTS
+# PR-01A honest-placeholder contract (Production Core Dependency Rule):
+#   this image builds, starts, exits immediately (no CMD) and therefore its
+#   compose healthcheck FAILS. That truthful red is the intended signal until
+#   a real consumer exists — never fake it green, never implement a stub
+#   worker just to satisfy compose. Wired for real code only when the
+#   `worker` profile gets a live consumer.
+# DEPLOY-BASELINE: Node 24 Active LTS
+FROM node:24-alpine
 WORKDIR /app
-# COPY package*.json ./
-# RUN npm ci
-# COPY . .
-# CMD ["npm", "run", "worker"]
+# TODO(worker-packet): COPY package*.json ./
+# TODO(worker-packet): RUN npm ci
+# TODO(worker-packet): COPY . .
+# TODO(worker-packet): CMD ["npm", "run", "worker"]

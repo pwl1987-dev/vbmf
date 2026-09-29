@@ -10,6 +10,9 @@ services:
       - "80:80"   # redirect to 443
 
   srs:
+    # PR-01A: srs lives behind the `gateway` profile in BASE. These host ports
+    # take effect only when the capability is explicitly enabled:
+    #   docker compose --profile gateway -f ops/docker-compose.yml -f ops/compose.prod.yml up -d srs
     # Only publish what external consumers require
     ports:
       - "1935:1935"   # RTMP ingest from encoders
