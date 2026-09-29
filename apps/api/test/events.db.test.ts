@@ -260,6 +260,23 @@ dbTest("真实 HTTP SSE：帧形态（id/event/data）+ weak_ordering 如实 + c
     const payload1 = JSON.parse(dataLine!.slice("data: ".length)) as Record<string, unknown>;
     assert.equal(payload1.weak_ordering, true, "F10 弱序如实标注");
     assert.ok("observed_at_ms" in payload1 && "snapshot" in payload1);
+    // SDK-01A（Debt D）：SSE 帧载荷机械验证 against sseFramePayloadSchema
+    // （200 流式响应的独立契约面——Fastify schema 对流不生效）。
+    {
+      const { Ajv } = await import("ajv");
+      const ajv = new Ajv({ allErrors: true, strict: false });
+      const { sseFramePayloadSchema } = await import("../src/routes/schemas.ts");
+      const validateFrame = ajv.compile(sseFramePayloadSchema as object);
+      for (const frame of chunk1.split("data: ").slice(1)) {
+        const jsonText = frame.split("\n")[0] ?? "";
+        if (jsonText.trim().length === 0) continue;
+        const parsed = JSON.parse(jsonText) as unknown;
+        assert.ok(
+          validateFrame(parsed),
+          `SSE frame must satisfy sseFramePayloadSchema: ${JSON.stringify(validateFrame.errors)}`,
+        );
+      }
+    }
     await reader1.cancel().catch(() => {});
 
     // 2) Last-Event-ID 重放：已见行不重发。

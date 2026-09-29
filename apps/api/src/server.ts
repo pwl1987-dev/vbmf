@@ -105,6 +105,11 @@ export async function buildAppHandle(config: AppConfig, opts: BuildOptions = {})
       : null;
 
   const app = fastify({
+    // SDK-01A：未知请求字段 fail-closed 拒绝（400），不得静默剥离——
+    // Fastify 默认 removeAdditional:true 会把 additionalProperties:false 的
+    // 多余字段删掉再放行，对 intent 语义构成静默篡改（dispatch 内容 ≠
+    // operator 提交内容；vendor-neutral 红线要求显式拒绝）。
+    ajv: { customOptions: { removeAdditional: false } },
     // redact 配置唯一来源 buildLoggerOptions；测试经 logDestination 注入
     // 捕获流（同 redact 配置，机检不削弱）。
     ...(opts.logDestination !== undefined

@@ -1,0 +1,35 @@
+{
+  "name": "@vbmf/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VBMF TypeScript SDK — consumer library for the VBMF Product API / Event API / Health API. Types are mechanically derived from apps/api/src/routes/schemas.ts (single JSON Schema authority); the SDK never owns Runtime truth.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "gen:types": "node scripts/gen-types.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "build": "npm run gen:types && tsc -p tsconfig.build.json",
+    "pack:smoke": "npm pack --pack-destination /tmp >/dev/null && ls -1 /tmp/vbmf-sdk-*.tgz | tail -1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.7.0",
+    "json-schema-to-typescript": "^16.0.0",
+    "typescript": "5.9.3",
+    "vitest": "2.1.8"
+  }
+}

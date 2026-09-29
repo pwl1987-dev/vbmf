@@ -113,7 +113,7 @@ function memoryLogStream(): { stream: Writable; lines: () => string[] } {
 function startIntent(): Record<string, unknown> {
   return {
     version: "1.0",
-    devices: [{ device_id: "dev-1", role: "CAPTURE", pipeline: { source: { kind: "decklink" } } }],
+    devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }],
   };
 }
 

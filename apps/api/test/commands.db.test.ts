@@ -65,7 +65,7 @@ class MockAgent {
 function startIntent(): Record<string, unknown> {
   return {
     version: "1.0",
-    devices: [{ device_id: "dev-1", role: "CAPTURE", pipeline: { source: { kind: "decklink" } } }],
+    devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }],
   };
 }
 
@@ -198,7 +198,7 @@ dbTest("F4: 同键异 payload / 异主体（真实身份 A/B）→ 409 RESOURCE_
     assert.equal(r1.statusCode, 200);
     assert.equal(mock.dispatches.length, 1);
     const r2 = await post(handle, "cp01b-f4-key", {
-      intent: { ...startIntent(), devices: [{ device_id: "dev-2" }] },
+      intent: { ...startIntent(), devices: [{ device_id: "00000000-0000-0000-0000-0000000000d2", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d2" }, sink: { kind: "appsink" } } }] },
     }, asOperator(operator));
     assert.equal(r2.statusCode, 409);
     const err = (r2.json() as unknown as { error: Record<string, unknown> }).error;

@@ -179,7 +179,7 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
 
     // Start
     const start = await postStartSession(
-      { intent: { version: "1.0", devices: [{ device_id: "d1" }] } },
+      { intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } },
       "int-start-1",
     );
     expect(start.kind).toBe("ok");
@@ -242,7 +242,7 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
     useInjectBridge();
     setApiKey(VIEWER_KEY);
     const r = await postStartSession(
-      { intent: { version: "1.0", devices: [{ device_id: "d1" }] } },
+      { intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } },
       "int-viewer-start",
     );
     expect(r.kind).toBe("error");
@@ -258,9 +258,9 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
     handle = await buildHandle({ plane, rateLimitWriteMax: 1 });
     useInjectBridge();
     setApiKey(OPERATOR_KEY);
-    const r1 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "d1" }] } }, "int-rl-1");
+    const r1 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } }, "int-rl-1");
     expect(r1.kind).toBe("ok");
-    const r2 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "d1" }] } }, "int-rl-2");
+    const r2 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } }, "int-rl-2");
     expect(r2.kind).toBe("error");
     if (r2.kind === "error") {
       expect(r2.status).toBe(429);
@@ -292,7 +292,7 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
     // 而不是 200/400——这条规则必须 surface 给 UI，绝不假装成功。
     handle = await buildHandle({});
     useInjectBridge();
-    const r = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "d1" }] } }, "int-failed-1");
+    const r = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } }, "int-failed-1");
     expect(r.kind).toBe("error");
     if (r.kind === "error") {
       expect(r.status).toBe(503);
@@ -304,7 +304,7 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
   it("command timeout (state=timeout) — UI 在 DB 不存在时仍能区分 503 RESOURCE_UNAVAILABLE vs agent-down", async () => {
     handle = await buildHandle({});
     useInjectBridge();
-    const r = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "d1" }] } }, "int-timeout-1");
+    const r = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } }, "int-timeout-1");
     expect(r.kind).toBe("error");
     if (r.kind === "error") {
       // DB 不在 = command plane 503 RESOURCE_UNAVAILABLE；
@@ -322,8 +322,8 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
     // 不发明"成功"或"未知错误"。
     handle = await buildHandle({});
     useInjectBridge();
-    const r1 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "d1" }] } }, "int-conflict-1");
-    const r2 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "d2" }] } }, "int-conflict-1");
+    const r1 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } }, "int-conflict-1");
+    const r2 = await postStartSession({ intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d2", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d2" }, sink: { kind: "appsink" } } }] } }, "int-conflict-1");
     expect(r1.kind).toBe("error");
     expect(r2.kind).toBe("error");
     if (r1.kind === "error" && r2.kind === "error") {
@@ -379,7 +379,7 @@ describe("WCE-01F: failure-first integration (real Fastify fixture)", () => {
     handle = await buildHandle({ plane });
     useInjectBridge();
     const start = await postStartSession(
-      { intent: { version: "1.0", devices: [{ device_id: "d1" }] } },
+      { intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } },
       "int-cmd-known",
     );
     expect(start.kind).toBe("ok");

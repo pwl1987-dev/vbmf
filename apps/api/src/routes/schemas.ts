@@ -167,24 +167,108 @@ export const commandOperationBodySchema = {
 
 // ---------- Request bodies（POST 命令） ----------
 
+/**
+ * GraphRuntimeIntent —— Rust `services/media-agent/src/graph_intent.rs` 冻结
+ * wire 的 Product JSON Schema 表达（SDK-01A · Debt A 清偿；BMD BUG-F 实证
+ * 2026-09-29：此前的宽松 schema 允许缺 pipeline 的 intent 穿透到命令面，
+ * 被真实 agent 以 invalid_intent 拒绝）。
+ *
+ * wire 事实来源（不发明 schema）：
+ * - SourceIntent serde tagged `kind`：decklink{device_id, port_id?} /
+ *   rtmp{source_id, endpoint{protocol:"rtmp", host, port, path}} /
+ *   self_test（kind only，无负载字段）；
+ * - SinkIntent = { kind }，词表 appsink/hls/rtmp —— pipeline.rs
+ *   `pipeline_rt_01_sink_kind_vocabulary_snapshot` 受纳词表（fail-closed）；
+ * - vendor-neutral 红线：additionalProperties:false 全层收紧（device_number/
+ *   handle/ffmpeg/gst 等执行细节字段 400 拒绝，见 VENDOR_NEUTRALITY_RULES #3）。
+ */
+const uuidPattern = "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+
+export const graphRuntimeIntentSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["version", "devices"],
+  properties: {
+    version: { type: "string", minLength: 1 },
+    devices: {
+      type: "array",
+      minItems: 1,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["device_id", "role", "pipeline"],
+        properties: {
+          device_id: { type: "string", pattern: uuidPattern },
+          role: { type: "string", minLength: 1 },
+          pipeline: {
+            type: "object",
+            additionalProperties: false,
+            required: ["source", "sink"],
+            properties: {
+              source: {
+                anyOf: [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    required: ["kind", "device_id"],
+                    properties: {
+                      kind: { type: "string", const: "decklink" },
+                      device_id: { type: "string", pattern: uuidPattern },
+                      port_id: { type: "string", pattern: uuidPattern },
+                    },
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    required: ["kind", "source_id", "endpoint"],
+                    properties: {
+                      kind: { type: "string", const: "rtmp" },
+                      source_id: { type: "string", pattern: uuidPattern },
+                      endpoint: {
+                        type: "object",
+                        additionalProperties: false,
+                        required: ["protocol", "host", "port", "path"],
+                        properties: {
+                          protocol: { type: "string", enum: ["rtmp"] },
+                          host: { type: "string", minLength: 1 },
+                          port: { type: "integer", minimum: 1, maximum: 65535 },
+                          path: { type: "string", minLength: 1 },
+                        },
+                      },
+                    },
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    required: ["kind"],
+                    properties: {
+                      kind: { type: "string", const: "self_test" },
+                    },
+                  },
+                ],
+              },
+              sink: {
+                type: "object",
+                additionalProperties: false,
+                required: ["kind"],
+                properties: {
+                  kind: { type: "string", enum: ["appsink", "hls", "rtmp"] },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
 export const startSessionBodySchema = {
   type: "object",
   additionalProperties: false,
   required: ["intent"],
   properties: {
-    intent: {
-      type: "object",
-      additionalProperties: true,
-      required: ["version", "devices"],
-      properties: {
-        version: { type: "string", minLength: 1 },
-        devices: {
-          type: "array",
-          minItems: 1,
-          items: { type: "object", additionalProperties: true },
-        },
-      },
-    },
+    intent: graphRuntimeIntentSchema,
     command_id: { type: "string", minLength: 1, maxLength: 256 },
   },
 } as const;

@@ -132,9 +132,16 @@ function assertValidates(
   body: unknown,
   label: string,
 ): void {
-  if (responseSchema === undefined) return;
-  // Try each status entry — match the actual status to its declared shape.
-  for (const [codeKey, sub] of Object.entries(responseSchema)) {
+  // SDK-01A（Debt D 清偿）：SDK 需要稳定 API surface —— 每个被测 endpoint
+  // 的实际响应 status 必须存在 declared response shape；未声明 status =
+  // 契约缺口 → FAIL（此前 silently allowed）。新 status 出现时必须在
+  // schemas.ts ROUTE_SCHEMAS 声明（fail-closed，不静默扩面）。
+  assert.notEqual(
+    responseSchema,
+    undefined,
+    `${label}: endpoint missing from ROUTE_SCHEMAS`,
+  );
+  for (const [codeKey, sub] of Object.entries(responseSchema!)) {
     if (!/^\d+$/.test(codeKey)) continue;
     if (Number(codeKey) !== status) continue;
     const validate = ajv.compile(sub as object);
@@ -144,7 +151,9 @@ function assertValidates(
     }
     return;
   }
-  // No declared shape for this status; allowed (route may return ad-hoc shape).
+  assert.fail(
+    `${label}: actual status ${status} has no declared response shape — declare it in schemas.ts or fix the route (SDK surface must be closed)`,
+  );
 }
 
 test("schema entry set 与声明路径一致", () => {
@@ -219,7 +228,7 @@ test("POST /api/v1/sessions 200 + 400 满足声明 schema", async () => {
       method: "POST",
       url: "/api/v1/sessions",
       headers: { "x-api-key": FIXTURE_KEY, "idempotency-key": "schema-start-1" },
-      payload: { intent: { version: "1.0", devices: [{ device_id: "d1" }] } },
+      payload: { intent: { version: "1.0", devices: [{ device_id: "00000000-0000-0000-0000-0000000000d1", role: "CAPTURE", pipeline: { source: { kind: "decklink", device_id: "00000000-0000-0000-0000-0000000000d1" }, sink: { kind: "appsink" } } }] } },
     });
     assert.equal(ok.statusCode, 200);
     assertValidates(entry("POST", "/api/v1/sessions").response, 200, ok.json(), "start 200");
