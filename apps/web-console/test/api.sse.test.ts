@@ -113,6 +113,72 @@ describe("openEventStream", () => {
     expect(captured).toContain("cursor=99");
   });
 
+  it("unexpected EOF (server closes stream) signals error for reconnect", async () => {
+    const payload = { sequence: 11, observed_at_ms: 1, weak_ordering: true, snapshot: {} };
+    const res = makeStreamResponse([
+      `id: 11\nevent: projection\ndata: ${JSON.stringify(payload)}\n\n`,
+    ]); // stream closes after the frame → reader.read() resolves done=true
+    const errs: Error[] = [];
+    const received: unknown[] = [];
+    const handle = (await import("../src/api/sse.ts")).openEventStream({
+      fetchImpl: fakeFetch(res),
+      onPayload: (p) => received.push(p),
+      onError: (e) => errs.push(e),
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    handle.close();
+    expect(received).toHaveLength(1);
+    expect(errs.length).toBeGreaterThanOrEqual(1);
+    expect(errs[0]!.message).toMatch(/EOF|ended|closed|stream/i);
+  });
+
+  it("operator close is NOT reported as a failure", async () => {
+    const res = makeStreamResponse([]);
+    const errs: Error[] = [];
+    const handle = (await import("../src/api/sse.ts")).openEventStream({
+      fetchImpl: fakeFetch(res),
+      onPayload: () => undefined,
+      onError: (e) => errs.push(e),
+    });
+    handle.close();
+    await new Promise((r) => setTimeout(r, 50));
+    expect(errs).toHaveLength(0);
+  });
+
+  it("malformed JSON frame terminates the stream before signaling error (no parallel transport)", async () => {
+    const good = { sequence: 20, observed_at_ms: 1, weak_ordering: true, snapshot: {} };
+    const after = { sequence: 21, observed_at_ms: 2, weak_ordering: true, snapshot: {} };
+    // Build a stream that delivers: good frame, malformed frame, then a good frame.
+    const encoder = new TextEncoder();
+    const late: { fn: ((chunk: string) => void) | null } = { fn: null };
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(`id: 20\nevent: projection\ndata: ${JSON.stringify(good)}\n\n`));
+        controller.enqueue(encoder.encode("id: x\nevent: projection\ndata: {not json}\n\n"));
+        late.fn = (chunk: string) => controller.enqueue(encoder.encode(chunk));
+      },
+    });
+    const fetchImpl: typeof fetch = (async () =>
+      new Response(stream, { status: 200, headers: { "content-type": "text/event-stream" } })) as typeof fetch;
+    const errs: Error[] = [];
+    const received: unknown[] = [];
+    const handle = (await import("../src/api/sse.ts")).openEventStream({
+      fetchImpl,
+      onPayload: (p) => received.push(p),
+      onError: (e) => errs.push(e),
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(received).toHaveLength(1); // frame before the violation
+    expect(errs.length).toBeGreaterThanOrEqual(1);
+    expect(errs[0]!.message).toMatch(/JSON/i);
+    // anything the server still pushes on the OLD (terminated) transport must
+    // not reach the UI — the old stream is dead, the caller reconnects fresh.
+    late.fn?.(`id: 21\nevent: projection\ndata: ${JSON.stringify(after)}\n\n`);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(received).toHaveLength(1);
+    handle.close();
+  });
+
   it("invokes onError on HTTP non-2xx", async () => {
     const fetchImpl = (async () =>
       new Response("boom", { status: 503, headers: { "content-type": "text/plain" } })) as typeof fetch;

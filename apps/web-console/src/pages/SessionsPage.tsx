@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import {
   ApiClientError,
   getCommand,
@@ -12,7 +12,6 @@ import {
   describeFourState,
   initialFourState,
   reduceFourState,
-  type FourState,
 } from "../state/fourStateMachine.ts";
 import type { CommandOperationBody, RuntimeSnapshot } from "../api/schemas.ts";
 
@@ -44,6 +43,16 @@ export function SessionsPage(): React.JSX.Element {
   const [runtime, setRuntime] = useState<RuntimeSnapshot | null>(null);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
+  // latest-ref：polling effect 固定 2s cadence（deps=[]），state 更新（rows/
+  // four/runtime）只通过 ref 进入 tick，不重建 timer——否则 reduceFourState
+  // 每次返回新对象会把 2s polling 退化成请求风暴。
+  const rowsRef = useRef(rows);
+  rowsRef.current = rows;
+  const fourRef = useRef(four);
+  fourRef.current = four;
+  const runtimeRef = useRef(runtime);
+  runtimeRef.current = runtime;
+
   useEffect(() => {
     let cancelled = false;
     async function tick(): Promise<void> {
@@ -52,7 +61,7 @@ export function SessionsPage(): React.JSX.Element {
       if (res.kind === "ok") {
         setRuntime(res.body);
         setRuntimeError(null);
-        dispatchFour({ kind: "OBSERVE", runtime: res.body, sessionId: pickSessionId(rows, four) });
+        dispatchFour({ kind: "OBSERVE", runtime: res.body, sessionId: pickSessionId() });
       } else {
         setRuntimeError(res.envelope.error.message);
       }
@@ -63,7 +72,7 @@ export function SessionsPage(): React.JSX.Element {
       cancelled = true;
       clearInterval(id);
     };
-  }, [rows, four]);
+  }, []);
 
   async function onStart(): Promise<void> {
     const deviceId = intentDeviceId.trim();
@@ -87,7 +96,7 @@ export function SessionsPage(): React.JSX.Element {
   }
 
   async function onStop(): Promise<void> {
-    const sid = pickSessionId(rows, four);
+    const sid = pickSessionId();
     if (sid === null) {
       updateRow(1, { error: "no active session" });
       return;
@@ -105,7 +114,7 @@ export function SessionsPage(): React.JSX.Element {
   }
 
   async function onRelease(): Promise<void> {
-    const sid = pickSessionId(rows, four);
+    const sid = pickSessionId();
     if (sid === null) {
       updateRow(2, { error: "no active session" });
       return;
@@ -151,13 +160,13 @@ export function SessionsPage(): React.JSX.Element {
     });
   }
 
-  function pickSessionId(currRows: CmdRow[], fourState: FourState): string | null {
-    const lastStart = currRows[0]?.command;
-    if (lastStart !== null && lastStart !== undefined && fourState.observed === "running") {
-      const sid = runtime?.sessions.find((s) => s.state === "running")?.id;
+  function pickSessionId(): string | null {
+    const lastStart = rowsRef.current[0]?.command;
+    if (lastStart !== null && lastStart !== undefined && fourRef.current.observed === "running") {
+      const sid = runtimeRef.current?.sessions.find((s) => s.state === "running")?.id;
       return sid ?? null;
     }
-    const firstRunning = runtime?.sessions.find((s) => s.state === "running")?.id;
+    const firstRunning = runtimeRef.current?.sessions.find((s) => s.state === "running")?.id;
     return firstRunning ?? null;
   }
 

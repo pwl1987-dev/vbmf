@@ -4,7 +4,7 @@ import { openEventStream, type StreamHandle } from "../api/sse.ts";
 import { getRuntime } from "../api/client.ts";
 import type { RuntimeSnapshot, SseFramePayload } from "../api/schemas.ts";
 
-type ConnState = "connecting" | "live" | "reconnecting" | "error";
+type ConnState = "connecting" | "live" | "reconnecting";
 
 interface DisplayedEvent {
   sequence: number;
@@ -25,6 +25,9 @@ export function EventsPage(): React.JSX.Element {
   const attemptRef = useRef(0);
   const handleRef = useRef<StreamHandle | null>(null);
   const seenRef = useRef<Set<number>>(new Set());
+  const lastSeqRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aliveRef = useRef(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,15 +47,23 @@ export function EventsPage(): React.JSX.Element {
     };
   }, []);
 
+  // 稳定长连接：effect 只在 mount 时运行一次。正常 payload 只推进
+  // lastSeqRef/cursor（不重建连接）；只有真实 disconnect/error/EOF 才按
+  // backoff 重连，且重连携带 cursor=lastSequence（strictly-after 续传）。
   useEffect(() => {
-    let cancelled = false;
+    aliveRef.current = true;
     function connect(): void {
-      if (cancelled) return;
-      setConn("connecting");
-      const lastSeq = handleRef.current?.lastSequence() ?? cursor;
+      if (!aliveRef.current) return;
+      // 单 active transport 保证：开新流前显式关闭旧 handle（malformed
+      // 帧等场景旧流可能尚未退出读循环）。
+      handleRef.current?.close();
+      handleRef.current = null;
+      const lastSeq = lastSeqRef.current;
       const opts = {
-        ...(lastSeq !== null && lastSeq !== undefined ? { cursor: lastSeq } : {}),
+        ...(lastSeq !== null ? { cursor: lastSeq } : {}),
         onPayload: (payload: SseFramePayload) => {
+          // 页面级去重跨重连接存活（at-least-once + strictly-after replay）。
+          if (seenRef.current.has(payload.sequence)) return;
           seenRef.current.add(payload.sequence);
           setEvents((prev) => [
             ...prev,
@@ -64,33 +75,36 @@ export function EventsPage(): React.JSX.Element {
             },
           ].slice(-200));
           setCursor(payload.sequence);
+          lastSeqRef.current = payload.sequence;
           setWeakOrdering(true);
           setConn("live");
           attemptRef.current = 0;
         },
         onError: (err: Error) => {
-          if (cancelled) return;
-          setConn("error");
-          // exponential backoff reconnect
+          if (!aliveRef.current) return;
+          setConn("reconnecting");
           const attempt = attemptRef.current;
           const delay = RECONNECT_BACKOFF_MS[Math.min(attempt, RECONNECT_BACKOFF_MS.length - 1)] ?? 10000;
           attemptRef.current = attempt + 1;
-          setTimeout(() => {
-            if (!cancelled) connect();
+          if (timerRef.current !== null) clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => {
+            if (aliveRef.current) connect();
           }, delay);
           console.warn(`SSE reconnect attempt=${attempt} delay=${delay}ms err=${err.message}`);
         },
       };
+      setConn(lastSeq !== null ? "reconnecting" : "connecting");
       handleRef.current = openEventStream(opts);
-      setConn("reconnecting");
     }
     connect();
     return () => {
-      cancelled = true;
+      aliveRef.current = false;
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+      timerRef.current = null;
       handleRef.current?.close();
       handleRef.current = null;
     };
-  }, [cursor]);
+  }, []);
 
   return (
     <>
@@ -99,7 +113,7 @@ export function EventsPage(): React.JSX.Element {
         <div className="kv">
           <div className="k">state</div>
           <div className="v">
-            <span className={`state-pill ${conn === "live" ? "ok" : conn === "error" ? "err" : "warn"}`}>{conn}</span>
+            <span className={`state-pill ${conn === "live" ? "ok" : "warn"}`}>{conn}</span>
           </div>
           <div className="k">cursor (last sequence)</div>
           <div className="v">{cursor ?? "—"}</div>

@@ -40,6 +40,8 @@ COMPOSE_FILES = [
     "ops/compose.bmd-acceptance.yml",
 ]
 BASE_COMPOSE = "ops/docker-compose.yml"
+BMD_OVERLAY = "ops/compose.bmd-acceptance.yml"
+SOFTWARE_OVERLAY = "ops/compose.software-acceptance.yml"
 NGINX_DIR = "ops/nginx"
 CONTROL_PLANE_DIR = "apps/api"
 
@@ -193,18 +195,92 @@ def gate_f11_nginx(violations: list[str]) -> None:
                 violations.append(f"F11: {rel}:{i}: Nginx must never reference 50051")
 
 
+def gate_wce_bmd_web_console(violations: list[str]) -> None:
+    """WEB-CONSOLE-BMD-ACCEPTANCE-01 red lines.
+
+    BMD acceptance must exercise the REAL production Web Console, not the
+    CP-01E-era placeholder (kept only as Git history at 70ff46a):
+
+    - no acceptance overlay may override the base `web` service (the
+      placeholder pattern was `image: nginx` + web-placeholder.conf mount);
+    - ops/acceptance/web-placeholder.conf must not exist in the live tree;
+    - the BASE web service builds ops/Dockerfile.web and serves 5173;
+    - Nginx routes `/` to the web upstream (web:5173);
+    - the BMD overlay fastify keeps targeting the native host agent bridge
+      (${MEDIA_AGENT_RPC_HOST}:50051), never the compose media-agent service.
+    """
+    for name in (BMD_OVERLAY, SOFTWARE_OVERLAY):
+        path = REPO / name
+        if not path.is_file():
+            violations.append(f"WCE-BMD: {name}: expected compose file missing")
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if "./acceptance/web-placeholder.conf" in text:
+            violations.append(
+                f"WCE-BMD: {name}: placeholder web console mount is forbidden "
+                "(real Web Console required since WEB-CONSOLE-ENTRY-01)"
+            )
+        for i, line in enumerate(text.splitlines(), start=1):
+            if re.match(r"^  web:\s*$", line):
+                violations.append(
+                    f"WCE-BMD: {name}:{i}: overlay must not override the base "
+                    "web service (acceptance uses ops/Dockerfile.web)"
+                )
+    if (REPO / "ops/acceptance/web-placeholder.conf").exists():
+        violations.append(
+            "WCE-BMD: ops/acceptance/web-placeholder.conf must not exist in "
+            "the live tree (CP-01E placeholder is Git history only)"
+        )
+
+    base_text = (REPO / BASE_COMPOSE).read_text(encoding="utf-8", errors="replace")
+    if "dockerfile: ops/Dockerfile.web" not in base_text:
+        violations.append(
+            "WCE-BMD: ops/docker-compose.yml: web must build ops/Dockerfile.web "
+            "(production Vite Web Console)"
+        )
+    if '"5173"' not in base_text:
+        violations.append(
+            "WCE-BMD: ops/docker-compose.yml: web must expose 5173 (nginx upstream)"
+        )
+
+    nginx_path = REPO / NGINX_DIR / "default.conf"
+    nginx = nginx_path.read_text(encoding="utf-8", errors="replace")
+    if "server web:5173;" not in nginx:
+        violations.append("WCE-BMD: ops/nginx/default.conf: upstream web must be web:5173")
+    if re.search(r"location / \{[\s\S]*?proxy_pass http://web/;", nginx) is None:
+        violations.append(
+            "WCE-BMD: ops/nginx/default.conf: location / must proxy to the web upstream"
+        )
+
+    bmd = (REPO / BMD_OVERLAY).read_text(encoding="utf-8", errors="replace")
+    if "MEDIA_AGENT_RPC_HOST" not in bmd or ":50051" not in bmd:
+        violations.append(
+            "WCE-BMD: compose.bmd-acceptance.yml: fastify must target the native "
+            "host agent bridge (${MEDIA_AGENT_RPC_HOST}:50051)"
+        )
+    if "http://media-agent:50051" in bmd:
+        violations.append(
+            "WCE-BMD: compose.bmd-acceptance.yml: must not target the compose "
+            "media-agent service (native BMD systemd lane owns the device truth)"
+        )
+
+
 def main() -> int:
     violations: list[str] = []
     gate_f12(violations)
     gate_f11_compose(violations)
     gate_f11_nginx(violations)
     gate_cp01c_security(violations)
+    gate_wce_bmd_web_console(violations)
     if violations:
         print("control-plane gate: FAIL")
         for v in violations:
             print(f"  - {v}")
         return 1
-    print("control-plane gate: PASS (F11 deployment wiring + F12 Gate A lexical + CP01C security)")
+    print(
+        "control-plane gate: PASS (F11 deployment wiring + F12 Gate A lexical + "
+        "CP01C security + WCE-BMD real-web-console)"
+    )
     return 0
 
 

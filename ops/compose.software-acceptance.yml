@@ -14,24 +14,14 @@
 # host port (8081) exactly as Nginx routes them (frozen B8 route table).
 #
 # RED LINES unchanged: no host publish of 50051; no /internal route in Nginx;
-# web console stays out of the acceptance chain (explicit service list).
+# WEB-CONSOLE-BMD-ACCEPTANCE-01: the CP-01E web placeholder override was
+# removed — this overlay inherits the BASE `web` service (real production
+# Web Console via ops/Dockerfile.web).
 
 services:
   nginx:
     ports:
       - "8081:80"      # host drills only (software acceptance); prod keeps 80/443
-
-  web:
-    # Console placeholder (deferred packet): satisfies the frozen Nginx
-    # upstream without implementing any console functionality.
-    image: nginx:1.27-alpine
-    volumes:
-      - ./acceptance/web-placeholder.conf:/etc/nginx/conf.d/default.conf:ro
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5173/"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
 
   db:
     ports:

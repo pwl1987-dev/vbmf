@@ -49,12 +49,20 @@ export function openEventStream(opts: StreamOptions): StreamHandle {
   let lastSequence: number | null = null;
   let retryHintMs = 3000;
   let closed = false;
+  let errored = false;
   const seen = new Set<number>();
 
   const close = (): void => {
     if (closed) return;
     closed = true;
     ctrl.abort();
+  };
+
+  /** transport 失败只上报一次（throw 与 EOF 互斥）。 */
+  const fail = (err: Error): void => {
+    if (closed || errored) return;
+    errored = true;
+    opts.onError?.(err);
   };
 
   void (async () => {
@@ -66,12 +74,12 @@ export function openEventStream(opts: StreamOptions): StreamHandle {
         signal: ctrl.signal,
       });
     } catch (err) {
-      if (!closed) opts.onError?.(err instanceof Error ? err : new Error(String(err)));
+      if (!closed) fail(err instanceof Error ? err : new Error(String(err)));
       return;
     }
     if (!response.ok || response.body === null) {
       const text = await response.text().catch(() => "");
-      opts.onError?.(new Error(`SSE HTTP ${response.status}: ${text.slice(0, 200)}`));
+      fail(new Error(`SSE HTTP ${response.status}: ${text.slice(0, 200)}`));
       return;
     }
     const reader = response.body.getReader();
@@ -91,10 +99,13 @@ export function openEventStream(opts: StreamOptions): StreamHandle {
         }
       }
     } catch (err) {
-      if (!closed) opts.onError?.(err instanceof Error ? err : new Error(String(err)));
+      if (!closed) fail(err instanceof Error ? err : new Error(String(err)));
     } finally {
       reader.releaseLock();
     }
+    // 真实服务器/代理断流可能以干净 EOF（read → done=true）结束而非 throw；
+    // operator close 已置 closed=true，不会误判为失败。
+    if (!closed) fail(new Error("SSE stream ended unexpectedly (EOF)"));
   })();
 
   function parseFrame(raw: string): void {
@@ -130,7 +141,10 @@ export function openEventStream(opts: StreamOptions): StreamHandle {
         lastSequence = payload.sequence;
         opts.onPayload(payload);
       } catch {
-        // 帧格式非法 = SSE 链契约违例；记 error 让上层展示/重连。
+        // 帧格式非法 = SSE 链契约违例：先终止当前流（close 置 closed 并
+        // abort，杜绝旧流继续读取与重连后的并行双 transport），再让上层
+        // 以 backoff 重连新流。
+        close();
         opts.onError?.(new Error("SSE payload is not valid JSON"));
       }
     } else if (eventName === "" && data === "" && id === null) {
