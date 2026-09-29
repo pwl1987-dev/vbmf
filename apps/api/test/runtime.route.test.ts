@@ -155,8 +155,10 @@ test("F13 agent 方向：agent 返回非法 session id wire → 500 INTERNAL_ERR
     const err = (res.json() as { error: Record<string, unknown> }).error;
     assert.equal(err.code, "INTERNAL_ERROR");
     assert.equal(err.retryable, false);
-    // 不泄漏内部实现细节：响应体不回显原始 wire 值/内部诊断
-    const raw = res.body as string;
+    // 不泄漏内部实现细节：响应体不回显原始 wire 值/内部诊断。
+    // request_id 是服务端随机 UUID，可能碰巧包含 wire 数字子串（CI flaky
+    // 实证：badWire=42 撞上 "-42dd-"）—— 剥离后检查，不降低断言强度。
+    const raw = (res.body as string).replace(/"request_id"\s*:\s*"[^"]*"/g, "");
     const wireStr = String(badWire);
     assert.ok(
       !raw.includes(wireStr),
