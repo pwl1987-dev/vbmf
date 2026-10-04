@@ -281,6 +281,25 @@ def sidecar_gates(ev: Path, target_seconds: int):
     return gs
 
 
+# Harness-smoke-only profile: the only parameters --smoke may ever run with.
+# A 120s/6-cycle/replay=5 run is toolchain evidence for the full
+# soak->collector->analyzer->teardown chain and never a qualification rung.
+SMOKE_PARAMS = (120, 6, 5)
+
+
+def smoke_args_error(smoke: bool, target_seconds: int, expected_cycles: int, replay_every: int) -> str | None:
+    params = (target_seconds, expected_cycles, replay_every)
+    if smoke and params != SMOKE_PARAMS:
+        return "--smoke accepts only the fixed harness-smoke profile: --target-seconds 120 --expected-cycles 6 --replay-every 5"
+    if not smoke and params == SMOKE_PARAMS:
+        return "120s/6-cycle/replay=5 is the harness-smoke profile: pass --smoke; it is not a qualification rung"
+    return None
+
+
+def smoke_verdict(strict_pass: bool) -> str:
+    return "SMOKE_PASS_NOT_QUALIFICATION" if strict_pass else "SMOKE_FAIL"
+
+
 def main() -> int:
     ap=argparse.ArgumentParser()
     ap.add_argument("evidence_dir")
@@ -288,8 +307,12 @@ def main() -> int:
     ap.add_argument("--expected-cycles",type=int,required=True)
     ap.add_argument("--replay-every",type=int,default=5)
     ap.add_argument("--allow-missing-v3",action="store_true")
+    ap.add_argument("--smoke",action="store_true",help="harness-smoke-only mode: fixed 120s/6-cycle toolchain chain check, never a qualification rung")
     ap.add_argument("--write-json",action="store_true")
     args=ap.parse_args()
+    err=smoke_args_error(args.smoke,args.target_seconds,args.expected_cycles,args.replay_every)
+    if err: ap.error(err)
+    if args.smoke and args.allow_missing_v3: ap.error("--smoke cannot be combined with --allow-missing-v3")
     ev=Path(args.evidence_dir)
     rows=load_csv(ev/"samples.csv")
     gs,metrics=v2(ev,rows,args.expected_cycles)
@@ -327,15 +350,20 @@ def main() -> int:
     missing=[g for g in gs if g["status"]=="NOT_MEASURED"]
     failed=[g for g in gs if g["status"]=="FAIL"]
     strict_pass=not failed and not missing
-    qualification="PASS" if strict_pass else "INCOMPLETE" if args.allow_missing_v3 and not failed else "FAIL"
-    result={"evidence_dir":str(ev),"v2_compat_verdict":"PASS" if v2_pass else "FAIL","v3_verdict":qualification,"gates":gs,"metrics":metrics}
+    if args.smoke:
+        qualification=smoke_verdict(strict_pass)
+    else:
+        qualification="PASS" if strict_pass else "INCOMPLETE" if args.allow_missing_v3 and not failed else "FAIL"
+    result={"evidence_dir":str(ev),"harness_smoke_only":args.smoke,"v2_compat_verdict":"PASS" if v2_pass else "FAIL","v3_verdict":qualification,"gates":gs,"metrics":metrics}
     for g in gs:
         print(f"{g['status']:12} {g['name']} {g['note']}")
     print(f"V2_COMPAT {'PASS' if v2_pass else 'FAIL'}")
+    if args.smoke:
+        print("HARNESS_SMOKE_ONLY 120s/6-cycle toolchain chain check; NOT a qualification rung")
     print(f"V3_VERDICT {qualification} (fail={len(failed)} missing={len(missing)})")
     if args.write_json:
         (ev/"v3-summary.json").write_text(json.dumps(result,indent=2,ensure_ascii=False)+"\n")
-    return 0 if qualification=="PASS" or (args.allow_missing_v3 and not failed) else 2
+    return 0 if qualification in ("PASS","SMOKE_PASS_NOT_QUALIFICATION","INCOMPLETE") else 2
 
 
 if __name__=="__main__":

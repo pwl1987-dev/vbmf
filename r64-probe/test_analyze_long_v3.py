@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import csv
 import importlib.util
+import io
 import json
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 MOD_PATH = Path(__file__).with_name("analyze-long-v3.py")
 spec = importlib.util.spec_from_file_location("analyze_long_v3", MOD_PATH)
@@ -82,6 +85,93 @@ class LongStabilityV3Tests(unittest.TestCase):
             self._write_sidecar_fixture(root, 8140, malformed=True)
             by = {g["name"]: g["status"] for g in mod.sidecar_gates(root, 7200)}
             self.assertEqual(by["v3_topology_constant"], "FAIL")
+
+    def test_smoke_params_are_pinned_and_formal_profiles_unchanged(self):
+        # --smoke accepts only the fixed harness-smoke profile (120s/6/replay=5).
+        self.assertIsNone(mod.smoke_args_error(True, 120, 6, 5))
+        for params in [(120, 6, 4), (120, 5, 5), (121, 6, 5), (7200, 6, 5), (120, 256, 5)]:
+            self.assertIsNotNone(mod.smoke_args_error(True, *params), params)
+        # Formal rung profiles (and historical replay cycle counts) never need --smoke.
+        for params in [(7200, 256, 5), (28800, 1019, 5), (86400, 3055, 5), (7200, 240, 5), (28800, 960, 5)]:
+            self.assertIsNone(mod.smoke_args_error(False, *params), params)
+        # Smoke parameters without --smoke are rejected: not a qualification rung.
+        self.assertIsNotNone(mod.smoke_args_error(False, 120, 6, 5))
+
+    def test_smoke_verdict_label_is_never_pass(self):
+        self.assertEqual(mod.smoke_verdict(True), "SMOKE_PASS_NOT_QUALIFICATION")
+        self.assertEqual(mod.smoke_verdict(False), "SMOKE_FAIL")
+
+    def test_runner_profiles_formal_unchanged_and_smoke_fixed(self):
+        text = (ROOT / "r64-probe" / "run-long-v3.sh").read_text()
+        self.assertIn("2h) TARGET_SECONDS=7200; CYCLES=256", text)
+        self.assertIn("8h) TARGET_SECONDS=28800; CYCLES=1019", text)
+        self.assertIn("24h) TARGET_SECONDS=86400; CYCLES=3055", text)
+        self.assertIn("smoke)\n    # harness-smoke-only", text)
+        self.assertIn("TARGET_SECONDS=120; CYCLES=6; SMOKE_FLAG=\"--smoke\"", text)
+        self.assertIn("DEFAULT_TAG=\"pr-stab-01-v3-smoke-$(date +%H%M%S)\"", text)
+        self.assertIn("evidence destination exists; refusing to overwrite", text)
+        self.assertIn('if [ -e "$EV" ]; then', text)
+        self.assertIn("text.count(old) != 1", text)
+        self.assertIn('DWELL="${DWELL:-28}"', text)
+        self.assertIn('REPLAY_EVERY="${REPLAY_EVERY:-5}"', text)
+        # 6 smoke cycles still satisfy the 120s wall-clock floor.
+        self.assertGreaterEqual((6 - 1) * 28.3, 120)
+
+    def _write_min_samples(self, root: Path, cycles: int = 6):
+        fields = ["cycle", "ts", "rss_kb", "threads", "fd", "sw_epoch",
+                  "frames_v", "frames_a", "dropped", "clock_lost"]
+        with (root / "samples.csv").open("w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields)
+            w.writeheader()
+            for i in range(cycles):
+                w.writerow({"cycle": i + 1, "ts": 1000 + i * 30, "rss_kb": 100000,
+                            "threads": 10, "fd": 40, "sw_epoch": i + 1,
+                            "frames_v": 1000 * (i + 1), "frames_a": 500 * (i + 1),
+                            "dropped": 0, "clock_lost": 0})
+
+    def _run_analyzer(self, argv: list[str]) -> tuple[int, str]:
+        out = io.StringIO()
+        with mock.patch("sys.argv", argv), redirect_stdout(out):
+            rc = mod.main()
+        return rc, out.getvalue()
+
+    def test_smoke_mode_end_to_end_fail_label_and_json_marker(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_min_samples(root)
+            rc, out = self._run_analyzer([
+                "analyze-long-v3.py", str(root),
+                "--target-seconds", "120", "--expected-cycles", "6",
+                "--replay-every", "5", "--smoke", "--write-json",
+            ])
+            # Incomplete evidence (no switch/readback/tick/sidecar files) must be SMOKE_FAIL.
+            self.assertEqual(rc, 2)
+            self.assertIn("HARNESS_SMOKE_ONLY", out)
+            self.assertIn("V3_VERDICT SMOKE_FAIL", out)
+            self.assertNotIn("V3_VERDICT PASS", out)
+            j = json.loads((root / "v3-summary.json").read_text())
+            self.assertTrue(j["harness_smoke_only"])
+            self.assertEqual(j["v3_verdict"], "SMOKE_FAIL")
+
+    def test_cli_rejects_smoke_param_mismatches(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_min_samples(root)
+            err = io.StringIO()
+            bad = [
+                ["analyze-long-v3.py", str(root), "--target-seconds", "120",
+                 "--expected-cycles", "6", "--replay-every", "5"],  # smoke params w/o --smoke
+                ["analyze-long-v3.py", str(root), "--target-seconds", "120",
+                 "--expected-cycles", "7", "--replay-every", "5", "--smoke"],
+                ["analyze-long-v3.py", str(root), "--target-seconds", "120",
+                 "--expected-cycles", "6", "--replay-every", "5",
+                 "--smoke", "--allow-missing-v3"],
+            ]
+            for argv in bad:
+                with self.assertRaises(SystemExit) as cm, \
+                        mock.patch("sys.argv", argv), redirect_stderr(err):
+                    mod.main()
+                self.assertEqual(cm.exception.code, 2)
 
 
 if __name__ == "__main__":

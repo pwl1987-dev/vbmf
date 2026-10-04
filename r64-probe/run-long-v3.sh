@@ -5,11 +5,21 @@
 set -euo pipefail
 
 RUNG="${1:-}"
+SMOKE_FLAG=""
+DEFAULT_TAG="pr-stab-01-v3-${RUNG}"
 case "$RUNG" in
   2h) TARGET_SECONDS=7200; CYCLES=256 ;;
   8h) TARGET_SECONDS=28800; CYCLES=1019 ;;
   24h) TARGET_SECONDS=86400; CYCLES=3055 ;;
-  *) echo "usage: $0 {2h|8h|24h}" >&2; exit 2 ;;
+  smoke)
+    # harness-smoke-only: fixed 120s/6-cycle run of the full base soak ->
+    # collector -> analyzer -> teardown chain. Never a qualification rung.
+    TARGET_SECONDS=120; CYCLES=6; SMOKE_FLAG="--smoke"
+    DEFAULT_TAG="pr-stab-01-v3-smoke-$(date +%H%M%S)" ;;
+  *)
+    echo "usage: $0 {2h|8h|24h|smoke}" >&2
+    echo "  smoke = 120s/6-cycle harness toolchain check only, NOT a qualification rung" >&2
+    exit 2 ;;
 esac
 
 : "${SOURCE_COMMIT:?SOURCE_COMMIT is required}"
@@ -18,7 +28,11 @@ esac
 PROTECTED_PID="${PROTECTED_PID:-992634}"
 DWELL="${DWELL:-28}"
 REPLAY_EVERY="${REPLAY_EVERY:-5}"
-TAG="${TAG:-pr-stab-01-v3-${RUNG}}"
+if [ -n "$SMOKE_FLAG" ]; then
+  [ "$DWELL" = 28 ] || { echo "smoke profile is fixed: DWELL must stay 28" >&2; exit 2; }
+  [ "$REPLAY_EVERY" = 5 ] || { echo "smoke profile is fixed: REPLAY_EVERY must stay 5" >&2; exit 2; }
+fi
+TAG="${TAG:-$DEFAULT_TAG}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BASE_DRIVER="$ROOT/r64-probe/r64-stability-long.sh"
 COLLECTOR="$ROOT/r64-probe/collect-long-v3.py"
@@ -27,6 +41,11 @@ BINARY_PATH="$MEDIA_AGENT_DIR/target/debug/media-agent"
 RUN_DATE="$(date +%Y-%m-%d)"
 EV="$HOME/a2-8-02i-evidence/${RUN_DATE}-${TAG}"
 TMP_DRIVER="/tmp/vbmf-${TAG}-soak.sh"
+
+if [ -e "$EV" ] || [ -e "${EV}.driver.log" ] || [ -e "${EV}.driver.pid" ]; then
+  echo "evidence destination exists; refusing to overwrite: $EV" >&2
+  exit 2
+fi
 
 for f in "$BASE_DRIVER" "$COLLECTOR" "$ANALYZER" "$MANIFEST_PATH"; do
   test -f "$f" || { echo "required file missing: $f" >&2; exit 2; }
@@ -55,11 +74,23 @@ sed \
   -e 's#cd "$HOME/media-agent-build/services/media-agent"#cd "$MEDIA_AGENT_DIR"#' \
   -e 's#EV="$HOME/a2-8-02i-evidence/$(date +%Y-%m-%d)-$TAG"#EV="$EVIDENCE_DIR_OVERRIDE"#' \
   "$BASE_DRIVER" > "$TMP_DRIVER"
+# Preserve the compatibility driver's historical bytes while making the
+# temporary v3 copy refuse an existing evidence destination.
+python3 - "$TMP_DRIVER" <<'PYDRIVER'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+text = path.read_text()
+old = 'rm -rf "$EV"; mkdir -p "$EV"'
+new = 'if [ -e "$EV" ]; then echo "evidence destination exists; refusing to overwrite: $EV" >&2; exit 2; fi\nmkdir -p "$EV"'
+if text.count(old) != 1:
+    raise SystemExit("expected unique legacy evidence-directory initializer")
+path.write_text(text.replace(old, new))
+PYDRIVER
 chmod +x "$TMP_DRIVER"
 export MEDIA_AGENT_DIR
 export EVIDENCE_DIR_OVERRIDE="$EV"
 
-rm -rf "$EV"
 env CYCLES="$CYCLES" DWELL="$DWELL" REPLAY_EVERY="$REPLAY_EVERY" TAG="$TAG" \
   bash "$TMP_DRIVER" >"${EV}.driver.log" 2>&1 &
 DRIVER_PID=$!
@@ -94,10 +125,12 @@ set -e
 
 echo "driver_rc=$DRIVER_RC collector_rc=$COLLECTOR_RC" > "$EV/v3-runner-status.txt"
 set +e
+# shellcheck disable=SC2086  # SMOKE_FLAG is empty or the literal --smoke
 python3 "$ANALYZER" "$EV" \
   --target-seconds "$TARGET_SECONDS" \
   --expected-cycles "$CYCLES" \
   --replay-every "$REPLAY_EVERY" \
+  $SMOKE_FLAG \
   --write-json
 ANALYZER_RC=$?
 set -e
