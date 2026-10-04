@@ -41,7 +41,7 @@ Agent foundation（2026-09-15 复核）：`/home/ubuntu/dev/_shared/bin/agent-pr
 
 ## 2. Current Phase
 
-**Runtime Features ACTIVE；RF-FF-02/RF-FF-03 + RH-CLOCK-01 + RF-NORM-01 + RF-MASTER-01 + RF-SRC-RTMP-01 COMPLETE；RF-SRC-01 BLOCKED；RF-SRC-RTMP-02 COMPLETE（closure reconciliation 已收口·§3.60）；STANDALONE-ENTRY-01 全链 COMPLETE（SE-01A/SE-01C/SE-01D/SE-01B·§3.62–§3.65 + SE-01B-FIX reconciliation 收口·§3.66–§3.67）；RUNTIME-CONTROL-ENTRY-01 全链 COMPLETE（§3.68–§3.70）+ RCE-D3 COMPLETE（§3.71）+ CONTROL-PLANE-ENTRY-01 PLAN FROZEN（§3.72·C1–C14）+ **CP-01A COMPLETE（§3.73·2026-09-23）+ CP-01B COMPLETE（§3.74·2026-09-23·RH-IDEM-01 清偿）+ CP-01C COMPLETE（§3.75·2026-09-24·Auth/RBAC/限流/审计硬化）+ CP-01D COMPLETE（§3.76·2026-09-24·Event plane）+ CP-01E COMPLETE（§3.77·2026-09-25·全栈/BMD 集成验收）→ **CONTROL-PLANE-ENTRY-01 全链 COMPLETE**；**PRODUCTION-READINESS-ENTRY-01 PLAN FROZEN（§3.84·2026-09-29·Reality Review + Production Core Dependency Rule）；PR-01A/PR-01B COMPLETE（§3.85）+ HEALTH-INCIDENT-ENTRY-01 全链 COMPLETE（§3.86–§3.87）；当前 = PR-STAB-01 FIX VERIFICATION ACTIVE（§3.93–§3.94；exact Runtime `6fc1b1a` / binary `3898ced3…`；Development + exact-head CI + BMD build PASS；新 2h rung IN PROGRESS）+ RD-01A planning-only COMPLETE 但 Runtime implementation 继续受 freeze 阻止（§4/§5.1）**
+**Runtime Features ACTIVE；RF-FF-02/RF-FF-03 + RH-CLOCK-01 + RF-NORM-01 + RF-MASTER-01 + RF-SRC-RTMP-01 COMPLETE；RF-SRC-01 BLOCKED；RF-SRC-RTMP-02 COMPLETE（closure reconciliation 已收口·§3.60）；STANDALONE-ENTRY-01 全链 COMPLETE（SE-01A/SE-01C/SE-01D/SE-01B·§3.62–§3.65 + SE-01B-FIX reconciliation 收口·§3.66–§3.67）；RUNTIME-CONTROL-ENTRY-01 全链 COMPLETE（§3.68–§3.70）+ RCE-D3 COMPLETE（§3.71）+ CONTROL-PLANE-ENTRY-01 PLAN FROZEN（§3.72·C1–C14）+ **CP-01A COMPLETE（§3.73·2026-09-23）+ CP-01B COMPLETE（§3.74·2026-09-23·RH-IDEM-01 清偿）+ CP-01C COMPLETE（§3.75·2026-09-24·Auth/RBAC/限流/审计硬化）+ CP-01D COMPLETE（§3.76·2026-09-24·Event plane）+ CP-01E COMPLETE（§3.77·2026-09-25·全栈/BMD 集成验收）→ **CONTROL-PLANE-ENTRY-01 全链 COMPLETE**；**PRODUCTION-READINESS-ENTRY-01 PLAN FROZEN（§3.84·2026-09-29·Reality Review + Production Core Dependency Rule）；PR-01A/PR-01B COMPLETE（§3.85）+ HEALTH-INCIDENT-ENTRY-01 全链 COMPLETE（§3.86–§3.87）；当前 = PR-STAB-01 ACCEPTANCE V3 + FIX VERIFICATION（§3.93–§3.97；exact Runtime `6fc1b1a` / binary `3898ced3…`；observer-fix 2h v2 PASS、legacy-comparable 8h IN PROGRESS；Long Stability v3 已冻结并实现，最终 v3 ladder 待当前 8h 收口后从 true 2h 重启）+ RD-01A planning-only COMPLETE 但 Runtime implementation 继续受 freeze 阻止（§4/§5.1）**
 
 Phase 2 与 STAB-O3.1/O4 均已收口；本阶段只处理进入 Runtime Features 前会扩大故障面的关键 hardening。采用“按依赖按需清偿”而非一次清空全部历史债务：已被 BMD 实证的多输入 Bus/故障观测缺陷最高优先，随后是会被新 Source/Output 生命周期放大的 D1/D3/D7；D11+D13 在 Clock/Timecode 下一触碰点前清偿，D15 在多流 Audio/Metadata 前清偿，durable idempotency 在外部持久控制面前清偿。
 
@@ -1668,9 +1668,22 @@ Status: **ACCEPTANCE RECONCILIATION REQUIRED / CURRENT 8h MAY CONTINUE AS COMPAR
 - observer-fix 新 2h 原始样本补充分析：v2 third-delta≈`+5.22MB` PASS；全程 OLS 受启动 allocation 影响约 `+5.02MB/h`，但 **terminal-half slope≈+0.06MB/h**，明显呈平台化；这是比单一 `+50MB` 更有区分力的正向证据，但尚不能替代 8h/24h。
 - 当前处置：**不在正在运行的 exact `6fc1b1a` 8h 中途改变 predicate，也不停止/重启 run**，保留与历史 v2 的可比性；但在 acceptance reconciliation 完成前，即使后续 v2 24h PASS，也不得仅据 `PASS 10/10` 写 `STABILITY VERIFIED`。应在 24h 启动前冻结 additive long-stability acceptance（保持 v2 原判据作为 compatibility layer，不事后改判历史 evidence），补齐趋势/steady-state 与 Step15 漏项。
 
+## 3.97 PR-STAB-01 Long Stability Acceptance v3 冻结与工具落地（2026-10-04）
+
+Status: **ACCEPTANCE V3 FROZEN / TOOLING IMPLEMENTED + LOCAL VERIFIED / CURRENT 8h CONTINUES AS LEGACY-COMPARABLE EVIDENCE / FINAL V3 LADDER NOT STARTED**
+
+- 冻结计划：`docs/superpowers/plans/2026-10-04-pr-stab-01-long-stability-v3.md`。v3 为 additive layer：历史 predicate v2 不删、不放宽、不改判；最终 production stability 另加 evidence integrity / true-duration / steady-state / topology-socket / anatomy / control-plane continuity+replay / watchdog cadence / teardown-residue。
+- 真实时长 RCA：历史 240/960/2880-cycle 原始样本跨度仅约 **1.91h / 7.67h / 23.03h**；旧 rung 名称依赖 `~30s` 估算但实际周期约 28.8s。v3 以 sample first→last wall-clock 为硬 gate，并固定最小 profile：2h=`256`、8h=`1019`、24h=`3055` cycles（DWELL=28 / replay=5 不变）。
+- RSS v3：保留 v2 `+50MB` compatibility gate，同时新增 terminal-half OLS slope `<= +1.0MB/h`。校准证据：旧 2h≈`+0.05MB/h`、observer-fix 2h≈`+0.06MB/h`；旧 8h-rerun v2 虽 PASS 但≈`+4.893MB/h`；旧 24h≈`+5.582MB/h`。阈值保留约 20× plateau noise margin，并对已知 bad pattern 有约 5× 分离。
+- 新工具：`r64-probe/analyze-long-v3.py`（重算 v2 + v3 strict verdict）、`collect-long-v3.py`（read-only sidecar：proc/socket + /health + /runtime + post-run residue/device2）、`run-long-v3.sh`（固定 true-duration profiles，原 v2 driver 临时副本 + sidecar + strict analyzer），`test_analyze_long_v3.py`。历史 `r64-stability-long.sh` 本体不改。
+- v3 新硬 gate：FD mid-run highwater；HTTP query 全 200 + bounded latency；replay 数量/`replayed` 全正确；watchdog 最大 tick gap<=30s；E4 anatomy 两 DeckLink handles、V/A buffers 持续推进、no_pts/backward/overflow=0、当前 1080p25 profile video probe 20–30 buffers/s；sidecar topology devices=3 / active_pipelines=3 / sessions=1 / inputs=2 / Program Switch present；socket baseline highwater/terminal bounded；stop_session executed + teardown marker + runtime/listener residue 归零 + protected device2 PID/argv unchanged。
+- 本地工具验证：Python compile PASS；runner `bash -n` PASS；unit/integration-style tests **6/6 PASS**。历史 8h replay：v2 **PASS 10/10**，v3 明确 FAIL（wall span=27621s<28800；terminal slope=+4.893MB/h）；历史 24h：v2 RSS FAIL 且 v3 duration/slope FAIL；observer-fix 2h：v2 PASS、v3 core RSS/anatomy/HTTP/replay/watchdog PASS，但 duration=6884s<7200 且无全程 sidecar，因此诚实为非 v3 qualification。
+- 当前 exact `6fc1b1a` 8h 不停止、不改 workload/predicate；继续作为修复效果与历史比较证据。已在运行中晚启动 v3 sidecar 仅验证 collector 可运行（不能补齐前段，故不得把该 run 冒充 v3 8h）。
+- 下一执行链：当前 legacy-comparable 8h 自然收口 → 用 v3 analyzer 回放结果 → v3 tooling exact-head CI → 保持 Runtime binary `3898ced3…` 不变，重新 **true 2h v3 → true 8h v3 → true 24h v3**；仅三 rung 全层 PASS 后才允许 `STABILITY VERIFIED` / 解冻 RD-01A Runtime implementation。
+
 ## 4. Current Task
 
-**PR-STAB-01 = observer-backpressure fix exact verification + acceptance reconciliation（§3.93–§3.96）：Runtime exact commit `6fc1b1a` / binary `3898ced3…`；2h v2 PASS 10/10 且 terminal-half RSS slope≈+0.06MB/h；8h IN PROGRESS；Step15 audit 发现 v2 long-soak coverage/趋势判据不足，因此 8h 继续作可比证据，但 24h 启动前必须冻结 additive long-stability acceptance；STABILITY NOT VERIFIED；RD-01A Runtime implementation 继续冻结**
+**PR-STAB-01 = observer-backpressure fix exact verification + Long Stability v3（§3.93–§3.97）：Runtime exact commit `6fc1b1a` / binary `3898ced3…`；2h v2 PASS 且 plateau evidence≈+0.06MB/h；当前 legacy-comparable 8h IN PROGRESS；v3 acceptance/tooling 已冻结实现并证明可抓出旧 8h 假绿/时长不足。最终 certification ladder 尚未开始，当前 8h 收口后以同 Runtime binary 重跑 true 2h→8h→24h v3；STABILITY NOT VERIFIED；RD-01A Runtime implementation 继续冻结**
 
 1. **PR-01A COMPLETE**（§3.85·`885b766`）：Production Core Compose Truth——optional profiles + 死依赖清除 + honest-fail 双证 + SDK 旅程 10/10。
 2. **PR-01B COMPLETE**（§3.85·`885b766` BMD 全旅程）：`/opt/vbmf/current -> 0.1.0-885b766`，provenance 六环链 + rollback/forward + teardown（含 §3.85 事后修正教训）。
@@ -1680,7 +1693,7 @@ Status: **ACCEPTANCE RECONCILIATION REQUIRED / CURRENT 8h MAY CONTINUE AS COMPAR
 
 ## 5. Next Task
 
-**PR-STAB-01 ACCEPTANCE RECONCILIATION + FIX VERIFICATION（§3.93–§3.96）：exact Runtime `6fc1b1a` / binary `3898ced3…` 的 2h v2 PASS，8h IN PROGRESS 且保持原 v2/workload 以保留可比性；**24h 启动前先冻结 additive long-stability acceptance**（v2 compatibility predicates 不删不放宽，新增 steady-state/trend + Step15 原始 leak-coverage 项），再决定 24h 执行；只有新 acceptance 全满足方可 STABILITY VERIFIED。RD-01A Runtime implementation 继续 BLOCKED。**
+**PR-STAB-01 V3 QUALIFICATION NEXT（§3.97）：当前 `6fc1b1a` legacy-comparable 8h 自然收口并用 v3 analyzer 回放 → v3 tooling exact-head CI → 保持 exact Runtime binary `3898ced3…` 不变，重新 true 2h(256) → true 8h(1019) → true 24h(3055)，每 rung 同时要求 v2 compatibility + v3 strict 全层 PASS。三 rung 全通过前不得 STABILITY VERIFIED；RD-01A Runtime implementation 继续 BLOCKED。**
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
@@ -1755,7 +1768,7 @@ P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance
 | **PRODUCTION-READINESS-ENTRY-01** | **COMPLETE — PLAN FROZEN（§3.84·2026-09-29）** | Post-SDK Reality Review：12-Engine/H/X Capability Reality Matrix + 生产编排 audit（Fastify 唯一外部依赖=PostgreSQL；六个死变量+placeholder worker+失效镜像阻塞 core）+ **Production Core Dependency Rule 冻结**（core=db/media-agent/fastify/web/nginx；storage/gateway/worker=optional profiles）+ packet 链 + 六维真实完成度矩阵 | 用户 2026-09-29 指令 | plan=`docs/superpowers/plans/2026-09-29-production-readiness-entry-01-planning.md`；frozen Contract 零修改 |
 | **PR-01A** | **COMPLETE（§3.85·2026-09-29·exact `885b766` 双 lane CI 绿）** | Production Core Compose Truth：optional profiles 化 + fastify 死依赖/死变量清除 + PR01A 结构 gate + worker placeholder honest-fail 修复 + ops 文档同步 | PRODUCTION-READINESS-ENTRY-01 plan frozen | 已满足（config×N/core 独立 up/SDK 旅程 10/10/optional honest-fail 双证/65+69+29 测试/gates/Rust 零改动） |
 | **PR-01B** | **COMPLETE（§3.85·2026-09-29·exact `885b766` BMD 全旅程 + rollback/forward + teardown 零残留）** | Current-main BMD Deployment Reconciliation：exact archive + versioned install + install-manifest + atomic current + rollback/forward；不动 `/opt/vbmf-dev/repo`；device-2 红线 before/after | PR-01A COMPLETE | 已满足（`/opt/vbmf/current -> 0.1.0-885b766`；evidence `evidence/bmd-10.30.15.10/2026-09-29-pr01b-bmd-reconciliation/`） |
-| **PR-STAB-01** | **FIX VERIFICATION ACTIVE（§3.93–§3.94）——exact Runtime `6fc1b1a` / binary `3898ced3…`；新 2h rung IN PROGRESS** | observer appsink bounded/leaky non-backpressure + `HEALTH_ARCS` registry/per-handle 锁拆层；不改 canonical media/Switch/Session/Resource/Lease/Watchdog decision；重新 2h→8h→24h 原 gate | PR-01A COMPLETE | Development + exact-head CI + BMD exact build PASS；新 2h/8h/24h 同 binary 全 PASS 后方可 STABILITY VERIFIED |
+| **PR-STAB-01** | **ACCEPTANCE V3 + FIX VERIFICATION ACTIVE（§3.93–§3.97）——exact Runtime `6fc1b1a` / binary `3898ced3…`；legacy-comparable 8h IN PROGRESS；final v3 ladder NOT STARTED** | observer-backpressure fix 不变；Long Stability v3 additive gate（true duration + RSS plateau + resource/topology/socket/anatomy/replay/HTTP/watchdog/teardown）已冻结并实现；历史 v2 不改判 | PR-01A COMPLETE | 当前 8h 收口→v3 tooling CI→同 binary true 2h/8h/24h strict PASS；三 rung 全通过后方可 STABILITY VERIFIED |
 | **HEALTH-INCIDENT-ENTRY-01** | **COMPLETE — 全链 HI-01A..01E（§3.86+§3.87·2026-09-29）** | Alarm/Incident 从 RuntimeEvent/Supervisor/Health projection **派生投影**（禁止第二 Runtime 状态机；恢复归 Runtime/Supervisor/canonical command）；alarm identity/severity/failure domain/first_seen/last_seen/active-cleared/retryable-manual-required/related/recovery status/evidence；operator ACK = awareness state only；Fastify Product API → SDK → Web Console Alarms 页；plan=`docs/superpowers/plans/2026-09-29-health-incident-entry-01-planning.md`（16-kind 映射表 + D1-D7 决策 + HI-01A..01E 子包 + §16 旅程验收锚） | 用户 2026-09-29 指令 §13–§16 | fault→alarm→actual degraded→recovery→cleared→reload canonical 收敛全旅程（非本地 React 状态）；frozen Contract 零修改（additive 资源按 V0.2 §5 incidents/X4 Authority + versioning 非破坏条款，ADR 登记） |
 | **REDUNDANCY-ENTRY-01** | **PLAN FROZEN（2026-09-29·reconciliation complete）+ RD-01A PLANNING-ONLY COMPLETE（`bf15b62`；Runtime implementation blocked by stability freeze）** | 诚实基线：auto failover 类型级不可构造（watchdog 冻结 #10 不推翻）；readiness 轴（READY_TO_TAKE）/failover+failback hysteresis/Hot-Standby COLD-WARM-HOT policy/failover_benchmarks/Redundancy Group **零实现**；**Redundancy/Hot-Standby/Auto-Failover 均 ≠ COMPLETE**；实现原则链冻结（policy permits→READY_TO_TAKE→preflight→hysteresis→canonical command→observation→incident evidence）；plan=`docs/superpowers/plans/2026-09-29-redundancy-entry-01-planning.md`；RD-01A planning 范围 = 重读 ARCHITECTURE_V0.2 §3/§8 + live watchdog/switch/runtime_state 等 owner map、Readiness≠Health 三轴（Lifecycle/Readiness/Health）语义、failure-first matrix、RD-01B..E 分解核对；**禁止**（§3.88 并行边界）：Runtime 实现/watchdog 行为/switch execution/readiness 写入/hysteresis/RG wiring/auto failover | HEALTH-INCIDENT-ENTRY-01 边界稳定（已满足） | §3 原则链逐环可验收；禁止 watchdog/adapter/UI 自行倒换；RD-01A planning 产出须冻结后 RD-01B..E 才可逐包转 READY |
 | **STANDALONE** | **FOUNDATION COMPLETE — SE-01A/C/D/B 全链（§3.62–§3.67）；剩余子能力已移交 Production Readiness 链** | 版本化安装+atomic current+rollback+readiness/shutdown 语义已 BMD 实证 @ `a238558`；production compose 真值化 → PR-01A；current-main BMD 对账 → PR-01B | — | umbrella 不再作为独立 READY 来源 |
@@ -1847,10 +1860,10 @@ Current Task 专项 Authority：用户 2026-09-20 指令（SE-01B-FIX bounded pa
 
 **NOT VERIFIED / verification debt remains.**
 
-PR-STAB-01 当前口径（§3.88 reconciliation + §3.90/§3.91 2h/8h PASS + §3.92 24h FAIL/RCA）：
+PR-STAB-01 当前口径（§3.88–§3.92 failure baseline + §3.93 observer fix + §3.96–§3.97 acceptance-v3 reconciliation）：
 
 - ec5fc68 **PRE-HI RUNTIME BASELINE**：2h PASS 10/10（§3.87）+ **8h PASS 10/10（§3.88 收口登记·2026-09-30·rss +27.5MB gate 内）**；24h NOT RUN（runtime source advanced at `309c3e1`）——保留作 regression/comparison evidence，**不证明 current main stability**；旧 baseline ladder 已终账关闭；
-- `3c13b59` ladder：**2h PASS + 8h PASS + 24h FAIL 9/10**（§3.90–§3.92；唯一失败 `rss_bounded` +86.6MB）固定为 failure baseline；§3.93–§3.94 observer-backpressure fix exact Runtime=`6fc1b1a` / binary=`3898ced3…` 已开始新 ladder，**2h IN PROGRESS**，后续同 binary 8h→24h；当前 stability 仍 **NOT VERIFIED**。
+- `3c13b59` ladder：**2h PASS + 8h PASS + 24h FAIL 9/10**（§3.90–§3.92；唯一失败 `rss_bounded` +86.6MB）固定为 failure baseline；§3.93 observer-backpressure fix exact Runtime=`6fc1b1a` / binary=`3898ced3…`：legacy 240-cycle 2h v2 PASS 10/10、RSS terminal-half≈+0.06MB/h，但 v3 audit 证明 sample span=6884s<7200，故不是 v3 2h qualification；当前 legacy-comparable 8h IN PROGRESS。§3.97 Long Stability v3 已冻结/实现，最终 certification ladder **NOT STARTED**，必须同 binary 重新 true 2h(256)→8h(1019)→24h(3055) strict 全层 PASS；当前 stability 仍 **NOT VERIFIED**。
 
 已登记 Step 15 历史：
 
@@ -1868,8 +1881,7 @@ PR-STAB-01 当前口径（§3.88 reconciliation + §3.90/§3.91 2h/8h PASS + §3
 - RH-BUS-02（2026-09-18·§3.21）：Runtime commit `92d6007`；focused 12/12 + full gstreamer 278/278 PASS；BMD dual-input 10/10 + production group-watchdog Bus `65/65` + stop/release 完整；current-tree CI `35248227420` 7/7 PASS。
 - STAB-O4 E4-1（2026-09-17·§3.18）：pad 可见分配流全稳 + 批触不在 pad 面
   （两离散台阶 +5588/+5588kB·一台阶/输入·既有预留内 page-commit·第五次复现）
-  ⇒ FIX 判定 NO-FIX-IN-REPO·ladder 不触发——该 FAIL 债务在现证据下无 repo 侧
-  可修路径，维持立档直至外部变量（SDK/插件版本）变更后重开。
+  ⇒ 当时 FIX 判定 NO-FIX-IN-REPO·ladder 不触发；该判断是 §3.18 时点证据结论。§3.92–§3.93 后续精确复现 + allocator/frame-step + observer-backpressure 新证据已重新打开 RCA 并形成 repo-side 最小修复，因此 **NO-FIX-IN-REPO 不再是当前执行结论**，仅保留为历史裁决。
 
 因此不得写成“24h stability verified”。
 
@@ -1912,7 +1924,7 @@ PR-STAB-01 当前口径（§3.88 reconciliation + §3.90/§3.91 2h/8h PASS + §3
 
 ## 9. Verification Debt
 
-- 24h stability：旧 FAIL 不得被短跑或诊断 run 覆盖；`3c13b59` ladder 以 24h `rss_bounded` +86.6MB FAIL 固定为 failure baseline。§3.93 repo-side 最小修复已实施，**因 Runtime source 改变，必须以本修复 exact commit/binary 在 BMD 重新 2h→8h→24h 原 gate**；当前 STABILITY VERIFIED 仍 BLOCKED，需绑定 source commit / binary hash / BMD environment / hardware / scope。
+- stability certification：旧 FAIL 不得被短跑或诊断 run 覆盖；`3c13b59` 24h `rss_bounded` +86.6MB FAIL 固定为 failure baseline。§3.93 observer fix 已改变 Runtime source；§3.97 又证明旧 240/960/2880-cycle gate 不满足 true-duration/steady-state/完整 leak coverage。**因此最终债务只能由 exact `6fc1b1a` / binary `3898ced3…` 的 true 2h(256)→8h(1019)→24h(3055) v3 strict ladder 清偿**；当前 STABILITY VERIFIED 仍 BLOCKED，需绑定 source commit / binary hash / BMD environment / hardware / scope。
 - branch rename hygiene：**P2-B CLOSED**；workflow/runbook 操作性路径已统一 `main`，required context 名称未变。
 - P2-C/P2-D/P2-E：全部收口（§3.6–§3.13）。fork `runs-on` 分支未 live 实测（无现成 fork PR），已在 §3.9 登记残余风险与核验口径。
 - runner 出网稳定性：codeload 缓解已从 rerun 升级为 immutable Action archive cache，并已在 general×2 + media×1 probe 及 required CI `35248227420` 7/7 验证；残余仅为持续观察 archive cache miss/Action SHA 更新流程，不再是未实施 Verification Debt。
@@ -1935,9 +1947,9 @@ PR-STAB-01 当前口径（§3.88 reconciliation + §3.90/§3.91 2h/8h PASS + §3
 3. 读取 live `main` HEAD；
 4. 读取本 `.project/STATE.md`；
 5. 找到“包含当前 STATE 版本的 commit”，比较 live HEAD 是否有更新；若有，只 reconcile STATE 之后的新 commits；
-6. 读取 **Current Task = PR-STAB-01 FIX VERIFICATION ACTIVE（§3.93–§3.94：observer-backpressure fix exact Runtime=`6fc1b1a` / binary=`3898ced3…`；Development + exact-head CI + BMD build PASS；新 2h rung IN PROGRESS）**——SDK-ENTRY-01、PR-01A/PR-01B、HEALTH-INCIDENT-ENTRY-01、RD-01A planning-only 均已 COMPLETE；当前链 = 新 2h→8h→24h → STABILITY VERIFIED 后才可 RD-01A implementation；Runtime freeze window 继续生效；
+6. 读取 **Current Task = PR-STAB-01 ACCEPTANCE V3 + FIX VERIFICATION（§3.93–§3.97：observer-fix exact Runtime=`6fc1b1a` / binary=`3898ced3…`；legacy-comparable 8h IN PROGRESS；v3 acceptance/tooling FROZEN+IMPLEMENTED；final v3 ladder NOT STARTED）**——当前链 = legacy 8h 收口 → v3 tooling exact-head CI → true 2h→8h→24h v3 → STABILITY VERIFIED 后才可 RD-01A implementation；Runtime freeze window 继续生效；
 7. 核对 P2-C implementation chain through `0f375c8…`、maintenance failure `34921727757`、encrypted route probes 与最新 `media-agent CI`（P2-M2 后 `gstreamer-build` 应 @vbmf-media 且 artifact 非空）；
-8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个可执行项；既有 Runtime/Standalone/Control-Plane/Web/SDK/Health-Incident 完成项不得回退；RF-SRC-01 继续因 SRT capability 缺失 BLOCKED；**当前唯一执行链 = PR-STAB-01 24h FAIL 9/10 → failure-first RCA（§3.92）→ 可证修复后重跑受影响 stability ladder，或 NO-FIX-IN-REPO / dependency-upgrade / production-acceptability 裁决 → 只有 STABILITY VERIFIED 后才可 RD-01A implementation**。RD-01A planning-only 已完成但 Runtime 实施仍被 freeze window 阻止；PORT-COLLISION-01 等 BACKLOG 不越级；
+8. 读取 §5.1 Task Queue，只执行当前 Phase 第一个可执行项；既有 Runtime/Standalone/Control-Plane/Web/SDK/Health-Incident 完成项不得回退；RF-SRC-01 继续因 SRT capability 缺失 BLOCKED；**当前唯一执行链 = PR-STAB-01 observer-fix legacy 8h 收口 → Long Stability v3 exact tooling/CI → same Runtime binary true 2h→8h→24h strict certification → STABILITY VERIFIED → RD-01A implementation**。RD-01A planning-only 已完成但 Runtime 实施仍被 freeze window 阻止；PORT-COLLISION-01 等 BACKLOG 不越级；
 9. 不回退到已经 COMPLETE 的 0.6 / 0.7 / A2-8 / P2-A；
 10. 不从历史 feature/fix/实验 branch 恢复开发；所有验证通过的改动直接推进 `main`；
 11. 完成独立任务后，同一轮更新本 STATE 的 Last Completed / Current Task / Next Task / verification / risks / debt / handoff；
@@ -1956,5 +1968,5 @@ PR-STAB-01 当前口径（§3.88 reconciliation + §3.90/§3.91 2h/8h PASS + §3
 - **STAB-O4/FIX 已收口**（§3.18：E4-1 观测完成 + NO-FIX-IN-REPO·ladder 不触发·24h FAIL 立档）；
 - **RUNTIME-HARDEN immediate gates 已完成（§3.20–§3.24）；Runtime Features entry review + RF-FF-01A/B/C/D/E/F、post-01F adjudication、RF-FF-02 HLS、RF-FF-03 RTMP 单输入 egress/recovery、RH-CLOCK-01、RF-NORM-01 Phase A/B、RF-MASTER-01、RF-SRC-RTMP-01 已完成（§3.25–§3.49）；RF-SRC-01 因 SRT capability 缺失 BLOCKED；**RF-SRC-RTMP-02 COMPLETE（TG-0…TG-6 + closure reconciliation 全 PASS·§3.52–§3.58 + §3.60·含严格 D10 进程级 BMD 重验 @ `d13f1fd`）**；STANDALONE-ENTRY-01 全链完成（含 SE-01B-FIX reconciliation·§3.66–§3.67）；**RUNTIME-CONTROL-ENTRY-01 全链完成 + RCE-D3 reconciliation（§3.71）+ CONTROL-PLANE-ENTRY-01 planning 冻结（§3.72）+ CP-01A/01B/01C/01D/01E 收口（§3.73–§3.77）——全链 COMPLETE，无 READY packet**；当前仍不能扩展 Network umbrella/Program multi-input/Output expansion 或 24h stability**；
 - Runtime / Web 新业务功能当前不应越过 §5.1 queue 推进；Runtime 写入面在新 stability ladder 期间冻结（§3.88 并行边界）；
-- PR-STAB-01：ec5fc68 旧 baseline 已终账（PRE-HI 2h+8h PASS，24h NOT RUN）；**current-main 2h+8h PASS、24h FAIL 9/10 @ exact Runtime `3c13b59` / binary `e5b2e73b…`（§3.90–§3.92；唯一失败 rss_bounded +86.6MB）**；
-- 24h RSS stability 仍是明确 verification debt，不能宣称 stability verified——须 current-main 新 ladder 2h+8h+24h 全 PASS 并绑定 exact commit/binary/environment 后方可。
+- PR-STAB-01：`3c13b59` 2h+8h PASS / 24h FAIL 9/10 固定为 failure baseline；observer fix exact Runtime=`6fc1b1a` / binary=`3898ced3…` 已有 legacy 2h v2 PASS + plateau 正向证据，legacy-comparable 8h IN PROGRESS；**Long Stability v3 已冻结实现，但最终 v3 ladder NOT STARTED**。
+- stability verification debt 现在包含两层：① observer-backpressure fix 必须在同 exact binary 上证明长期 plateau；② Step15 acceptance 必须以 v3 补齐 true wall-clock、resource/topology/socket/anatomy/replay/HTTP/watchdog/teardown。只有 true 2h+8h+24h v3 strict 全 PASS 并绑定 exact commit/binary/BMD environment/hardware/scope 后方可写 STABILITY VERIFIED。
