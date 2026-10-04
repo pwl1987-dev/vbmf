@@ -11,7 +11,7 @@
 use crate::contracts::backend::MediaBackend;
 use crate::pipeline::{
     src_props, PipelineController, PipelineError, PipelineHandle, PipelineHealth, PipelinePlan,
-    DROPPED_BUS_EVENTS, NEXT_PIPELINE_ID,
+    DROPPED_BUS_EVENTS, NEXT_PIPELINE_ID, OBSERVER_QUEUE,
 };
 #[cfg(feature = "gstreamer-backend")]
 use glib;
@@ -219,7 +219,7 @@ impl PipelineController for GStreamerPipelineController {
                 .lock()
                 .unwrap()
                 .insert(handle, Arc::new(Mutex::new(PipelineHealth::default())));
-            if let Some(hp) = HEALTH_ARCS.lock().unwrap().get(&handle) {
+            if let Some(hp) = crate::pipeline_events::health_arc(&handle) {
                 hp.lock().unwrap().started_at = Some(
                     std::time::SystemTime::now()
                         .duration_since(std::time::UNIX_EPOCH)
@@ -261,7 +261,7 @@ impl PipelineController for GStreamerPipelineController {
             };
             res.map_err(|e| PipelineError::StartFailed(format!("pipeline play: {e}")))?;
             // 标记 playing (watchdog 推导 a3_pipeline_playing). 与 instances 锁不嵌套, 避免死锁.
-            if let Some(hp) = HEALTH_ARCS.lock().unwrap().get(handle) {
+            if let Some(hp) = crate::pipeline_events::health_arc(handle) {
                 hp.lock().unwrap().playing = true;
             }
             Ok(())
@@ -319,7 +319,7 @@ impl PipelineController for GStreamerPipelineController {
                     fatal_fallback,
                 },
             );
-            if let Some(hp) = HEALTH_ARCS.lock().unwrap().get(handle) {
+            if let Some(hp) = crate::pipeline_events::health_arc(handle) {
                 hp.lock().unwrap().playing = true;
             }
             // A2-8-02-D: attachment replay——新管线上按簿记重放 tap（失败
@@ -475,11 +475,11 @@ impl GStreamerPipelineController {
                 // MediaTapPort）。pipeline.rs 零 diff（本组装在 controller 侧）。
                 let video_branch = format!(
                     "{video_src} ! video/x-raw ! tee name=v \
-                     v. ! queue ! appsink name=videosink async=false"
+                     v. ! {OBSERVER_QUEUE} ! appsink name=videosink async=false"
                 );
                 let audio_branch = format!(
                     "{audio_src} ! audio/x-raw ! tee name=a \
-                     a. ! queue ! appsink name=audiosink async=false"
+                     a. ! {OBSERVER_QUEUE} ! appsink name=audiosink async=false"
                 );
                 format!("{video_branch} {audio_branch}")
             } else {
@@ -680,7 +680,7 @@ impl GStreamerPipelineController {
                 .new_sample(move |sink| {
                     let sample = sink.pull_sample().map_err(|_| gstreamer::FlowError::Eos)?;
                     let buf = sample.buffer().ok_or(gstreamer::FlowError::Error)?;
-                    if let Some(h) = HEALTH_ARCS.lock().unwrap().get(&handle) {
+                    if let Some(h) = crate::pipeline_events::health_arc(&handle) {
                         let mut h = h.lock().unwrap();
                         h.video_frame_count += 1;
                         let pts = buf.pts().map(|c| c.nseconds());
@@ -708,7 +708,7 @@ impl GStreamerPipelineController {
                 .new_sample(move |sink| {
                     let sample = sink.pull_sample().map_err(|_| gstreamer::FlowError::Eos)?;
                     let buf = sample.buffer().ok_or(gstreamer::FlowError::Error)?;
-                    if let Some(h) = HEALTH_ARCS.lock().unwrap().get(&handle) {
+                    if let Some(h) = crate::pipeline_events::health_arc(&handle) {
                         let mut h = h.lock().unwrap();
                         h.audio_frame_count += 1;
                         let pts = buf.pts().map(|c| c.nseconds());

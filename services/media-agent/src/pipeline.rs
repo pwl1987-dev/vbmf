@@ -244,8 +244,8 @@ impl PipelinePlan {
 
     /// P1a: 输出物化 launch 全串（含 tee 双分支; 空 outputs ⇒ `""`, controller 走今日串）。
     ///
-    /// **分析红线**: appsink 元素串与 `async=false` 语义与 P1a 前逐字符一致;
-    /// 编码分支独立 `queue` 解耦背压（P1a-05 appsink 不停滞的结构性保证）。
+    /// **分析红线**: appsink 保持 `async=false`，但其观察 queue 必须显式 bounded + leaky，
+    /// 防止健康/PTS 观测反压 canonical ingest；编码分支继续使用独立普通 `queue` 解耦。
     /// src 前缀由参数注入——本方法与 `src_props` 同层（domain 物化）, controller 纯拼接执行,
     /// **不出现**于本方法外的 element 名硬编码（用户边界修正）。
     pub(crate) fn output_launch(&self, video_src: &str, audio_src: &str) -> String {
@@ -286,13 +286,14 @@ impl PipelinePlan {
                 )
             }
         };
+        let observer_queue = OBSERVER_QUEUE;
         format!(
             "{video_src} ! video/x-raw ! tee name=v \
-             v. ! queue ! appsink name=videosink async=false \
+             v. ! {observer_queue} ! appsink name=videosink async=false \
              v. ! queue ! videoconvert ! openh264enc bitrate={} gop-size=50 \
              min-force-key-unit-interval=2000000000 ! h264parse ! {v_sink} \
              {audio_src} ! audio/x-raw ! tee name=a \
-             a. ! queue ! appsink name=audiosink async=false \
+             a. ! {observer_queue} ! appsink name=audiosink async=false \
              a. ! queue ! audioconvert ! avenc_aac bitrate={a} ! aacparse ! {a_sink} {tail}",
             v * 1000
         )
@@ -585,6 +586,12 @@ pub trait PipelineController {
 /// 管线句柄 (GStreamer 运行时实例标识).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct PipelineHandle(pub u64);
+
+/// 健康/PTS appsink 是观测面，不是 canonical media path。它必须有界且 leaky，
+/// 避免观测锁竞争/消费者抖动反压 DeckLink ingest，迫使 native frame allocator
+/// 抬高整帧高水位。bytes/time 设 0 表示仅由单 buffer 上限约束。
+pub(crate) const OBSERVER_QUEUE: &str =
+    "queue max-size-buffers=1 max-size-bytes=0 max-size-time=0 leaky=downstream";
 
 /// GStreamer 选卡属性 (decklinkvideosrc/audiosrc).
 ///
@@ -1225,6 +1232,14 @@ mod tests {
     }
 
     #[test]
+    fn pr_stab_01_observer_queue_is_bounded_non_backpressure() {
+        assert_eq!(
+            OBSERVER_QUEUE,
+            "queue max-size-buffers=1 max-size-bytes=0 max-size-time=0 leaky=downstream"
+        );
+    }
+
+    #[test]
     fn pipeline_rt_01_output_launch_hls_shape() {
         let plan = plan_with_output(OutputPlan {
             kind: OutputKind::Hls,
@@ -1238,11 +1253,15 @@ mod tests {
         );
         // 分析分支红线: appsink 元素串与 async=false 语义逐字符保留。
         assert!(
-            launch.contains("v. ! queue ! appsink name=videosink async=false"),
+            launch.contains(&format!(
+                "v. ! {OBSERVER_QUEUE} ! appsink name=videosink async=false"
+            )),
             "{launch}"
         );
         assert!(
-            launch.contains("a. ! queue ! appsink name=audiosink async=false"),
+            launch.contains(&format!(
+                "a. ! {OBSERVER_QUEUE} ! appsink name=audiosink async=false"
+            )),
             "{launch}"
         );
         // tee 双分支骨架。

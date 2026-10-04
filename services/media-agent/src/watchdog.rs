@@ -60,55 +60,52 @@ pub fn spawn_ingest_watchdog(
             // 在共享 Arc 上就地更新 acceptance 子项: 只读 live 状态→推导→写回 acceptance,
             // 绝不覆盖 appsink 回调写入的 video_frame_count/audio_frame_count/PTS/video_pts_state/audio_pts_state,
             // 否则每轮 snapshot 写回会把实时计数回退, 破坏 c4(计数增长) 判定 (#4 回归).
-            let (pass, has_error, a4_signal) = if let Some(h) = crate::pipeline_events::HEALTH_ARCS
-                .lock()
-                .unwrap()
-                .get(&handle)
-            {
-                let mut g = h.lock().unwrap();
-                g.acceptance.a1_identity_resolved = true;
-                g.acceptance.a2_lease_acquired = true;
-                g.acceptance.a4_signal_detected = g.first_frame_ok();
-                g.acceptance.b1_first_video = g.video_first_pts.is_some();
-                g.acceptance.b2_first_audio = g.audio_first_pts.is_some();
-                g.acceptance.b3_valid_pts = g.video_first_pts.is_some();
-                g.acceptance.a3_pipeline_playing = g.playing;
-                // b4 由两路 PTS 三态推导 (P1-3): 仅当 video 与 audio 均 ValidMonotonic 才视为 PTS 单调通过.
-                // 绝不回退到单一 bool; Unknown/NonMonotonic 任一即不通过.
-                g.acceptance.b4_pts_monotonic = g.video_pts_state
-                    == crate::pipeline::PtsMonotonicity::ValidMonotonic
-                    && g.audio_pts_state == crate::pipeline::PtsMonotonicity::ValidMonotonic;
-                g.acceptance.c1_no_unexpected_eos = g.acceptance.c_unexpected_eos == 0;
-                g.acceptance.c2_no_pipeline_error = g.last_error.is_none();
-                g.acceptance.c3_no_repeated_reneg = g.acceptance.c_renegotiations == 0;
-                let v = g.video_frame_count;
-                let a = g.audio_frame_count;
-                g.acceptance.c4_counters_continue = v > prev_video && a > prev_audio;
-                prev_video = v;
-                prev_audio = a;
-                // C 稳定性窗口计时 + 测量字段 (用户复核 §十二).
-                if let Some(started) = g.started_at {
-                    let now = std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .map(|d| d.as_secs() as i64)
-                        .unwrap_or(0);
-                    g.acceptance.c_observed_ms = Some(((now - started).max(0) as u64) * 1000);
-                }
-                g.acceptance.c_video_frames = g.video_frame_count;
-                g.acceptance.c_audio_frames = g.audio_frame_count;
-                // RH-BUS-02 #3: Bus 计数/acceptance 折叠收敛为共享纯函数——
-                // 与组 watchdog 同一函数 (语义漂移防线); 返回值本 watchdog 不
-                // 消费 (下方谓词以 events 原批等价判定, 行为零变化)。
-                let _fatal = fold_bus_events_into_health(&handle, &mut g, &events);
-                bus_events = g.bus_event_count;
-                (
-                    g.acceptance.a_pass() && g.acceptance.b_pass() && g.acceptance.c_pass(),
-                    g.last_error.is_some(),
-                    g.acceptance.a4_signal_detected,
-                )
-            } else {
-                (false, false, false)
-            };
+            let (pass, has_error, a4_signal) =
+                if let Some(h) = crate::pipeline_events::health_arc(&handle) {
+                    let mut g = h.lock().unwrap();
+                    g.acceptance.a1_identity_resolved = true;
+                    g.acceptance.a2_lease_acquired = true;
+                    g.acceptance.a4_signal_detected = g.first_frame_ok();
+                    g.acceptance.b1_first_video = g.video_first_pts.is_some();
+                    g.acceptance.b2_first_audio = g.audio_first_pts.is_some();
+                    g.acceptance.b3_valid_pts = g.video_first_pts.is_some();
+                    g.acceptance.a3_pipeline_playing = g.playing;
+                    // b4 由两路 PTS 三态推导 (P1-3): 仅当 video 与 audio 均 ValidMonotonic 才视为 PTS 单调通过.
+                    // 绝不回退到单一 bool; Unknown/NonMonotonic 任一即不通过.
+                    g.acceptance.b4_pts_monotonic = g.video_pts_state
+                        == crate::pipeline::PtsMonotonicity::ValidMonotonic
+                        && g.audio_pts_state == crate::pipeline::PtsMonotonicity::ValidMonotonic;
+                    g.acceptance.c1_no_unexpected_eos = g.acceptance.c_unexpected_eos == 0;
+                    g.acceptance.c2_no_pipeline_error = g.last_error.is_none();
+                    g.acceptance.c3_no_repeated_reneg = g.acceptance.c_renegotiations == 0;
+                    let v = g.video_frame_count;
+                    let a = g.audio_frame_count;
+                    g.acceptance.c4_counters_continue = v > prev_video && a > prev_audio;
+                    prev_video = v;
+                    prev_audio = a;
+                    // C 稳定性窗口计时 + 测量字段 (用户复核 §十二).
+                    if let Some(started) = g.started_at {
+                        let now = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.as_secs() as i64)
+                            .unwrap_or(0);
+                        g.acceptance.c_observed_ms = Some(((now - started).max(0) as u64) * 1000);
+                    }
+                    g.acceptance.c_video_frames = g.video_frame_count;
+                    g.acceptance.c_audio_frames = g.audio_frame_count;
+                    // RH-BUS-02 #3: Bus 计数/acceptance 折叠收敛为共享纯函数——
+                    // 与组 watchdog 同一函数 (语义漂移防线); 返回值本 watchdog 不
+                    // 消费 (下方谓词以 events 原批等价判定, 行为零变化)。
+                    let _fatal = fold_bus_events_into_health(&handle, &mut g, &events);
+                    bus_events = g.bus_event_count;
+                    (
+                        g.acceptance.a_pass() && g.acceptance.b_pass() && g.acceptance.c_pass(),
+                        g.last_error.is_some(),
+                        g.acceptance.a4_signal_detected,
+                    )
+                } else {
+                    (false, false, false)
+                };
 
             // P0-7D-1.4 (ingest 接线): 上游总线观测 → canonical 事件流 (Supervisor.ingest
             // 归一化, C2 契约首次接线; mapper 关键字: "error"→PipelineFault{retryable},
@@ -726,7 +723,7 @@ pub fn spawn_execution_group_watchdog(
             // Supervisor 决策真路径。ClockLost 只计数/记录（degraded, 不重启）。
             for (d, h) in &group_inputs {
                 let owned = accept_owned_events(*h, ctrl.observe(h));
-                if let Some(hp) = crate::pipeline_events::HEALTH_ARCS.lock().unwrap().get(h) {
+                if let Some(hp) = crate::pipeline_events::health_arc(h) {
                     let mut g = hp.lock().unwrap();
                     fold_bus_events_into_health(h, &mut g, &owned);
                 }

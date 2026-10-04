@@ -17,15 +17,19 @@ pub(crate) static HEALTH_ARCS: LazyLock<
     Mutex<HashMap<PipelineHandle, Arc<Mutex<PipelineHealth>>>>,
 > = LazyLock::new(|| Mutex::new(HashMap::new()));
 
+/// 克隆单条健康弧后立即释放全局 registry 锁。媒体回调/Watchdog 不得在
+/// 持有 `HEALTH_ARCS` HashMap mutex 时再等待 per-pipeline mutex，否则纯观测面
+/// 可能把锁竞争反压到 GStreamer streaming thread。
+#[allow(dead_code)]
+pub(crate) fn health_arc(handle: &PipelineHandle) -> Option<Arc<Mutex<PipelineHealth>>> {
+    HEALTH_ARCS.lock().unwrap().get(handle).cloned()
+}
+
 /// 读取管线健康快照 (监控 API 用). 在部分 feature 组合下无调用点 (main 的 health endpoint
 /// 经 cfg 门控), 故允许 dead_code; 与迁移前 `controller.rs` 模块级 `#![allow(dead_code)]` 一致.
 #[allow(dead_code)]
 pub fn read_health(handle: &PipelineHandle) -> Option<PipelineHealth> {
-    HEALTH_ARCS
-        .lock()
-        .unwrap()
-        .get(handle)
-        .map(|h| h.lock().unwrap().clone())
+    health_arc(handle).map(|h| h.lock().unwrap().clone())
 }
 
 /// GStreamer Bus 事件严重度 (喂 Supervisor 决策时判优先级).
