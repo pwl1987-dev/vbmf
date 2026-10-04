@@ -1646,9 +1646,19 @@ Status: **FIX COMMITTED / EXACT-HEAD CI PASS / BMD EXACT BINARY 2h RUNG IN PROGR
 - 新 2h rung：TAG=`pr-stab-01-2h-observer-fix`，CYCLES=240 / DWELL=28 / REPLAY_EVERY=5；evidence=`~/a2-8-02i-evidence/2026-10-04-pr-stab-01-2h-observer-fix/`。header exact binary/manifest 已钉扎；首轮 health=`Capturing` / active_pipelines=3 / devices=3 / drops=0 / clock_lost=0；cycle 1–2 switch_epoch 连续且 observed==target；device-2 PID 992634 保持原 gst-launch。
 - 本次 Runtime 修改使旧 `3c13b59` stability ladder 不可继承；新 ladder 必须以 `6fc1b1a` exact Runtime binary `3898ced3…` 完整 2h→8h→24h。当前只可写 **fix implementation complete + software/CI/BMD build verified + 2h in progress**，不得写 RSS bug closed / stability verified。
 
+## 3.95 PR-STAB-01 observer-backpressure fix：2h PASS 10/10 + 8h 启动（2026-10-04）
+
+Status: **2h PASS 10/10 / 8h IN PROGRESS / STABILITY NOT VERIFIED**
+
+- BMD exact Runtime 仍为 `6fc1b1ad9519eabec7d2553faf69d8d1f0f5e271` / binary MD5=`3898ced3554c148150a60043cd167c19`；2h evidence=`~/a2-8-02i-evidence/2026-10-04-pr-stab-01-2h-observer-fix/`。
+- 2h 自然完成 240/240 cycles，predicate v2 **PASS 10/10**：threads 31..33 spread=2；fd 17→17；RSS first_third=`1239.8MB` → last_third=`1245.1MB`，**+5.3MB < +50MB gate**；switch_epoch 1→240 consecutive +1；switches 240/240；observed==target 240/240；frames v 25→206617 / a 34→275519；drops=0；watchdog ticks 343→692；events 120 samples no critical；replays 48（非 gate）。
+- teardown 正常：stop_session=`executed`，media-agent/soak 与 :8080/:50051 无残留；受保护 device-2 PID 992634 持续存活。
+- 发现流程推进缺口：2h 于 12:10 已结束但 8h 未自动接续；该问题属于 orchestration gap，不是 Runtime failure。本轮已人工恢复连续推进。
+- 新 8h rung 已于 20:28 启动：TAG=`pr-stab-01-8h-observer-fix`，CYCLES=960 / DWELL=28 / REPLAY_EVERY=5，predicate/workload/gate 不变；header 钉扎同 binary/manifest；首 cycle Capturing 路径正常，drops=0、clock_lost=0、observed==target。
+
 ## 4. Current Task
 
-**PR-STAB-01 = observer-backpressure fix 已进入 exact verification（§3.93–§3.94）：Runtime exact commit `6fc1b1a`，Development software + exact-head 双 CI + BMD exact build PASS；BMD 新 2h rung IN PROGRESS @ binary `3898ced3…`，后续同 binary 8h→24h；STABILITY NOT VERIFIED；RD-01A Runtime implementation 继续冻结**
+**PR-STAB-01 = observer-backpressure fix exact verification（§3.93–§3.95）：Runtime exact commit `6fc1b1a` / binary `3898ced3…`；Development + exact-head CI + BMD build PASS；BMD 2h PASS 10/10（RSS +5.3MB），8h IN PROGRESS，随后同 binary 24h；STABILITY NOT VERIFIED；RD-01A Runtime implementation 继续冻结**
 
 1. **PR-01A COMPLETE**（§3.85·`885b766`）：Production Core Compose Truth——optional profiles + 死依赖清除 + honest-fail 双证 + SDK 旅程 10/10。
 2. **PR-01B COMPLETE**（§3.85·`885b766` BMD 全旅程）：`/opt/vbmf/current -> 0.1.0-885b766`，provenance 六环链 + rollback/forward + teardown（含 §3.85 事后修正教训）。
@@ -1658,7 +1668,7 @@ Status: **FIX COMMITTED / EXACT-HEAD CI PASS / BMD EXACT BINARY 2h RUNG IN PROGR
 
 ## 5. Next Task
 
-**PR-STAB-01 FIX VERIFICATION ACTIVE（§3.93–§3.94）：exact Runtime `6fc1b1a` / binary `3898ced3…` 的 BMD 2h rung IN PROGRESS → 2h PASS 后同 binary 8h → 8h PASS 后 24h → 24h PASS 才可 STABILITY VERIFIED；predicate v2 / +50MB gate / workload 均不放宽。RD-01A Runtime implementation 继续 BLOCKED。**
+**PR-STAB-01 FIX VERIFICATION ACTIVE（§3.93–§3.95）：exact Runtime `6fc1b1a` / binary `3898ced3…` 的 BMD 2h 已 PASS 10/10（RSS +5.3MB）→ 8h IN PROGRESS → 8h PASS 后同 binary 24h → 24h PASS 才可 STABILITY VERIFIED；predicate v2 / +50MB gate / workload 均不放宽。RD-01A Runtime implementation 继续 BLOCKED。**
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
