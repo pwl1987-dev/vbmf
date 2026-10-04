@@ -1656,9 +1656,21 @@ Status: **2h PASS 10/10 / 8h IN PROGRESS / STABILITY NOT VERIFIED**
 - 发现流程推进缺口：2h 于 12:10 已结束但 8h 未自动接续；该问题属于 orchestration gap，不是 Runtime failure。本轮已人工恢复连续推进。
 - 新 8h rung 已于 20:28 启动：TAG=`pr-stab-01-8h-observer-fix`，CYCLES=960 / DWELL=28 / REPLAY_EVERY=5，predicate/workload/gate 不变；header 钉扎同 binary/manifest；首 cycle Capturing 路径正常，drops=0、clock_lost=0、observed==target。
 
+## 3.96 PR-STAB-01 acceptance audit：Step 15 设计目标与 long-soak gate 覆盖不完全一致（2026-10-04）
+
+Status: **ACCEPTANCE RECONCILIATION REQUIRED / CURRENT 8h MAY CONTINUE AS COMPARABLE EVIDENCE / DO NOT DECLARE STABILITY VERIFIED FROM v2 ALONE**
+
+- Authority audit：Step 15 原始目标（R57 §24.4）= `30min → 2h → 8h → 24h`，覆盖 **memory / FD / socket / pipeline / pad-probe leak + repeated-switch drift + BMD long stability**；历史 Step 15 每 rung 另有 opening R64 Control-Plane/Recovery gate evidence。
+- 实际 `r64-stability-long.sh` 明确是 **R65 30min predicate-v2 的参数化推广**：2h/8h/24h 仅改变 `CYCLES/expected_cycles`，十项判据与阈值逐字相同。这个设计对“同一 correctness invariant 随暴露时间增加”有效，但并不是一套独立设计的 production-long-stability contract。
+- 覆盖缺口：long-soak 10 predicates 实际 gate 只有 threads/fd/rss/switch epoch/command preserved/observed/frames/drops+clock/watchdog/events；**没有 socket count、pipeline count、pad-probe/tap count 的正式 leak predicate**。latency 虽采集到 `latencies.txt`，不参与 verdict；replay 虽采集，但明确 `NOTE ... not gating`；stop/teardown 虽写 `stop-response.json` / `teardown-line.txt`，也不属于 10 项 verdict，因此 `VERDICT PASS 10/10` 本身不能单独证明 clean teardown。
+- RSS predicate 结构缺陷：`monotonic = all(rss[i+1] > rss[i])` 只检测“每一个采样点都严格上涨”；只要出现任何持平/小回落即 `monotonic=False`。对 allocator 阶梯型增长几乎没有鉴别力，实际主要只剩 `last_third_avg <= first_third_avg + 50MB`。
+- 历史原始样本反算验证了漏检：旧 2h terminal-half RSS slope≈`+0.05MB/h`；旧 8h-rerun 虽 v2 PASS（third-delta≈+27.4MB），terminal-half slope≈`+4.89MB/h`；旧 24h FAIL（third-delta=+86.6MB），terminal-half slope≈`+5.58MB/h`。8h 已出现与 24h 同型持续增长，但旧 gate 只能等 24h 超 +50MB 才 FAIL。
+- observer-fix 新 2h 原始样本补充分析：v2 third-delta≈`+5.22MB` PASS；全程 OLS 受启动 allocation 影响约 `+5.02MB/h`，但 **terminal-half slope≈+0.06MB/h**，明显呈平台化；这是比单一 `+50MB` 更有区分力的正向证据，但尚不能替代 8h/24h。
+- 当前处置：**不在正在运行的 exact `6fc1b1a` 8h 中途改变 predicate，也不停止/重启 run**，保留与历史 v2 的可比性；但在 acceptance reconciliation 完成前，即使后续 v2 24h PASS，也不得仅据 `PASS 10/10` 写 `STABILITY VERIFIED`。应在 24h 启动前冻结 additive long-stability acceptance（保持 v2 原判据作为 compatibility layer，不事后改判历史 evidence），补齐趋势/steady-state 与 Step15 漏项。
+
 ## 4. Current Task
 
-**PR-STAB-01 = observer-backpressure fix exact verification（§3.93–§3.95）：Runtime exact commit `6fc1b1a` / binary `3898ced3…`；Development + exact-head CI + BMD build PASS；BMD 2h PASS 10/10（RSS +5.3MB），8h IN PROGRESS，随后同 binary 24h；STABILITY NOT VERIFIED；RD-01A Runtime implementation 继续冻结**
+**PR-STAB-01 = observer-backpressure fix exact verification + acceptance reconciliation（§3.93–§3.96）：Runtime exact commit `6fc1b1a` / binary `3898ced3…`；2h v2 PASS 10/10 且 terminal-half RSS slope≈+0.06MB/h；8h IN PROGRESS；Step15 audit 发现 v2 long-soak coverage/趋势判据不足，因此 8h 继续作可比证据，但 24h 启动前必须冻结 additive long-stability acceptance；STABILITY NOT VERIFIED；RD-01A Runtime implementation 继续冻结**
 
 1. **PR-01A COMPLETE**（§3.85·`885b766`）：Production Core Compose Truth——optional profiles + 死依赖清除 + honest-fail 双证 + SDK 旅程 10/10。
 2. **PR-01B COMPLETE**（§3.85·`885b766` BMD 全旅程）：`/opt/vbmf/current -> 0.1.0-885b766`，provenance 六环链 + rollback/forward + teardown（含 §3.85 事后修正教训）。
@@ -1668,7 +1680,7 @@ Status: **2h PASS 10/10 / 8h IN PROGRESS / STABILITY NOT VERIFIED**
 
 ## 5. Next Task
 
-**PR-STAB-01 FIX VERIFICATION ACTIVE（§3.93–§3.95）：exact Runtime `6fc1b1a` / binary `3898ced3…` 的 BMD 2h 已 PASS 10/10（RSS +5.3MB）→ 8h IN PROGRESS → 8h PASS 后同 binary 24h → 24h PASS 才可 STABILITY VERIFIED；predicate v2 / +50MB gate / workload 均不放宽。RD-01A Runtime implementation 继续 BLOCKED。**
+**PR-STAB-01 ACCEPTANCE RECONCILIATION + FIX VERIFICATION（§3.93–§3.96）：exact Runtime `6fc1b1a` / binary `3898ced3…` 的 2h v2 PASS，8h IN PROGRESS 且保持原 v2/workload 以保留可比性；**24h 启动前先冻结 additive long-stability acceptance**（v2 compatibility predicates 不删不放宽，新增 steady-state/trend + Step15 原始 leak-coverage 项），再决定 24h 执行；只有新 acceptance 全满足方可 STABILITY VERIFIED。RD-01A Runtime implementation 继续 BLOCKED。**
 
 P2 系列全部收口（§3.4–§3.16）。BMD 实机永走 hardware acceptance 人工线，不进入
 普通 PR CI。
