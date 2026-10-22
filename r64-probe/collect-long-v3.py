@@ -124,6 +124,7 @@ def main() -> int:
 
     protected_before = cmdline(args.protected_pid)
     identity = {
+        "machine_id": os.environ.get("VBMF_MACHINE_ID", ""),
         "source_commit": args.source_commit,
         "binary_path": args.binary_path,
         "binary_md5": md5(args.binary_path),

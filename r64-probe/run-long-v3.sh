@@ -25,6 +25,13 @@ esac
 : "${SOURCE_COMMIT:?SOURCE_COMMIT is required}"
 : "${MEDIA_AGENT_DIR:?MEDIA_AGENT_DIR is required}"
 : "${MANIFEST_PATH:?MANIFEST_PATH is required}"
+# Host identity pin: Runtime resolves machine identity as VBMF_MACHINE_ID >
+# /etc/machine-id (se01d policy). The BMD v5 manifest pins the legacy
+# "10.30.15.10" form, so the harness must assert the identity explicitly; with
+# no env the Runtime falls back to /etc/machine-id, rejects the manifest
+# (ManifestEnvironmentMismatch) and degrades to a single-input session.
+: "${VBMF_MACHINE_ID:?VBMF_MACHINE_ID is required (explicit host identity pin; must equal the manifest machine_id)}"
+export VBMF_MACHINE_ID
 PROTECTED_PID="${PROTECTED_PID:-992634}"
 DWELL="${DWELL:-28}"
 REPLAY_EVERY="${REPLAY_EVERY:-5}"
@@ -51,6 +58,13 @@ for f in "$BASE_DRIVER" "$COLLECTOR" "$ANALYZER" "$MANIFEST_PATH"; do
   test -f "$f" || { echo "required file missing: $f" >&2; exit 2; }
 done
 test -d "$MEDIA_AGENT_DIR" || { echo "MEDIA_AGENT_DIR missing: $MEDIA_AGENT_DIR" >&2; exit 2; }
+# Fail fast (before the driver starts Runtime) when the asserted identity does
+# not match the manifest pin.
+MANIFEST_MACHINE_ID=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("machine_id",""))' "$MANIFEST_PATH")
+[ "$MANIFEST_MACHINE_ID" = "$VBMF_MACHINE_ID" ] || {
+  echo "identity mismatch: manifest machine_id='$MANIFEST_MACHINE_ID' vs VBMF_MACHINE_ID='$VBMF_MACHINE_ID'" >&2
+  exit 2
+}
 
 # BMD preflight: a v3 rung must start from a clean control-plane surface and
 # must never acquire/replace the protected device-2 output process.
