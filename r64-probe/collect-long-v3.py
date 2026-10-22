@@ -107,10 +107,12 @@ def main() -> int:
     ap.add_argument("--driver-path")
     ap.add_argument("--protected-pid", type=int, default=992634)
     ap.add_argument("--interval", type=float, default=30.0)
+    ap.add_argument("--stop-marker", help="driver touches this file strictly before the stop_session POST; active sampling ends there")
     args = ap.parse_args()
 
     ev = Path(args.evidence_dir)
     pid_file = Path(args.pid_file)
+    stop_marker = Path(args.stop_marker) if args.stop_marker else None
     deadline = time.monotonic() + 180
     while not pid_file.exists() and time.monotonic() < deadline:
         time.sleep(0.25)
@@ -145,10 +147,17 @@ def main() -> int:
         "inputs", "program_switch_present",
     ]
     out = ev / "v3-observations.csv"
+    stopped = False
     with out.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         while Path(f"/proc/{pid}").exists():
+            # The driver touches the stop marker strictly before the stop_session
+            # POST: once it appears, no further active-state samples may enter
+            # the CSV (they would be teardown-state, not Capturing steady state).
+            if stop_marker is not None and stop_marker.exists():
+                stopped = True
+                break
             try:
                 st = proc_status(pid)
                 fd, sockets = fd_counts(pid)
@@ -160,6 +169,12 @@ def main() -> int:
             if not isinstance(sessions, list):
                 sessions = []
             inputs = sum(len(s.get("inputs") or []) for s in sessions if isinstance(s, dict))
+            # The marker may land while this sample was in flight (stop POST ran
+            # mid-fetch): drop the boundary row rather than risk teardown-state
+            # data inside the active window.
+            if stop_marker is not None and stop_marker.exists():
+                stopped = True
+                break
             w.writerow({
                 "ts": int(time.time()),
                 "rss_kb": st.get("VmRSS", -1),
@@ -184,10 +199,18 @@ def main() -> int:
             f.flush()
             time.sleep(args.interval)
 
+    # Active sampling ended via stop marker: postrun residue is still recorded
+    # only after the runtime process exits (the driver kills it after the stop
+    # POST). Bounded wait so a hung runtime is reported, not hung on.
+    if stopped:
+        exit_deadline = time.monotonic() + 120
+        while Path(f"/proc/{pid}").exists() and time.monotonic() < exit_deadline:
+            time.sleep(0.5)
     time.sleep(3)
     protected_after = cmdline(args.protected_pid)
     post = {
         "collector_finished_epoch": time.time(),
+        "stop_marker_seen": stopped,
         "runtime_process_absent": not Path(f"/proc/{pid}").exists(),
         "listeners": listeners(),
         "protected_pid": args.protected_pid,

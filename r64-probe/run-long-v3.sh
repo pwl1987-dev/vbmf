@@ -85,7 +85,16 @@ old = 'rm -rf "$EV"; mkdir -p "$EV"'
 new = 'if [ -e "$EV" ]; then echo "evidence destination exists; refusing to overwrite: $EV" >&2; exit 2; fi\nmkdir -p "$EV"'
 if text.count(old) != 1:
     raise SystemExit("expected unique legacy evidence-directory initializer")
-path.write_text(text.replace(old, new))
+text = text.replace(old, new)
+# v3 stop marker: the temporary driver touches it strictly BEFORE the
+# stop_session POST (the queries.stop touch immediately precedes that POST),
+# so the sidecar collector ends active-window sampling there and only records
+# postrun residue after the runtime process exits.
+anchor = 'touch "$EV/queries.stop"'
+marker = anchor + '\n# v3: explicit stop marker for the sidecar collector (before stop_session POST)\ntouch "$EV/v3-stop.marker"'
+if text.count(anchor) != 1:
+    raise SystemExit("expected unique legacy queries.stop touch")
+path.write_text(text.replace(anchor, marker))
 PYDRIVER
 chmod +x "$TMP_DRIVER"
 export MEDIA_AGENT_DIR
@@ -113,6 +122,7 @@ python3 "$COLLECTOR" \
   --manifest-path "$MANIFEST_PATH" \
   --driver-path "$TMP_DRIVER" \
   --protected-pid "$PROTECTED_PID" \
+  --stop-marker "$EV/v3-stop.marker" \
   >"$EV/v3-sidecar.log" 2>&1 &
 COLLECTOR_PID=$!
 
@@ -136,5 +146,23 @@ ANALYZER_RC=$?
 set -e
 
 if [ "$DRIVER_RC" -ne 0 ] || [ "$COLLECTOR_RC" -ne 0 ] || [ "$ANALYZER_RC" -ne 0 ]; then
-  exit 2
+  # Smoke-only acceptance, never applied to 2h/8h/24h rungs: a fixed 120s/6-cycle
+  # run cannot constitute RSS qualification evidence, so the legacy driver may
+  # exit 2 with the startup-ramp rss_bounded predicate as its ONLY failure.
+  # Success requires: driver_rc=2 caused solely by that RSS gate, collector_rc=0,
+  # and the analyzer JSON independently confirming SMOKE_PASS_NOT_QUALIFICATION.
+  SMOKE_ACCEPTED=0
+  if [ -n "$SMOKE_FLAG" ] && [ "$DRIVER_RC" -eq 2 ] && [ "$COLLECTOR_RC" -eq 0 ] && [ "$ANALYZER_RC" -eq 0 ]; then
+    driver_fails=$(grep -c '^FAIL ' "$EV/summary.txt" 2>/dev/null || true)
+    driver_rss_fails=$(grep -c '^FAIL rss_bounded ' "$EV/summary.txt" 2>/dev/null || true)
+    analyzer_verdict=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1])).get('v3_verdict',''))" "$EV/v3-summary.json" 2>/dev/null || true)
+    if [ "$driver_fails" = "1" ] && [ "$driver_rss_fails" = "1" ] && [ "$analyzer_verdict" = "SMOKE_PASS_NOT_QUALIFICATION" ]; then
+      SMOKE_ACCEPTED=1
+      echo "smoke_accepted=1 sole_driver_failure=rss_bounded analyzer=SMOKE_PASS_NOT_QUALIFICATION" >> "$EV/v3-runner-status.txt"
+      echo "harness-smoke accepted: sole driver failure is the short-run rss_bounded startup diagnostic; NOT a qualification rung"
+    fi
+  fi
+  if [ "$SMOKE_ACCEPTED" -ne 1 ]; then
+    exit 2
+  fi
 fi

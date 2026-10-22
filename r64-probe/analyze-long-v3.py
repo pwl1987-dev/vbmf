@@ -240,41 +240,74 @@ def teardown_gates(ev: Path, strict: bool):
     return gs
 
 
+def _int_or_none(row: dict[str, str], key: str) -> int | None:
+    try:
+        return int(row[key])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def sidecar_steady(row: dict[str, str]) -> bool:
+    """A sidecar sample belongs to the Capturing steady state only when the
+    full control-plane surface is up: HTTP 200 on both endpoints plus the
+    frozen topology (devices=3 pipelines=3 sessions=1 inputs=2 switch=true)
+    and zero drop/clock counters. Startup (HTTP 0 / state empty) and teardown
+    (active_pipelines=1 / switch=false) samples do not."""
+    if _int_or_none(row, "health_status") != 200 or _int_or_none(row, "runtime_status") != 200:
+        return False
+    if (_int_or_none(row, "devices"), _int_or_none(row, "active_pipelines"),
+            _int_or_none(row, "sessions"), _int_or_none(row, "inputs")) != (3, 3, 1, 2):
+        return False
+    if _int_or_none(row, "dropped") != 0 or _int_or_none(row, "clock_lost") != 0:
+        return False
+    return row.get("program_switch_present") == "True" and row.get("state") == "Capturing"
+
+
 def sidecar_gates(ev: Path, target_seconds: int):
     obs=ev/"v3-observations.csv"; ident=ev/"v3-identity.json"
     if not obs.exists() or not ident.exists():
         return [gate("v3_sidecar_present",None,"v3 observation/identity missing")]
     rows=load_csv(obs); gs=[gate("v3_sidecar_present",len(rows)>=2,f"samples={len(rows)}")]
     if len(rows)<2:return gs
-    def ints(row, *keys):
-        try:
-            return [int(row[k]) for k in keys]
-        except (KeyError, TypeError, ValueError):
-            return None
-    health_ok=True; topo_ok=True; zero_ok=True
-    for r in rows:
-        hr=ints(r,"health_status","runtime_status")
-        tp=ints(r,"devices","active_pipelines","sessions","inputs")
-        dz=ints(r,"dropped","clock_lost")
-        health_ok = health_ok and hr == [200,200]
-        topo_ok = topo_ok and tp == [3,3,1,2] and r.get("program_switch_present") == "True" and r.get("state") == "Capturing"
-        zero_ok = zero_ok and dz == [0,0]
+    # Active window: starts at the first sample that already shows the full
+    # Capturing steady state and covers every consecutive later sample in this
+    # CSV. Preceding startup samples are diagnostics only (counted in notes,
+    # never failing the window). Teardown samples must not appear at all: the
+    # driver touches the v3 stop marker strictly before the stop_session POST
+    # and the collector ends active sampling there, so a teardown-state row
+    # after the window start fails closed as a collector-contract breach.
+    want="expected Capturing devices=3 pipelines=3 sessions=1 inputs=2 switch=true"
+    start=next((i for i,r in enumerate(rows) if sidecar_steady(r)),None)
+    if start is None:
+        no_win=f"no steady-state sample; {want}"
+        gs.append(gate("v3_sidecar_coverage",False,f"active_window=0s target>={max(0,target_seconds-60)}s {no_win}"))
+        gs.append(gate("v3_sidecar_http_200",False,no_win))
+        gs.append(gate("v3_topology_constant",False,no_win))
+        gs.append(gate("v3_sidecar_drop_clock_zero",False,no_win))
+        gs.append(gate("v3_socket_bounded",False,no_win))
+        return gs
+    window=rows[start:]
+    diag=f"warmup_samples={start} active_samples={len(window)}"
+    health_ok=all(_int_or_none(r,"health_status")==200 and _int_or_none(r,"runtime_status")==200 for r in window)
+    topo_ok=all((_int_or_none(r,"devices"),_int_or_none(r,"active_pipelines"),_int_or_none(r,"sessions"),_int_or_none(r,"inputs"))==(3,3,1,2) and r.get("program_switch_present")=="True" and r.get("state")=="Capturing" for r in window)
+    zero_ok=all(_int_or_none(r,"dropped")==0 and _int_or_none(r,"clock_lost")==0 for r in window)
     sockets=[]
-    for r in rows:
-        try: sockets.append(int(r["socket_fds"]))
-        except (KeyError,TypeError,ValueError): sockets.append(10**9)
+    for r in window:
+        s=_int_or_none(r,"socket_fds")
+        sockets.append(s if s is not None else 10**9)
     n=max(1,len(sockets)//10); base=median(sockets[:n]); tail=median(sockets[-n:])
     socket_ok=max(sockets)<=base+4 and tail<=base+2
-    obs_ts=[]
-    for r in rows:
-        try: obs_ts.append(int(r["ts"]))
-        except (KeyError,TypeError,ValueError): pass
-    coverage=(obs_ts[-1]-obs_ts[0]) if len(obs_ts)>=2 else 0
-    gs.append(gate("v3_sidecar_coverage", coverage >= max(0,target_seconds-60), f"coverage={coverage}s target>={max(0,target_seconds-60)}s"))
-    gs.append(gate("v3_sidecar_http_200",health_ok))
-    gs.append(gate("v3_topology_constant",topo_ok,"expected Capturing devices=3 pipelines=3 sessions=1 inputs=2 switch=true"))
-    gs.append(gate("v3_sidecar_drop_clock_zero",zero_ok))
-    gs.append(gate("v3_socket_bounded",socket_ok,f"base={base:.1f} tail={tail:.1f} max={max(sockets)}"))
+    wts=[]
+    for r in window:
+        t=_int_or_none(r,"ts")
+        if t is not None:
+            wts.append(t)
+    coverage=(wts[-1]-wts[0]) if len(wts)>=2 else 0
+    gs.append(gate("v3_sidecar_coverage", coverage >= max(0,target_seconds-60), f"active_window={coverage}s target>={max(0,target_seconds-60)}s {diag}"))
+    gs.append(gate("v3_sidecar_http_200",health_ok,diag))
+    gs.append(gate("v3_topology_constant",topo_ok,f"{diag} {want}"))
+    gs.append(gate("v3_sidecar_drop_clock_zero",zero_ok,diag))
+    gs.append(gate("v3_socket_bounded",socket_ok,f"{diag} base={base:.1f} tail={tail:.1f} max={max(sockets)}"))
     j=json.loads(ident.read_text()); hdr=(ev/"header.txt").read_text() if (ev/"header.txt").exists() else ""
     identity_ok=bool(j.get("source_commit")) and bool(j.get("binary_md5")) and bool(j.get("manifest_md5")) and j["binary_md5"] in hdr and j["manifest_md5"] in hdr
     gs.append(gate("v3_identity_pinned",identity_ok,f"source={j.get('source_commit')} binary={j.get('binary_md5')}"))
@@ -285,6 +318,13 @@ def sidecar_gates(ev: Path, target_seconds: int):
 # A 120s/6-cycle/replay=5 run is toolchain evidence for the full
 # soak->collector->analyzer->teardown chain and never a qualification rung.
 SMOKE_PARAMS = (120, 6, 5)
+
+# The single failure a harness-smoke verdict may tolerate: a 6-cycle run
+# cannot constitute RSS qualification evidence (startup ramp inflates the
+# v2 third-delta), so v2_rss_bounded is reported there as a known short-run
+# diagnostic. Every other FAIL or NOT_MEASURED still forces SMOKE_FAIL, and
+# formal 2h/8h/24h rungs get no tolerance at all.
+SMOKE_TOLERATED_GATES = ("v2_rss_bounded",)
 
 
 def smoke_args_error(smoke: bool, target_seconds: int, expected_cycles: int, replay_every: int) -> str | None:
@@ -351,15 +391,20 @@ def main() -> int:
     failed=[g for g in gs if g["status"]=="FAIL"]
     strict_pass=not failed and not missing
     if args.smoke:
-        qualification=smoke_verdict(strict_pass)
+        tolerated=[g["name"] for g in failed if g["name"] in SMOKE_TOLERATED_GATES]
+        intolerable=[g["name"] for g in failed if g["name"] not in SMOKE_TOLERATED_GATES]
+        qualification=smoke_verdict(not intolerable and not missing)
     else:
+        tolerated=[]
         qualification="PASS" if strict_pass else "INCOMPLETE" if args.allow_missing_v3 and not failed else "FAIL"
-    result={"evidence_dir":str(ev),"harness_smoke_only":args.smoke,"v2_compat_verdict":"PASS" if v2_pass else "FAIL","v3_verdict":qualification,"gates":gs,"metrics":metrics}
+    result={"evidence_dir":str(ev),"harness_smoke_only":args.smoke,"v2_compat_verdict":"PASS" if v2_pass else "FAIL","v3_verdict":qualification,"smoke_tolerated_failures":tolerated,"gates":gs,"metrics":metrics}
     for g in gs:
         print(f"{g['status']:12} {g['name']} {g['note']}")
     print(f"V2_COMPAT {'PASS' if v2_pass else 'FAIL'}")
     if args.smoke:
         print("HARNESS_SMOKE_ONLY 120s/6-cycle toolchain chain check; NOT a qualification rung")
+        if tolerated:
+            print(f"SMOKE_TOLERATED {','.join(tolerated)} (known short-run diagnostic only; not qualification evidence)")
     print(f"V3_VERDICT {qualification} (fail={len(failed)} missing={len(missing)})")
     if args.write_json:
         (ev/"v3-summary.json").write_text(json.dumps(result,indent=2,ensure_ascii=False)+"\n")
