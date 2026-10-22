@@ -50,3 +50,6 @@ npm-debug.log*
 !/.comet/config.yaml
 # <<< Comet managed project state <<<
 packages/vbmf-sdk/dist/
+
+# Python bytecode cache (r64-probe 本地运行产物，不入库)
+__pycache__/
