@@ -33,7 +33,8 @@ evidence/**/*.json
 *.tar.gz
 **/graphify-out/
 .codegraph/
-.vscode/
+.vscode/*
+!.vscode/settings.json
 
 # Node control-plane (apps/api) local artifacts — never commit
 node_modules/

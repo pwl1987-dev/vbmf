@@ -1,0 +1,25 @@
+{
+  "files.watcherExclude": {
+    "**/docs/comet/**": true,
+    "**/docs/superpowers/**": true,
+    "**/evidence/**": true,
+    "**/target/**": true,
+    "**/node_modules/**": true
+  },
+  "search.exclude": {
+    "**/docs/comet": true,
+    "**/docs/superpowers": true,
+    "**/evidence": true,
+    "**/target": true,
+    "**/node_modules": true
+  },
+  "explorer.excludeGitIgnore": true,
+  "cursor.general.globalCursorIgnoreList": [
+    "**/.env",
+    "**/.env.*",
+    "**/credentials.json",
+    "**/secrets.json",
+    "**/*.pem",
+    "**/id_rsa"
+  ]
+}

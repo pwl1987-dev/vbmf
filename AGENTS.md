@@ -1,95 +1,31 @@
-<!-- CODEGRAPH_START -->
-## CodeGraph (FIRST tool for code questions)
+# VBMF 智能体宪章
 
-In any repository that has a `.codegraph/` directory at the repo root, **CodeGraph is the FIRST tool to reach for when you need to understand or locate code**. Use it BEFORE grep / find / ripgrep / reading whole files.
+[`CLAUDE.md`](CLAUDE.md) 仅指向本文。命令/验证按需 → [`docs/agent-toolchain.md`](docs/agent-toolchain.md)。Cursor 配置 → [`docs/cursor-setup.md`](docs/cursor-setup.md)。
 
-### Why first
+**Authority**：[`.project/current-work.yaml`](.project/current-work.yaml)（当前任务快照）+ [`.project/STATE.md`](.project/STATE.md)（完整队列与 §3 ledger，**冷启动只读 §4–§5 + 相关 Work Packet**）+ 冻结 `docs/architecture/` / Contract / ADR。`.cursorignore` 已降索引；勿用 README/Roadmap/旧聊天推断完成度。
 
-- **One call** answers most code questions: the relevant symbols' verbatim source plus the call paths between them, including dynamic-dispatch hops that grep cannot follow.
-- Returns **line-numbered, current on-disk source** (re-read every call), so the result is not a stale summary.
-- Surfaces **blast radius** (callers/callees/tests within N hops) automatically — grep cannot reconstruct dynamic dispatch or trait dispatch links.
-- Avoids the cost of opening whole files when only one symbol matters.
+**当前（摘要）**：PR-STAB-01 v3 **BLOCKED AT RUNG 1**（true 2h FAIL `v3_rss_terminal_plateau`）；**STABILITY NOT VERIFIED**；RD-01A Runtime 实施冻结。细节以 `current-work.yaml` 为准。
 
-### How to call
+## 动手前
 
-- **MCP tool (preferred, when available)**: `codegraph_explore "<symbol names or question>"` and `codegraph_node "<symbol or file path>"`. If a symbol is listed but deferred, load it by name via tool search. Other MCP tools: `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, `codegraph_affected`, `codegraph_files`, `codegraph_status`.
-- **Shell (always works)**: `codegraph explore "<symbol names or question>"` prints the same output. Other shell commands: `node`, `callers`, `callees`, `impact`, `affected`, `files`, `query`, `context`, `init`, `sync`, `index`, `status`. `codegraph --help` lists all.
+1. `git fetch`，对齐 `origin/main`（live HEAD 优先于聊天记忆）。
+2. 读 **current-work** + STATE **§4–§5**（非整份 STATE）。
+3. 打开任务相关 frozen Authority → **先看代码**再改。
+4. **单 Work Packet、单 Writer**；无平行 STATUS/TODO/HANDOFF。
 
-### When CodeGraph is not available
+## 门控
 
-If there is **no** `.codegraph/` directory at the repo root, **skip CodeGraph entirely** — indexing is the user's decision, do not auto-init unless explicitly asked. Fall back to grep / find / read as before.
+- Comet 已退役；勿 `comet resume-probe` 除非用户显式调用 Comet。
+- **Cursor = 默认**；Pi/Claude 仅用户显式 `_shared` dispatch。
+- Git：仅 `main`；禁止 destructive reset / force push；默认 **不 commit/push**（除非用户要求）。
+- BMD 硬件/长稳证据绑定 exact commit/binary；VM 软件 PASS 不替代。
 
-### Init / refresh
+## 边界
 
-- Bootstrap a project's index once: `codegraph init <path>` (slow; first time).
-- Keep it current: `codegraph sync <path>` after edits, or `codegraph index <path>` for a clean rebuild.
-- Use `codegraph status <path>` to confirm the index is up to date before relying on it.
+VBMF = Broadcast Runtime / Fabric；standalone first；**Runtime owns truth**；与 `media-digital-*` compatible, not dependent。改 frozen Contract 须 assigned packet + 协调者审查。Executor 不得自写 AGENTS/STATE Authority 模型。
 
-### Path note for this VM
+## 收工前
 
-The `codegraph` binary lives at `/home/ubuntu/.local/bin/codegraph`. After a fresh install on this VM, ensure both login shells and interactive bash see it: `~/.profile` (already correct) plus `~/.bashrc` line ~171 must include `/home/ubuntu/.local/bin:` in its explicit PATH string; the bun section later does not re-add it. If `codegraph: command not found`, this is the cause.
-<!-- CODEGRAPH_END -->
-
-<comet-ambient-resume>
-<!-- Managed by Comet. Edits inside this block may be replaced by comet init/update. -->
-<!-- Contract: comet.resume_probe.v2 -->
-
-## Comet Ambient Resume
-
-在这个仓库中，开始处理需要改动或调查的任务前，如果可能存在活跃 Comet workflow，把当前用户请求传入只读探针：`comet resume-probe . --stdin --json`。
-
-- 如果用户通过宿主明确调用任意 Comet Skill（例如 `@comet`、`/comet`、`@comet-native` 或 `/comet-hotfix`），显式调用优先于本恢复协议；不要运行 resume probe，直接进入被调用的 Skill。
-- 如果用户通过宿主明确调用的是非 Comet 的 Skill 或斜杠命令，任务意图已由该调用明确：不要运行 resume probe，直接执行该 Skill。
-- 如果你正在 Comet 流程内（包括正在等待用户回复你在流程中提出的问题），不要运行 resume probe；把这类回复（例如方案/选项选择）当作当前 change 的继续，直接按用户的选择推进。
-- 只信任返回的 `workflow`、`skill` 和 `entrySource`；它们只由项目配置或无配置兼容回退决定。不得扫描或切换另一套 workflow。
-- 如果 probe 返回 `auto_resume`，简短说明选中的 active change，并进入 `nextCommand` 指向的永久入口。不要把状态命令当作恢复入口直接推进。
-- 如果 probe 返回 `ask_user`，只问一个简短问题并等待用户回复。
-- 如果当前请求未明确调用 Comet Skill，且 probe 返回 `out_of_scope` 或 `none`，不要进入 Comet workflow。
-- `out_of_scope` 或 `none` 只表示不要因为这个新请求进入 Comet workflow；它绝不表示要暂停或退出一个已在进行的 Comet 流程。
-- 如果配置或状态无效且没有 `nextCommand`，停止并报告原因；不要猜测另一个 workflow。
-- 不能只因为存在 active change 就把无关任务挂到该 change。Native 的未提交改动由 Native 入口检查，不由探针自动归因。
-</comet-ambient-resume>
-
-
-# VBMF Project Execution Contract
-
-## Authority and state
-- VBMF is a professional Broadcast Runtime / Fabric. Keep it standalone-first and compatible with `media-digital-*`, never dependent on them.
-- Authority order: latest explicit user instruction → frozen Architecture/Contract/ADR → `.project/STATE.md` → GitHub live `main` → real code/tests/CI/runtime/hardware evidence → Roadmap/README/history.
-- `.project/STATE.md` is the **only dynamic project-state and task-queue authority**. Do not create or maintain parallel STATUS/TODO/PROGRESS/HANDOFF/RISKS/DECISIONS files.
-- Never infer completion from README, Roadmap, old chats, branch names, agent memory, or the mere existence of tests. Reconcile conflicts against live evidence first.
-
-## Cold start / task selection
-1. Use the canonical checkout `/home/ubuntu/dev/VBMF` on the Development VM when available; read `/home/ubuntu/dev/_shared/README.md` first.
-2. Verify local HEAD, `origin/main`, GitHub live `main`, working tree, recent commits, and unpushed commits.
-3. Read `.project/STATE.md`, then select only the **first `READY` Work Packet in its Task Queue for the Current Phase**. Do not skip to `BLOCKED` or `BACKLOG` items unless the user explicitly changes priority.
-4. Read only the relevant frozen Authority, code, tests, CI/runtime evidence for that Work Packet.
-5. If Git is newer than STATE, reconcile before implementation. Already COMPLETE work must not be repeated.
-
-## Git discipline
-- `main` is the sole development branch and development Authority. Do not create feature/fix/temp/repair/experiment branches.
-- No force push, history rewrite, destructive reset, or silent overwrite/discard of existing work.
-- Verified changes go directly to `main`; finish with local/origin/GitHub live HEAD and working-tree reconciliation.
-
-
-## Runtime / environment boundary
-- Runtime owns truth. Web/agent/watchdog/services observe, command, and reconcile; they must not create a second Runtime truth.
-- Development VM = code, lint/static analysis, unit/focused/integration tests, build, CI/self-hosted runner, non-hardware software verification.
-- BMD server = actual VBMF deployment plus DeckLink/GStreamer/FFmpeg, signal/timing/switch/transport/recovery/hardware/stability acceptance. VM software PASS never substitutes for BMD hardware PASS.
-- Hardware evidence is valid only for the exact commit/binary/environment/scope that produced it. If BMD is unavailable or running a different commit, mark verification deferred.
-
-## Agent execution
-- The coordinator (ChatGPT or a user-designated orchestrator) owns Authority recovery, reconciliation, Work Packet boundaries, diff review, acceptance, Git/CI/STATE transition.
-- Coordination tiering (confirmed 2026-09-15): the strongest available model in the driving session acts as coordinator — dispatch, Work Packet design, diff review, verification, STATE/Authority transitions. When Claude Code drives a work session (e.g. a Comet change) it is the coordinator tier.
-- Pi is the default executor tier for bounded/mechanical work and most pattern-following coding (backend CRUD/schema, web console surfaces, SDK bindings, adapters following existing patterns, tests, scripts, CI workflow edits). Claude Code remains executor of last resort for state machines, concurrency, recovery, cross-domain changes, and difficult RCA.
-- Executors never write the rules they run under: AGENTS.md, division-of-labor rules, frozen Architecture/Contract, and STATE transitions stay coordinator-written; Pi may draft STATE/evidence edits only as an explicitly assigned packet subject to coordinator review.
-- On this VM use `/home/ubuntu/dev/_shared/bin/run-pi-agent.sh` or `run-claude-agent.sh`; long Claude write tasks should run inside tmux. One write-capable agent per checkout at a time.
-- Every write Work Packet must state: Task ID, relevant Authority, allowed files/scope, forbidden scope, acceptance criteria, and verification environment.
-- Agent exit 0 means `EXECUTOR_DONE_NEEDS_REVIEW`, not COMPLETE. Review diff/scope/tests independently before accepting.
-- Agents must not autonomously edit frozen Architecture/Contract or advance to another Task Queue item. `.project/STATE.md` may be changed only as part of an explicitly assigned/reviewed state-transition task.
-
-## Verification / completion
-- Distinguish: implementation complete, software verified, runtime smoke verified, hardware verified, stability verified, verification deferred.
-- Failure-first: reproduce → evidence → RCA → minimal correct fix → focused tests → regression → CI/runtime/hardware validation as required. Do not weaken tests, Health criteria, or UI truthfulness to get green.
-- Commands such as start/stop/switch/route/recover/restart must distinguish requested → accepted → executing → acknowledged → actual state → succeeded/failed/timeout/reconciled. HTTP/API success alone is not Runtime success.
-- Definition of Done: Implementation + Required Verification + Evidence + `.project/STATE.md` update + commit/push `main` + required GitHub CI + final HEAD/working-tree check.
+1. 跑变更范围内**最低充分**验证（见 agent-toolchain）；不行则 **`NOT RUN`**。
+2. 汇报：测试/CI 范围/frozen 偏差（`NONE`）/是否需 BMD deferred。
+3. `git status`；不自行标 COMPLETE / stability verified；不 commit（除非要求）。

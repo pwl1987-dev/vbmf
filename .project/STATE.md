@@ -3,6 +3,7 @@
 > **Dynamic Project State Authority**
 >
 > 本文件是 VBMF 唯一动态项目状态与跨 Chat / Work handoff 入口。
+> **Cursor 冷启动快照**： [`.project/current-work.yaml`](current-work.yaml)（由 §4–§5 提炼；全文 Authority 仍在本文件）。
 > `ROADMAP.md` 与 `docs/architecture/PHASE_IMPLEMENTATION_MAP.md` 只承担宏观/历史路线职责；冻结 Architecture / Contract / ADR 仍承担设计 Authority。
 > 若本文件与 live `main`、真实代码、测试或 Runtime / hardware evidence 冲突，先做 reconciliation，不得凭旧 roadmap、旧聊天或历史分支让项目倒退。
 
