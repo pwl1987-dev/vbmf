@@ -1,0 +1,9 @@
+---
+description: Control Plane API、Web Console、vbmf-sdk
+globs: apps/**,packages/vbmf-sdk/**
+alwaysApply: false
+---
+
+- Product `/api/v1/*` = Fastify；internal `/internal/v1/agent` = JSON-RPC 到 Runtime；浏览器经反代，不直连 media-agent。
+- 四状态分离 Desired/Requested/Executing/Observed；HTTP 200 ≠ Runtime 成功；SSE 遵守 EVENT_CONTRACT cursor 三态 + weak_ordering。
+- Schema 单一源：`apps/api/src/routes/schemas.ts`；改 API 时跑对应 package 测试 + contract/ajv 套件（见 agent-toolchain）。

@@ -1,0 +1,12 @@
+---
+description: VBMF 执行宪章 — Authority、冷启动、Git、验证纪律（Cursor 默认）
+alwaysApply: true
+---
+
+- **Authority 顺序**：用户最新指令 → 冻结 Architecture/Contract/ADR → `.project/STATE.md` → live `main` → 代码/测试/CI/BMD 证据 → Roadmap/README 历史。
+- **冷启动**：`git fetch` 对齐 `origin/main` → 读 [`.project/current-work.yaml`](.project/current-work.yaml) + STATE **§4–§5**（勿通读整份 STATE §3 历史）。任务队列唯一入口 = STATE §5.1；只实施第一个 `READY`，不越级 `BLOCKED`/`BACKLOG`。
+- **Cursor = 默认协调+执行**；勿自动 `comet resume-probe` 或 Comet workflow，除非用户显式调用 Comet。Pi/Claude 仅用户显式走 `_shared` runner 时启用（先读 `/home/ubuntu/dev/_shared/README.md`）。
+- **Git**：仅 `main`；无 feature 分支；无 force push/破坏性 reset；默认 **不 commit/push**（除非用户要求）。动刀前 `git status -sb`。
+- **环境**：Development VM = 软件验证；BMD = 部署/DeckLink/长稳/hardware acceptance。VM 绿 ≠ BMD 绿。硬件证据绑定 exact commit/binary/scope。
+- **完成定义**：实现 + 规定验证 + 证据 + STATE 更新 + push `main` + 7 required CI + HEAD/工作树对账。Agent exit 0 = `DONE_NEEDS_REVIEW`，非 COMPLETE。
+- **禁止**：并行 STATUS/TODO/HANDOFF；executor 自改 frozen Contract/AGENTS；未分配 packet 自推进 STATE。

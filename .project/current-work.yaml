@@ -1,0 +1,33 @@
+schema_version: 1
+project: vbmf
+updated_at: '2026-11-02'
+repository:
+  branch: main
+  checkout: /home/ubuntu/dev/VBMF
+  head_rule: Live origin/main + observable worktree beat chat memory; reconcile before implementation.
+state_authority:
+  full_state: .project/STATE.md
+  cursor_snapshot: .project/current-work.yaml
+  governance: AGENTS.md
+  toolchain: docs/agent-toolchain.md
+  rule: Do not create parallel STATUS/TODO/HANDOFF files. §3 history in STATE is ledger — cold start reads this file + STATE §4–§5 only unless the Work Packet requires more.
+current_task:
+  id: PR-STAB-01
+  title: Long Stability v3 qualification (observer-backpressure fix line)
+  status: BLOCKED_AT_RUNG_1
+  runtime_commit: 6fc1b1a
+  runtime_binary_md5_prefix: 3898ced3
+  stability_verified: false
+  rd_01a_runtime_implementation: frozen
+  summary: |
+    v3 tooling on main + tooling CI green; BMD smoke PASS (NOT qualification).
+    True 2h v3 rung FAIL — only failure v3_rss_terminal_plateau (5.457MB/h vs ≤1.0MB/h gate).
+    Legacy 8h is PARTIAL/DIAGNOSTIC ONLY (§3.98 GOV-RECON-01). 8h/24h v3 NOT STARTED.
+    Next owner decision — A/B env mitigation (MALLOC_ARENA_MAX / MALLOC_MMAP_THRESHOLD_) then rerun true 2h;
+    do not relax thresholds without contract amendment.
+next_action: |
+  First READY Work Packet in STATE §5.1 when user reprioritizes; until stability ladder passes,
+  RD-01A Runtime writes stay BLOCKED. BMD hardware/stability evidence required for qualification — VM PASS is not substitute.
+issue_pointers:
+  overview: 'pwl1987-dev/vbmf#43 (navigation only, not execution Authority)'
+  story_chain: '#107 GOV-RECON-01 COMPLETE → #108 PR-STAB-01 v3 qualification'

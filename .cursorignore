@@ -1,0 +1,20 @@
+# 降索引体积：历史 Comet / Superpowers 规划与大量 evidence（需要时用 Read 打开）
+docs/comet/
+docs/superpowers/
+evidence/
+preview/
+
+# 已退役的多宿主 Comet skill 镜像（若目录仍存在）
+.comet/
+.agents/
+.claude/skills/comet/
+.pi/skills/
+
+# Rust / Node 构建与缓存
+target/
+**/node_modules/
+**/dist/
+
+# 本地 Python 缓存
+**/__pycache__/
+**/*.pyc

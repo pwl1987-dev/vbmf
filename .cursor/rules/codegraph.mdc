@@ -1,0 +1,11 @@
+---
+description: CodeGraph — 有索引时代码定位优先于 grep
+alwaysApply: true
+---
+
+若仓库根存在 `.codegraph/`，**先**用 CodeGraph 再 grep/通读大文件。
+
+- MCP：`codegraph_explore` / `codegraph_node` / `codegraph_callers` / `codegraph_callees` / `codegraph_impact`
+- Shell：`codegraph explore "…"`（二进制 `/home/ubuntu/.local/bin/codegraph`）
+- 无 `.codegraph/`：跳过；勿擅自 `codegraph init` 除非用户要求。
+- 改代码后：`codegraph sync <path>` 或 `codegraph index <path>`

@@ -1,0 +1,10 @@
+---
+description: Rust Broadcast Runtime / media-agent
+globs: services/media-agent/**,crates/**,vbmf-sdk/**
+alwaysApply: false
+---
+
+- **Runtime owns truth**；Web/Fastify/agent 只观测/命令/协调，不得第二套媒体生命周期 SoR。
+- 改 GStreamer/DeckLink/Session/Switch/Health 前先对 frozen Contract（`docs/architecture/*.md`）与 Work Packet scope。
+- 默认验证：`cargo test` / `cargo clippy` 在 `services/media-agent`（见 `docs/agent-toolchain.md`）；7-job CI 在 self-hosted runner。
+- BMD 验收与长稳（`r64-probe/` v3 harness）不在 VM 软件 PASS 替代范围内。

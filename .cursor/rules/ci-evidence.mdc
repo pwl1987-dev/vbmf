@@ -1,0 +1,9 @@
+---
+description: CI 脚本、GitHub workflows、稳定性 harness
+globs: scripts/ci/**,.github/**,r64-probe/**
+alwaysApply: false
+---
+
+- Required contexts 固定 7 个（`rust-format` … `session-lifecycle`）；改名或弱化 gate 须 explicit Work Packet。
+- Host Rust pin / runner 变更走 `docs/architecture/CI_RUNNER_STRATEGY.md` + `scripts/ci/test-system-rust-scripts.sh`。
+- v3 长稳：`r64-probe/run-long-v3.sh` 需 `VBMF_MACHINE_ID` 与 manifest 一致（`d1f5e14`）；BMD 上跑，非普通 PR 替代。
