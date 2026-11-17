@@ -69,7 +69,10 @@ blockers:
       to the 2026-11-18 commits (docs + 2 shell scripts only). BMD may not host a runner
       (CI_RUNNER_STRATEGY deployment red line), so the media host is a different machine.
       Do NOT claim the pushed head is fully green.
-ci_status_of_pushed_head:
-  head: d233444a2770678ac4d82be01f696ed611eec564
+ci_status:
+  observed_at_commit: d233444a2770678ac4d82be01f696ed611eec564
+  note: >-
+    Live HEAD is obtained with `git rev-parse origin/main`; this file never pins a
+    self-referential HEAD SHA. Re-check the exact head before quoting CI status.
   green: [rust-format, rust-test-matrix, rust-clippy, architecture-portability, session-lifecycle, control-plane, v3-harness-tooling]
   blocked: [gstreamer-build, hardware-test-compile]
