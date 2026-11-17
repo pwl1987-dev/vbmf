@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/a2-7-execution-materialization/proposal.md",
-  "openspec_design": "docs/openspec/changes/a2-7-execution-materialization/design.md",
-  "openspec_tasks": "docs/openspec/changes/a2-7-execution-materialization/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-09-03-a2-7-execution-materialization/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-09-03-a2-7-execution-materialization/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-09-03-a2-7-execution-materialization"
-}

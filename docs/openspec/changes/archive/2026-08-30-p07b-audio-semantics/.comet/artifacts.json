@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/p07b-audio-semantics/proposal.md",
-  "openspec_design": "docs/openspec/changes/p07b-audio-semantics/design.md",
-  "openspec_tasks": "docs/openspec/changes/p07b-audio-semantics/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-08-30-p07b-audio-semantics/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-08-30-p07b-audio-semantics/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-08-30-p07b-audio-semantics"
-}

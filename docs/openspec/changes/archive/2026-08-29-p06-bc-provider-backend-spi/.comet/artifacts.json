@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/p06-bc-provider-backend-spi/proposal.md",
-  "openspec_design": "docs/openspec/changes/p06-bc-provider-backend-spi/design.md",
-  "openspec_tasks": "docs/openspec/changes/p06-bc-provider-backend-spi/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-08-29-p06-bc-provider-backend-spi/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-08-29-p06-bc-provider-backend-spi/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-08-29-p06-bc-provider-backend-spi"
-}

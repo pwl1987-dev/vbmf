@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/p07c-command-contract/proposal.md",
-  "openspec_design": "docs/openspec/changes/p07c-command-contract/design.md",
-  "openspec_tasks": "docs/openspec/changes/p07c-command-contract/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-08-31-p07c-command-contract/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-08-31-p07c-command-contract/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-08-31-p07c-command-contract"
-}

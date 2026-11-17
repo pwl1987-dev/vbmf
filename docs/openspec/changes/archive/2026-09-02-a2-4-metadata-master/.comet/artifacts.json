@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/a2-4-metadata-master/proposal.md",
-  "openspec_design": "docs/openspec/changes/a2-4-metadata-master/design.md",
-  "openspec_tasks": "docs/openspec/changes/a2-4-metadata-master/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-09-02-a2-4-metadata-master/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-09-02-a2-4-metadata-master/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-09-02-a2-4-metadata-master"
-}

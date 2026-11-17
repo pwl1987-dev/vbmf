@@ -1,7 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/a2-8-dual-input-switch/proposal.md",
-  "openspec_design": "docs/openspec/changes/a2-8-dual-input-switch/design.md",
-  "openspec_tasks": "docs/openspec/changes/a2-8-dual-input-switch/tasks.md",
-  "handoff_context": "docs/openspec/changes/a2-8-dual-input-switch/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/a2-8-dual-input-switch/.comet/handoff/design-context.md"
-}

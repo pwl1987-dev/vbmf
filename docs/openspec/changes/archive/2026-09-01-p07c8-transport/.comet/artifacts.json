@@ -1,9 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/p07c8-transport/proposal.md",
-  "openspec_design": "docs/openspec/changes/p07c8-transport/design.md",
-  "openspec_tasks": "docs/openspec/changes/p07c8-transport/tasks.md",
-  "design_document": "docs/superpowers/specs/2026-09-01-p07c8-transport-design.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-09-01-p07c8-transport/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-09-01-p07c8-transport/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-09-01-p07c8-transport"
-}

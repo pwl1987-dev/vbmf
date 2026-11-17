@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/p07-session-runtime/proposal.md",
-  "openspec_design": "docs/openspec/changes/p07-session-runtime/design.md",
-  "openspec_tasks": "docs/openspec/changes/p07-session-runtime/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-08-29-p07-session-runtime/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-08-29-p07-session-runtime/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-08-29-p07-session-runtime"
-}

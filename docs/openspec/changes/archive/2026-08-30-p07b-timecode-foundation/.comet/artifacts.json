@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/p07b-timecode-foundation/proposal.md",
-  "openspec_design": "docs/openspec/changes/p07b-timecode-foundation/design.md",
-  "openspec_tasks": "docs/openspec/changes/p07b-timecode-foundation/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-08-30-p07b-timecode-foundation/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-08-30-p07b-timecode-foundation/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-08-30-p07b-timecode-foundation"
-}

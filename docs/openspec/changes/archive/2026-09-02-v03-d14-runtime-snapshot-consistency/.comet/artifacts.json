@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "docs/openspec/changes/v03-d14-runtime-snapshot-consistency/proposal.md",
-  "openspec_design": "docs/openspec/changes/v03-d14-runtime-snapshot-consistency/design.md",
-  "openspec_tasks": "docs/openspec/changes/v03-d14-runtime-snapshot-consistency/tasks.md",
-  "handoff_context": "docs/openspec/changes/archive/2026-09-02-v03-d14-runtime-snapshot-consistency/.comet/handoff/design-context.json",
-  "handoff_markdown": "docs/openspec/changes/archive/2026-09-02-v03-d14-runtime-snapshot-consistency/.comet/handoff/design-context.md",
-  "archive_directory": "docs/openspec/changes/archive/2026-09-02-v03-d14-runtime-snapshot-consistency"
-}
