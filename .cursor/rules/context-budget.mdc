@@ -1,0 +1,9 @@
+---
+description: 上下文预算 — STATE 分段读取、Rust 门禁输出过滤、精准检索（降低每轮 token）
+alwaysApply: true
+---
+
+- **STATE 只读所需章节**：`scripts/agent/state-scope.sh 4-5`（§4–§5 ≈ 28KB）。整份 `.project/STATE.md` = 361KB / 2089 行，**勿**整读（§3 为历史 ledger）；需 §1–§2 用 `state-scope.sh 1-2`。
+- **Rust 门禁用输出过滤版**：`scripts/agent/cargo-check.sh test|clippy|fmt`（与原命令等价、exit code 透传；丢 `test ... ok` 噪声行，28.8KB→1.2KB）。SoR 命令仍为 `docs/agent-toolchain.md` 所列。
+- **定位代码优先 CodeGraph**（见 codegraph rule）再 grep；不整读 >500 行文件，先取结构/签名。
+- **精确点名文件**，不要 `@`-mention 整个目录；换任务开新线程，不在长线程里续。

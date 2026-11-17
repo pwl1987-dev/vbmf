@@ -4,6 +4,19 @@ docs/superpowers/
 evidence/
 preview/
 
+# 历史 Phase 0.5 wireframe（HTML token 密度极高）与 Phase 0.6 YAML fixtures；
+# 保留 docs/phase-0.6/*.md（build-bmd.sh 引用 BMD-LOCAL-BUILD.md）与 docs/phase-0.5/*.md
+docs/phase-0.5/operator/
+docs/phase-0.5/product/
+docs/phase-0.6/tests/
+docs/phase-0.6/fixtures/
+docs/phase-0.6/runners/
+docs/phase-0.6/evidence/
+docs/phase-0.6/env/
+
+# 已被 docs/superpowers 取代的 openspec 变更集
+docs/openspec/
+
 # 已退役的多宿主 Comet skill 镜像（若目录仍存在）
 .comet/
 .agents/

@@ -13,6 +13,18 @@
 | Format check | `cargo fmt --all --check`（仓库根或 media-agent 视 CI 约定） |
 | Focused CI 脚本 | `scripts/ci/test-system-rust-scripts.sh`（41 项 pin 脚本，无 root） |
 
+## 智能体上下文预算（token 节省）
+
+上表命令是 **SoR**；下列包装只改变**输出形态**，不改变判定（exit code 透传）。
+
+| 场景 | 命令 | 效果 |
+| --- | --- | --- |
+| 读 STATE 指定章节 | `scripts/agent/state-scope.sh 4-5` | §4–§5 ≈ 28KB；整份 STATE = 361KB，勿整读 |
+| Rust 门禁（输出过滤） | `scripts/agent/cargo-check.sh test\|clippy\|fmt` | `cargo test` 28.8KB → 1.2KB（丢 `test ... ok` 噪声行，保留失败详情与 `test result:` 摘要） |
+
+- `state-scope.sh` 支持 `N` / `N-M` / `all`；`all` 仅在 Work Packet 明确要求时使用。
+- 需要 `docs/phase-0.5` / `docs/openspec` / `evidence/` 等被 `.cursorignore` 降索引的历史材料时，用 shell（`sed`/`cat`）按需读取，勿整库索引。
+
 ## Control Plane + Web + SDK
 
 | 场景 | 命令 |
