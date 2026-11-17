@@ -1,6 +1,6 @@
 schema_version: 1
 project: vbmf
-updated_at: '2026-11-02'
+updated_at: '2026-11-18'
 repository:
   branch: main
   checkout: /home/ubuntu/dev/VBMF
@@ -23,11 +23,35 @@ current_task:
     v3 tooling on main + tooling CI green; BMD smoke PASS (NOT qualification).
     True 2h v3 rung FAIL — only failure v3_rss_terminal_plateau (5.457MB/h vs ≤1.0MB/h gate).
     Legacy 8h is PARTIAL/DIAGNOSTIC ONLY (§3.98 GOV-RECON-01). 8h/24h v3 NOT STARTED.
-    Next owner decision — A/B env mitigation (MALLOC_ARENA_MAX / MALLOC_MMAP_THRESHOLD_) then rerun true 2h;
-    do not relax thresholds without contract amendment.
+    STATE §3.102 recorded a qualification-scoped allocator env mitigation; STATE §3.103 refuted it
+    with the completed 2h A/B arms (arena1+mmap128k = 6.541MB/h, mmap1M = 6.217MB/h, both FAIL vs
+    5.457MB/h unmitigated; growth moves into the main-arena heap). Mitigated true 2h NOT run.
+    STATE §3.104 (2026-11-18): workspace + permission reconciliation done; live main = 939faf7 and
+    aligned; root cause narrowed from "malloc env" to "allocation discipline" — recurring block
+    ≈5.76MB flips to the arena path right after the glibc mmap-threshold ratchet
+    (mmap_threshold=5,763,072 / trim_threshold=11,526,144); that size is neither a UYVY 1080p25
+    frame (4,147,200B) nor a 10-bit 4:2:2 frame (8,294,400B) and matches a DeckLink 48kHz audio
+    buffer (5,760,000B) — hypothesis, needs BMD confirmation. Locally re-verified: v3 unit tests
+    20/20; historical terminal-half slopes reproduced (2h 0.053 / 8h 4.893 / 24h 5.582 MB/h);
+    frozen v3 plan and r64-probe tree unchanged since the 2h rung head.
+    BMD SSH publickey is denied for every local identity → this session's hardware verification
+    level is NOT RUN and no rung was started.
 next_action: |
-  First READY Work Packet in STATE §5.1 when user reprioritizes; until stability ladder passes,
-  RD-01A Runtime writes stay BLOCKED. BMD hardware/stability evidence required for qualification — VM PASS is not substitute.
+  BLOCKED on BMD access (SSH publickey denied for all local identities) — the three decisive
+  read-only observations from §3.104 cannot run without it: (1) `perf probe -x malloc` filtered to
+  size ≥ 4MiB with a call graph to attribute the ≈5.76MB SDK allocation, (2) an LD_PRELOAD shim
+  calling mallinfo2()/malloc_info(0,fd) on SIGUSR1 (no Runtime binary change) to separate live
+  memory from retained-but-free memory, (3) correlating step timestamps with per-cycle events.
+  Do NOT retry any allocator env tuning — §3.103 plus §3.104 show that route is structurally
+  incapable of fixing the defect. Two refuted env edits are quarantined, NOT committed and NOT
+  deployed: (A) this checkout's working tree carries MALLOC_ARENA_MAX=1 + MALLOC_MMAP_THRESHOLD_=131072
+  in r64-probe/run-long-v3.sh plus two CI assertions locking it in (the §3.103 v3-arm config, and it
+  writes no alloc_mitigation marker, so runs from it would be mislabelled); (B) the delivery worktree
+  carries MALLOC_MMAP_THRESHOLD_=1048576 plus production compose/README propagation (the §3.103 v4-arm
+  config, outside §3.102's qualification-only scope). main HEAD is clean on both. Reverting vs recording
+  a formal mitigated FAIL rung stays an owner-level decision (§3.103).
+  Until stability passes, RD-01A Runtime writes stay BLOCKED. BMD hardware/stability evidence
+  required for qualification — VM PASS is not a substitute.
 issue_pointers:
   overview: 'pwl1987-dev/vbmf#43 (navigation only, not execution Authority)'
   story_chain: '#107 GOV-RECON-01 COMPLETE → #108 PR-STAB-01 v3 qualification'
