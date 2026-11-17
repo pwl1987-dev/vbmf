@@ -70,6 +70,6 @@ blockers:
       (CI_RUNNER_STRATEGY deployment red line), so the media host is a different machine.
       Do NOT claim the pushed head is fully green.
 ci_status_of_pushed_head:
-  head: c9520462b209581f4883b0eba1a95c26cd8cd335
+  head: d233444a2770678ac4d82be01f696ed611eec564
   green: [rust-format, rust-test-matrix, rust-clippy, architecture-portability, session-lifecycle, control-plane, v3-harness-tooling]
   blocked: [gstreamer-build, hardware-test-compile]
