@@ -55,3 +55,21 @@ next_action: |
 issue_pointers:
   overview: 'pwl1987-dev/vbmf#43 (navigation only, not execution Authority)'
   story_chain: '#107 GOV-RECON-01 COMPLETE → #108 PR-STAB-01 v3 qualification'
+blockers:
+  - id: BMD-ACCESS
+    detail: >-
+      SSH 10.30.15.10 reachable (host key known) but publickey denied for every local identity
+      (id_pwl / migration_ed25519 / shdp-github-agent / proxy-agent-remote / gpuvm-ninfer-audit).
+      No hardware access, so no rung can start and the three §3.104 observations cannot run.
+  - id: CI-MEDIA-RUNNER
+    detail: >-
+      The vbmf-media self-hosted runner (vbmf-ci-media) is no longer registered to the repo, so
+      the required checks gstreamer-build and hardware-test-compile stay queued. Last successful
+      media-agent CI was on 939faf7 (2026-11-02) — a pre-existing infrastructure gap, unrelated
+      to the 2026-11-18 commits (docs + 2 shell scripts only). BMD may not host a runner
+      (CI_RUNNER_STRATEGY deployment red line), so the media host is a different machine.
+      Do NOT claim the pushed head is fully green.
+ci_status_of_pushed_head:
+  head: c9520462b209581f4883b0eba1a95c26cd8cd335
+  green: [rust-format, rust-test-matrix, rust-clippy, architecture-portability, session-lifecycle, control-plane, v3-harness-tooling]
+  blocked: [gstreamer-build, hardware-test-compile]
