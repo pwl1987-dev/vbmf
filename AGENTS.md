@@ -4,7 +4,7 @@
 
 **Authority**：[`.project/current-work.yaml`](.project/current-work.yaml)（当前任务快照）+ [`.project/STATE.md`](.project/STATE.md)（完整队列与 §3 ledger，**冷启动只读 §4–§5 + 相关 Work Packet**）+ 冻结 `docs/architecture/` / Contract / ADR。`.cursorignore` 已降索引；勿用 README/Roadmap/旧聊天推断完成度。
 
-**当前（摘要）**：PR-STAB-01 v3 **BLOCKED AT RUNG 1**（true 2h FAIL `v3_rss_terminal_plateau`）；**STABILITY NOT VERIFIED**；RD-01A Runtime 实施冻结。细节以 `current-work.yaml` 为准。
+**当前（摘要）**：PR-STAB-01 **STABILITY VERIFIED**（v3 阶梯 2h/8h/24h 三档全 PASS；绑定 exact Runtime `8b68f7b4` / binary `c569aca7` / Desktop Video `16.5a1` / kernel `7.0.0-44-generic`——**任一项变更即失效，须重走 2h 起步 ladder**）；PR-STAB 与 WCO-01 两组 commit 已落 main；**RD-01A Runtime 实施仍冻结**。唯一下一步 = owner 拍板（`evidence/**/*.json` 窄例外 / BMD 冻结 clone 两验收配置处置 / RD-01A 解冻）。细节以 `current-work.yaml` 为准。
 
 ## 动手前
 
