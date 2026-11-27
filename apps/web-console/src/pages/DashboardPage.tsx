@@ -11,6 +11,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { getAlarms, getCommand, getRuntime, postStartSession, postStopSession } from "../api/client.ts";
 import type { AlarmItem, CommandOperationBody, RuntimeSnapshot } from "../api/schemas.ts";
 import { buildDecklinkHlsIntent } from "../api/intent.ts";
+import { POLL_INTERVAL_MS, shouldSkipPoll } from "../api/poll.ts";
 import { describeFourState, initialFourState, reduceFourState } from "../state/fourStateMachine.ts";
 import { t } from "../i18n/index.ts";
 import { HlsMonitor } from "../components/HlsMonitor.tsx";
@@ -58,10 +59,13 @@ export function DashboardPage(): React.JSX.Element {
     if (al.kind === "ok") setAlarms(al.body.alarms);
   }, []);
 
-  // 2s cadence 轮询（与 SessionsPage 同型；dashboard 无 SSE 消费面 —— E-42/SSE 后续包）
+  // 5s cadence 轮询（CP-01C 限流：每台 24 次/分 ⇒ 240/分 读桶可容约 10 台同看；
+  // 不可见页与 429 冷却期不发请求 —— 见 api/poll.ts）
   useEffect(() => {
     void refresh();
-    const id = setInterval(() => void refresh(), 2000);
+    const id = setInterval(() => {
+      if (!shouldSkipPoll()) void refresh();
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [refresh]);
 

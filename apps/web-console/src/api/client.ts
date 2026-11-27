@@ -9,6 +9,7 @@
  * - 所有响应经 ErrorEnvelope surface mapping。
  */
 import { getApiKey } from "../auth/credentials.ts";
+import { noteRateLimited } from "./rateLimit.ts";
 import type {
   CommandOperationBody,
   ErrorEnvelope,
@@ -97,6 +98,12 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       },
     };
     return { kind: "error", status: 0, envelope };
+  }
+
+  if (response.status === 429) {
+    const raw = response.headers.get("retry-after");
+    const sec = raw === null ? Number.NaN : Number(raw);
+    noteRateLimited(Number.isFinite(sec) && sec > 0 ? sec * 1000 : null);
   }
 
   const text = await response.text();
@@ -189,6 +196,7 @@ async function toResult<T>(p: Promise<T>): Promise<ApiResult<T>> {
     return { kind: "ok", status: 200, body: await p };
   } catch (err) {
     if (err instanceof VbmfApiError) {
+      if (err.status === 429) noteRateLimited(err.retryAfterMs);
       return { kind: "error", status: err.status, envelope: err.envelope };
     }
     throw err;

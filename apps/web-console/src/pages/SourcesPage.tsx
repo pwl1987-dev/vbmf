@@ -9,6 +9,7 @@
 import type * as React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { getRuntime } from "../api/client.ts";
+import { POLL_INTERVAL_MS, shouldSkipPoll } from "../api/poll.ts";
 import type { RuntimeSnapshot } from "../api/schemas.ts";
 import { t } from "../i18n/index.ts";
 
@@ -40,10 +41,13 @@ export function SourcesPage(): React.JSX.Element {
     }
   }, []);
 
-  // 2s 轮询（与 dashboard 同型；SSE = 后续包）。shortcut: 无 SSE, 轮询延迟上限 2s
+  // 5s 轮询（与 dashboard 同型；SSE = 后续包）。shortcut: 无 SSE, 轮询延迟上限 5s；
+  // 不可见页与 429 冷却期不发请求（CP-01C 限流 · 见 api/poll.ts）
   useEffect(() => {
     void refresh();
-    const id = setInterval(() => void refresh(), 2000);
+    const id = setInterval(() => {
+      if (!shouldSkipPoll()) void refresh();
+    }, POLL_INTERVAL_MS);
     return () => clearInterval(id);
   }, [refresh]);
 

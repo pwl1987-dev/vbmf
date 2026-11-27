@@ -1,6 +1,7 @@
 import type * as React from "react";
 import { useEffect, useState } from "react";
 import { getRuntime } from "../api/client.ts";
+import { POLL_INTERVAL_MS, shouldSkipPoll } from "../api/poll.ts";
 import type { RuntimeSnapshot } from "../api/schemas.ts";
 import { t } from "../i18n/index.ts";
 
@@ -24,7 +25,9 @@ export function RuntimePage(): React.JSX.Element {
       }
     }
     void tick();
-    const id = setInterval(() => void tick(), 3000);
+    const id = setInterval(() => {
+      if (!shouldSkipPoll()) void tick();
+    }, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);

@@ -6,7 +6,7 @@
  *  1. mount → getRuntime 恰好 1 次（immediate refresh once）
  *  2. React state 更新（runtime snapshot / four-state dispatch / rows 更新）
  *     不得触发额外请求（无请求风暴）
- *  3. advance 1999ms → 仍为 1；到 2000ms → 2；再 2000ms → 3（2s cadence）
+ *  3. advance (POLL_INTERVAL_MS-1) → 仍为 1；到 POLL_INTERVAL_MS → 2；再 +POLL_INTERVAL_MS → 3
  *  4. Start/Stop/Release 的 command polling（getCommand 500ms）与 runtime
  *     snapshot polling 独立，不互相制造 timer storm
  */
@@ -14,6 +14,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { CommandOperationBody, RuntimeSnapshot } from "../src/api/schemas.ts";
+import { POLL_INTERVAL_MS } from "../src/api/poll.ts";
 
 const h = vi.hoisted(() => {
   let runtimeCalls = 0;
@@ -176,7 +177,7 @@ describe("SessionsPage polling lifecycle (BUG-B regression)", () => {
     }
   }
 
-  it("1+2+3. mount=1; state updates cause no storm; 1999ms=1; 2000ms=2; 4000ms=3", async () => {
+  it("1+2+3. mount=1; state updates cause no storm; before-interval=1; at-interval=2; next=3", async () => {
     h.setSnapshot(makeSnapshot([]));
     render();
     await settle();
@@ -186,7 +187,7 @@ describe("SessionsPage polling lifecycle (BUG-B regression)", () => {
     await settle();
     expect(h.runtimeCalls).toBe(1);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1999);
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS - 1);
     });
     expect(h.runtimeCalls).toBe(1);
     await act(async () => {
@@ -194,7 +195,7 @@ describe("SessionsPage polling lifecycle (BUG-B regression)", () => {
     });
     expect(h.runtimeCalls).toBe(2);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
     });
     expect(h.runtimeCalls).toBe(3);
   });
@@ -205,13 +206,13 @@ describe("SessionsPage polling lifecycle (BUG-B regression)", () => {
     await settle();
     expect(h.runtimeCalls).toBe(1);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS);
     });
     expect(h.runtimeCalls).toBe(2);
     expect(container.querySelector(".error-banner")?.textContent).toContain("agent down");
   });
 
-  it("4. command polling (500ms) is independent of the 2s runtime cadence", async () => {
+  it("4. command polling (500ms) is independent of the runtime cadence", async () => {
     h.setSnapshot(makeSnapshot([]));
     render();
     await settle();
@@ -231,20 +232,20 @@ describe("SessionsPage polling lifecycle (BUG-B regression)", () => {
     });
     expect(h.startCalls).toHaveLength(1);
     // command polled at t≈0 (pending), t≈500 (pending), t≈1000 (completed);
-    // runtime cadence untouched (1100 < 2000 → still exactly the mount call).
+    // runtime cadence untouched (1100 < POLL_INTERVAL_MS → still exactly the mount call).
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1100);
     });
     expect(h.commandCalls).toBe(3);
     expect(h.runtimeCalls).toBe(1);
-    // t=1100 now; the 2s interval fires at absolute t=2000 — command polling
-    // (3 calls in 1.1s) did not shift the runtime cadence grid.
+    // t=1100 now; the runtime interval fires at absolute t=POLL_INTERVAL_MS — command
+    // polling (3 calls in 1.1s) did not shift the runtime cadence grid.
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(899); // t=1999
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS - 1100 - 1); // t=POLL_INTERVAL_MS-1
     });
     expect(h.runtimeCalls).toBe(1);
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(1); // t=2000
+      await vi.advanceTimersByTimeAsync(1); // t=POLL_INTERVAL_MS
     });
     expect(h.runtimeCalls).toBe(2);
     // command terminal state displayed honestly

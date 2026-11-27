@@ -15,6 +15,7 @@ import {
 } from "../state/fourStateMachine.ts";
 import type { CommandOperationBody, RuntimeSnapshot } from "../api/schemas.ts";
 import { buildDecklinkCaptureIntent } from "../api/intent.ts";
+import { POLL_INTERVAL_MS, shouldSkipPoll } from "../api/poll.ts";
 import { t } from "../i18n/index.ts";
 
 interface CmdRow {
@@ -69,7 +70,9 @@ export function SessionsPage(): React.JSX.Element {
       }
     }
     void tick();
-    const id = setInterval(() => void tick(), 2000);
+    const id = setInterval(() => {
+      if (!shouldSkipPoll()) void tick();
+    }, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(id);
