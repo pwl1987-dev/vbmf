@@ -46,7 +46,7 @@
 
 | 能力项 | Implementation | VERIFICATION_STATUS（2026-11-27 判定） | Verification·单测 | Verification·仿真 | Verification·真机 | Evidence | Gate | 完成度汇总（派生） |
 |---|---|---|---|---|---|---|---|---|
-| Canonical Identity（`DeviceId`/`PortId`/`SessionId` 类型 + `IdentityStrength`） | `PARTIAL` | `HARDWARE_VERIFIED` | Partial | — | HW-IDENT-02 | `evidence/.../HW-IDENT-02` | `ARCH-PORTABILITY-01` | `PARTIAL` |
+| Canonical Identity（`DeviceId`/`PortId`/`SessionId` 类型 + `IdentityStrength`） | `PARTIAL` | `VERIFIED` | Partial | — | HW-IDENT-02 | `evidence/.../HW-IDENT-02` | `ARCH-PORTABILITY-01` | `PARTIAL` |
 | Provider Identity Adapter（BMD→`DeviceId` 收敛） | `PARTIAL` | `HARDWARE_VERIFIED` | Partial | — | HW-IDENT-02 | 同上 | `ARCH-PORTABILITY-01` | `PARTIAL` |
 | Hardware Provider SPI（`HardwareProvider`: discover→Result + ProviderIdentity 配对） | `IMPLEMENTED` | `ACCEPTED` | Complete | — | HW-IDENT-02 | `evidence/.../HW-IDENT-02` | `ARCH-PORTABILITY-01` | `PASS` |
 | Media Backend SPI（`MediaBackend`: instantiate/start/stop/recover/observe, 无条件编译） | `IMPLEMENTED` | `ACCEPTED` | Complete | — | MEDIA-RT-01 / ARCH-BACKEND-01 | `evidence/.../MEDIA-RT-01` | `ARCH-BACKEND-01` | `PASS` |
