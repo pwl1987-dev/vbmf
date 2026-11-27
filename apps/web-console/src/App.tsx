@@ -1,6 +1,7 @@
 import type * as React from "react";
 import { useState, useSyncExternalStore } from "react";
 import { CredentialGate } from "./components/CredentialGate.tsx";
+import { isDevNoAuth } from "./auth/devNoAuth.ts";
 import { LocaleToggle } from "./i18n/LocaleToggle.tsx";
 import { getLocale, subscribeLocale, t } from "./i18n/index.ts";
 import { HealthPage } from "./pages/HealthPage.tsx";
@@ -15,7 +16,9 @@ type PageId = "dashboard" | "sources" | "health" | "runtime" | "sessions" | "eve
 
 export function App(): React.JSX.Element {
   const locale = useSyncExternalStore(subscribeLocale, getLocale, getLocale);
-  const [authed, setAuthed] = useState(false);
+  // dev-only：VITE_DEV_NO_AUTH=1 时跳过凭据门（凭据由 dev proxy 在服务端注入，浏览器不持有）。
+  // 生产构建 import.meta.env.DEV=false ⇒ 凭据门始终强制（见 auth/devNoAuth.ts）。
+  const [authed, setAuthed] = useState(isDevNoAuth());
   const [page, setPage] = useState<PageId>("dashboard");
 
   if (!authed) {
