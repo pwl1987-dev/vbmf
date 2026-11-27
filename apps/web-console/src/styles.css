@@ -455,3 +455,25 @@ input.credential {
   font-size: 10px;
 }
 
+/* 响应式（2026-11-27·§3.124）：本文件此前 0 个 @media —— 侧栏面板(~720px)与手机(~390px)视口下，
+   .dash-main 的 `1fr 1fr 240px` 会把 NOW/NEXT 两栏压到 ~100px，标题被挤成竖排、监看窗缩成小方块。
+   断点依据：内容区宽度 = 视口 - 220px 侧栏。 */
+@media (max-width: 1280px) {
+  /* NOW 独占一行（监看窗拿满宽），NEXT 与 CHANNEL STATUS 依次落下方 */
+  .dash-main { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  /* 侧栏收成顶部横条，导航横向排布 */
+  .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--border); padding: 8px 0; }
+  .sidebar h1 { margin: 0 16px 8px; }
+  .sidebar nav { flex-direction: row; flex-wrap: wrap; }
+  .sidebar button { text-align: center; padding: 6px 12px; }
+  .sidebar button.active { border-left: none; border-bottom: 3px solid var(--accent); padding-left: 12px; }
+  .dash-intent-grid { grid-template-columns: repeat(2, 1fr); }
+}
+/* 状态条：窄宽时换行成多行，而不是把标签压断 */
+.dash-statebar { flex-wrap: wrap; }
+.dash-statebar .dash-item { flex: 1 1 130px; min-width: 130px; }
+.dash-item .label { white-space: nowrap; }
+
