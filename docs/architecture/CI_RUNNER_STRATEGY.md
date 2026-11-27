@@ -21,6 +21,10 @@
 - ❌ 任何 job 的 `runs-on` 改造
 - ❌ 7 个 CI job 重构 / 改名 / 聚合 / 删除；branch protection required contexts 不动
 - ❌ BMD 盒（10.30.15.10）装 runner（Deployment §9 红线 + NET-01 出网受限）
+  - ⚠️ **例外（owner 2026-11-27 裁定）**：media tier **纯编译** runner
+    `vbmf-bmd-media` 已在 BMD 盒落地并接管 `gstreamer-build` /
+    `hardware-test-compile`（见 §15.1.1）；例外**仅限编译**，真机验收仍走
+    §9 人工线（GATE-C）。
 - ❌ Runner Group 重构 / organization 级注册
 - ❌ CI 测试逻辑修改；不顺手做任何「CI 优化」
 
@@ -357,18 +361,47 @@ sudo bash -c 'rm -f /data/actions-runners/vbmf/packages/actions-runner-linux-x64
 > 本节冻结 Phase 2 的**拓扑、阶梯与门槛设计**。任何 `runs-on`/workflow 改动仍受
 > §0.1 红线约束，并按本节阶梯逐级评审放行（每级一 PR、全绿才下一级）。
 
-### 15.1 终态拓扑（3 台；BMD 实机不入 CI）
+### 15.1 终态拓扑（2 台物理载体；BMD 盒承担 media tier 编译，实机验收仍走人工线）
 
 | Runner | 标签（exact set） | 职责 | 状态 |
 |---|---|---|---|
-| `vbmf-ci-01` | `self-hosted,Linux,X64,vbmf,vbmf-general` | General CI | ✅ 在役（Phase 1） |
-| `vbmf-ci-02` | 同上（parity 通过并轨后） | General 并发 / 维护冗余 / A-B parity / 滚动升级 | ✅ 在役（P2-A 并轨） |
-| `vbmf-ci-media` | `self-hosted,Linux,X64,vbmf,vbmf-media` | hardware-test-compile / gstreamer-build（目标载体） | ✅ 在役（P2-M1/P2-M2 两 job 实跑） |
-| BMD 实机 | `hardware-acceptance`（永不写入任何 workflow） | 真硬件验收 | 🔴 永走 §9 人工线（GATE-C） |
+| `vbmf-ci-01` | `self-hosted,Linux,X64,vbmf,vbmf-general` | General CI | ⛔ 已退役（Phase 1 载体；已不在仓库注册列表） |
+| `vbmf-ci-02` | 同上（parity 通过并轨后） | General 并发 / 维护冗余 / A-B parity / 滚动升级 | ✅ 在役（P2-A 并轨；当前唯一 general 调度载体） |
+| `vbmf-bmd-media` | `self-hosted,Linux,X64,vbmf,vbmf-media` | hardware-test-compile / gstreamer-build（**纯编译**，不开卡） | ✅ 在役（2026-11-27 落地 BMD 盒·systemd 托管·两 job 实跑） |
+| BMD 实机（10.30.15.10） | `hardware-acceptance`（永不写入任何 workflow） | 真硬件验收 | 🔴 永走 §9 人工线（GATE-C）——与上一行同一台机器，**角色分离**：runner 只编译，设备租约与开卡仍由人工 SSH 验收 |
 
 - 命名沿用 §2 冻结表（tier 语义归标签，机器名不承载路由）。
-- 上线顺序：`vbmf-ci-02`（先 parity）→ 并轨 `vbmf-general` → `vbmf-ci-media`
+- 上线顺序：`vbmf-ci-02`（先 parity）→ 并轨 `vbmf-general` → media tier
   （先 capability build，**不接现有 CI**）→ Phase 2 尾段才迁移 media 两 job。
+- **物理载体口径**：标签档位仍为 3 档（general / media / 人工验收），但物理机器由
+  3 台收敛为 2 台（`vbmf-ci-02` + BMD 盒）——media 载体由原计划的 devbox KVM VM
+  改为 BMD 盒（见 §15.1.1）。
+
+#### 15.1.1 media tier 载体变更：BMD 盒（2026-11-27 · owner 裁定）
+
+- **变更事实**：原计划的 `vbmf-ci-media`（devbox KVM VM，§15.10 runbook 载体）在
+  2026-11-02 前后从仓库注册列表消失 ⇒ `gstreamer-build` / `hardware-test-compile`
+  两个 required check 长期 queued（2026-11-17 排队 24h 被 cancel）。owner
+  2026-11-27 裁定「就装在 BMD，开搞」⇒ **`vbmf-bmd-media` 在 BMD 盒
+  （10.30.15.10）落地并接管这两个 job**（actions/runner 2.338.2·labels
+  `vbmf,vbmf-media`·systemd 系统服务·开机自启·Linger=yes）。首次接管即
+  media-agent CI 7/7 success（run `45985126365` @ `0c41626`）。
+- **对 §0.1 红线的显式覆盖**：原「❌ BMD 盒装 runner」红线由 owner 本次裁定覆盖，
+  **仅限编译用途**——理由：两 job 是**纯编译**（workflow 自述「CI needs NO
+  DeckLink hardware and NO libDeckLinkAPI.so」，真机开卡与首帧验证仍归 BMD 运行时
+  验收）；media tier 的稀缺资源就是「有 SDK 头 + gstreamer dev 的编译机」，BMD 已具备。
+- **供给面（与 §15.10 的 KVM VM + §15.9 bundle/manifest 通道不同）**：本次为
+  **host 直接预装 + fail-closed 校验**——`/usr/local/share/decklink-sdk/{include,VERSION}`
+  （include → `~/decklink-sdk-include` 符号链接，与冻结 clone 同源；VERSION `16.0.0`
+  与头文件 API 版本相符）·`/usr/local/rustup` → `~/.rustup`（满足 job 硬编码
+  `RUSTUP_HOME=/usr/local/rustup`）·GStreamer dev 1.28.2 / libclang / cargo 1.98
+  原生已有·**protobuf-compiler 实测不需要**（media-agent 无 prost/tonic 依赖）。
+  §15.10 的 KVM VM 载体路线随之作废（runbook 文本保留备查）。
+- **新增纪律（测量面）**：BMD 同时是生产机与稳定性测量台 ⇒ **ladder 测量窗口内
+  不得在 BMD 上跑 CI 编译**（编译扰动 RSS/IO 测量；media job 与 ladder 不得重叠）。
+- **已知运维坑（勿重犯）**：runner 的 `.path` 文件是**整体替换 PATH 而非追加**
+  （`bin/runsvc.sh` 用它整体覆盖 PATH）——只写 cargo 目录会把 tar/git 挤出 PATH，
+  表现为 checkout 阶段 `tar: command not found`。
 
 ### 15.2 灰度阶梯
 
@@ -414,6 +447,10 @@ DeckLink SDK（模式待裁决）·（仅实机验收场景：BMD Desktop Video 
      步骤，改宿主路径存在性门控（fork/GitHub-hosted 路径维持现状空过语义）；
      GitHub secrets 中 SDK 分片在 P2-M1 收口时删除；
   3. SDK 升级走 host-admin runbook（罕见事件）。
+- **实测落地注记（2026-11-27·BMD 盒）**：模式 B 已实际落地为 host 预装
+  （`/usr/local/share/decklink-sdk/include` + `VERSION` = `16.0.0`；workflow 侧
+  fail-closed 校验：目录存在 + `DeckLinkAPI.h` 存在 + 版本不漂移）；**protobuf-compiler
+  实测非必需**（media-agent 无 prost/tonic 依赖，两 job 不调用 protoc）。
 - A（维持 secrets 分片注入）未采纳：保留 public repo + self-hosted + secrets
   组合的安全面；分片 hack 长期背负；与 host 预装供给面重复。
 - 过渡期口径：P2-M1 实施前，workflow 现状 secrets 注入仍为唯一活通道；本裁决
