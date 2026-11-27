@@ -2,6 +2,7 @@ import type * as React from "react";
 import { useEffect, useState } from "react";
 import { getRuntime } from "../api/client.ts";
 import type { RuntimeSnapshot } from "../api/schemas.ts";
+import { t } from "../i18n/index.ts";
 
 type State =
   | { kind: "loading" }
@@ -30,7 +31,7 @@ export function RuntimePage(): React.JSX.Element {
     };
   }, []);
 
-  if (state.kind === "loading") return <div className="panel">Loading…</div>;
+  if (state.kind === "loading") return <div className="panel">{t("common.loading")}</div>;
   if (state.snapshot === null) return <div className="error-banner">/api/v1/runtime: {state.error}</div>;
 
   const snap = state.snapshot;
@@ -40,7 +41,7 @@ export function RuntimePage(): React.JSX.Element {
   return (
     <>
       <div className="panel">
-        <h2>Runtime snapshot (live)</h2>
+        <h2>{t("runtime.title")}</h2>
         <div className="kv">
           <div className="k">generated_at_ms</div>
           <div className="v">{snap.generated_at_ms}</div>
@@ -64,19 +65,19 @@ export function RuntimePage(): React.JSX.Element {
       </div>
 
       <div className="panel">
-        <h2>Sessions</h2>
+        <h2>{t("runtime.sessions")}</h2>
         {snap.sessions.length === 0 ? (
-          <div style={{ color: "var(--muted)" }}>no sessions</div>
+          <div style={{ color: "var(--muted)" }}>{t("runtime.no_sessions")}</div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>id (UUID)</th>
-                <th>label</th>
-                <th>state</th>
-                <th>phase</th>
-                <th>inputs</th>
-                <th>outputs</th>
+                <th>{t("runtime.col_label")}</th>
+                <th>{t("runtime.col_state")}</th>
+                <th>{t("runtime.col_phase")}</th>
+                <th>{t("runtime.col_inputs")}</th>
+                <th>{t("runtime.col_outputs")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -93,7 +94,7 @@ export function RuntimePage(): React.JSX.Element {
                   <td>{s.outputs.length}</td>
                   <td>
                     <button className="secondary" onClick={() => setSelectedSession(s.id)}>
-                      detail
+                      {t("runtime.btn_detail")}
                     </button>
                   </td>
                 </tr>
@@ -105,7 +106,7 @@ export function RuntimePage(): React.JSX.Element {
 
       {detail !== null ? (
         <div className="panel">
-          <h2>Session detail</h2>
+          <h2>{t("runtime.detail_title")}</h2>
           <div className="kv">
             <div className="k">id</div>
             <div className="v">{detail.id}</div>
@@ -123,9 +124,7 @@ export function RuntimePage(): React.JSX.Element {
         </div>
       ) : null}
 
-      <div className="warn-banner">
-        Runtime snapshot is canonical truth. UI must NOT infer Desired state from observed snapshot alone.
-      </div>
+      <div className="warn-banner">{t("runtime.warn")}</div>
     </>
   );
 }

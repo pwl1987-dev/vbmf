@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { openEventStream, type StreamHandle } from "../api/sse.ts";
 import { getRuntime } from "../api/client.ts";
 import type { RuntimeSnapshot, SseFramePayload } from "../api/schemas.ts";
+import { t } from "../i18n/index.ts";
 
 type ConnState = "connecting" | "live" | "reconnecting";
 
@@ -109,25 +110,25 @@ export function EventsPage(): React.JSX.Element {
   return (
     <>
       <div className="panel">
-        <h2>SSE connection</h2>
+        <h2>{t("events.title_conn")}</h2>
         <div className="kv">
           <div className="k">state</div>
           <div className="v">
             <span className={`state-pill ${conn === "live" ? "ok" : "warn"}`}>{conn}</span>
           </div>
-          <div className="k">cursor (last sequence)</div>
+          <div className="k">{t("events.cursor")}</div>
           <div className="v">{cursor ?? "—"}</div>
           <div className="k">weak_ordering</div>
-          <div className="v">{weakOrdering ? "true (projection is content-based; no global order)" : "false"}</div>
-          <div className="k">distinct seen</div>
+          <div className="v">{weakOrdering ? t("events.weak_true") : "false"}</div>
+          <div className="k">{t("events.distinct")}</div>
           <div className="v">{seenRef.current.size}</div>
-          <div className="k">next reconnect</div>
-          <div className="v">exponential backoff ({RECONNECT_BACKOFF_MS.join("/")}ms)</div>
+          <div className="k">{t("events.reconnect_next")}</div>
+          <div className="v">{t("events.backoff")} ({RECONNECT_BACKOFF_MS.join("/")}ms)</div>
         </div>
       </div>
 
       <div className="panel">
-        <h2>Canonical runtime snapshot (reloaded every reload)</h2>
+        <h2>{t("events.title_snapshot")}</h2>
         {snapshotError !== null ? (
           <div className="error-banner">/api/v1/runtime: {snapshotError}</div>
         ) : snapshot !== null ? (
@@ -142,14 +143,14 @@ export function EventsPage(): React.JSX.Element {
             <div className="v">{snapshot.devices.length}</div>
           </div>
         ) : (
-          <div style={{ color: "var(--muted)" }}>loading…</div>
+          <div style={{ color: "var(--muted)" }}>{t("common.loading")}</div>
         )}
       </div>
 
       <div className="panel">
-        <h2>Event stream (last 200)</h2>
+        <h2>{t("events.title_stream")}</h2>
         {events.length === 0 ? (
-          <div style={{ color: "var(--muted)" }}>no events yet</div>
+          <div style={{ color: "var(--muted)" }}>{t("events.no_events")}</div>
         ) : (
           <div>
             {events.slice().reverse().map((e) => (
@@ -164,11 +165,7 @@ export function EventsPage(): React.JSX.Element {
         )}
       </div>
 
-      <div className="warn-banner">
-        On page reload, the UI re-fetches the canonical runtime snapshot first;
-        SSE is only the increment. Reconnect resumes from the last successfully
-        consumed sequence with strictly-after semantics.
-      </div>
+      <div className="warn-banner">{t("events.warn")}</div>
     </>
   );
 }

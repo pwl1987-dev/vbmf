@@ -1,6 +1,8 @@
 import type * as React from "react";
 import { useState } from "react";
 import { assertNoPersistentStorage, setApiKey } from "../auth/credentials.ts";
+import { LocaleToggle } from "../i18n/LocaleToggle.tsx";
+import { t } from "../i18n/index.ts";
 
 interface Props {
   onAuthenticated(): void;
@@ -25,7 +27,7 @@ export function CredentialGate(props: Props): React.JSX.Element {
       assertNoPersistentStorage();
       const trimmed = value.trim();
       if (trimmed.length === 0) {
-        setError("API key required");
+        setError(t("gate.error_key"));
         return;
       }
       setApiKey(trimmed);
@@ -39,15 +41,13 @@ export function CredentialGate(props: Props): React.JSX.Element {
 
   return (
     <div className="main" style={{ maxWidth: 480, margin: "80px auto" }}>
+      <div className="gate-locale">
+        <LocaleToggle />
+      </div>
       <div className="panel">
-        <h2>Operator credential required</h2>
-        <p style={{ color: "var(--muted)", fontSize: 13 }}>
-          VBMF Web Console observes and commands the Runtime. Enter the operator API key
-          provisioned for this control plane.
-        </p>
-        <div className="credential-banner">
-          Credential is held in memory only. It will be cleared on page reload.
-        </div>
+        <h2>{t("gate.title")}</h2>
+        <p style={{ color: "var(--muted)", fontSize: 13 }}>{t("gate.desc")}</p>
+        <div className="credential-banner">{t("gate.banner")}</div>
         <form onSubmit={onSubmit}>
           <input
             className="credential"
@@ -60,7 +60,7 @@ export function CredentialGate(props: Props): React.JSX.Element {
           />
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
             <button className="primary" type="submit" disabled={submitting}>
-              Authenticate
+              {t("gate.action")}
             </button>
           </div>
         </form>

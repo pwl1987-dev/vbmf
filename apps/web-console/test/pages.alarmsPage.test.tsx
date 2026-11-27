@@ -14,6 +14,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { setTestFetchImpl } from "../src/api/client.ts";
+import { setLocale } from "../src/i18n/index.ts";
 import { AlarmsPage } from "../src/pages/AlarmsPage.tsx";
 
 const A_ID = "11111111-1111-1111-1111-111111111111";
@@ -101,6 +102,9 @@ describe("AlarmsPage (HI-01D)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     document.body.replaceChildren();
+    // 本页断言英文 chrome（改造前原文）——显式钉 en-US；
+    // 默认 locale zh-CN 的行为由 test/i18n.test.ts 覆盖。
+    setLocale("en-US");
   });
 
   it("active alarm 渲染 canonical 字段 + 无本地伪造（数据仅经 /api/v1/alarms）", async () => {

@@ -23,6 +23,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // WCO-01A：Node ≥25 实验性 localStorage getter 遮蔽 jsdom storage，见 test/setup.ts。
+    setupFiles: ["test/setup.ts"],
     include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
     globals: false,
   },

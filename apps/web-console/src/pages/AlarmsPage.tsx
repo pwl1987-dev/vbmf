@@ -11,6 +11,7 @@ import type * as React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { getAlarms, postAckAlarm } from "../api/client.ts";
 import type { AlarmItem } from "../api/schemas.ts";
+import { t } from "../i18n/index.ts";
 
 type State =
   | { kind: "loading" }
@@ -45,7 +46,7 @@ function AlarmRow(props: {
       <td className="mono">{related ?? "—"}</td>
       <td>{a.summary}</td>
       <td>{a.recovery_status}{a.event_count > 1 ? ` ×${a.event_count}` : ""}</td>
-      <td>{a.active ? "ACTIVE" : a.clear_reason ?? "cleared"}</td>
+      <td>{a.active ? "ACTIVE" : a.clear_reason ?? t("alarms.cleared")}</td>
       <td>
         {a.ack_at === null ? (
           a.active ? (
@@ -53,15 +54,15 @@ function AlarmRow(props: {
               type="button"
               disabled={props.ackBusy === a.id}
               onClick={() => props.onAck(a.id)}
-              title="Operator awareness only — does NOT clear the alarm or change runtime state"
+              title={t("alarms.ack_tooltip")}
             >
-              Ack
+              {t("alarms.ack_btn")}
             </button>
           ) : (
             <span>—</span>
           )
         ) : (
-          <span title={a.ack_note ?? ""}>acked{a.ack_note !== null ? " ✎" : ""}</span>
+          <span title={a.ack_note ?? ""}>{t("alarms.acked")}{a.ack_note !== null ? " ✎" : ""}</span>
         )}
       </td>
     </tr>
@@ -118,25 +119,22 @@ export function AlarmsPage(): React.JSX.Element {
   );
 
   if (state.kind === "loading") {
-    return <p>Loading alarms…</p>;
+    return <p>{t("alarms.loading")}</p>;
   }
 
   return (
     <div>
-      <h2>Alarms</h2>
-      <p className="meta">
-        Projection-derived alarm facts (canonical, PG-persisted). Ack = operator awareness
-        only — it never clears an alarm and never means the runtime is healthy.
-      </p>
-      {state.error !== null && <p className="error">API error — {state.error}</p>}
+      <h2>{t("alarms.title")}</h2>
+      <p className="meta">{t("alarms.meta")}</p>
+      {state.error !== null && <p className="error">{t("alarms.api_error")} {state.error}</p>}
       {state.active.length === 0 ? (
-        <p>No active alarms.</p>
+        <p>{t("alarms.none")}</p>
       ) : (
         <table>
           <thead>
             <tr>
-              <th>severity</th><th>kind</th><th>domain</th><th>related</th>
-              <th>summary</th><th>recovery</th><th>state</th><th>ack</th>
+              <th>{t("alarms.col_severity")}</th><th>{t("alarms.col_kind")}</th><th>{t("alarms.col_domain")}</th><th>{t("alarms.col_related")}</th>
+              <th>{t("alarms.col_summary")}</th><th>{t("alarms.col_recovery")}</th><th>{t("alarms.col_state")}</th><th>{t("alarms.col_ack")}</th>
             </tr>
           </thead>
           <tbody>
@@ -148,7 +146,7 @@ export function AlarmsPage(): React.JSX.Element {
       )}
       {state.history.length > 0 && (
         <details>
-          <summary>Cleared history ({state.history.length})</summary>
+          <summary>{t("alarms.history")} ({state.history.length})</summary>
           <table>
             <thead>
               <tr>

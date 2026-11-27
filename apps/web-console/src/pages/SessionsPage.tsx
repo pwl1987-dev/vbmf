@@ -15,6 +15,7 @@ import {
 } from "../state/fourStateMachine.ts";
 import type { CommandOperationBody, RuntimeSnapshot } from "../api/schemas.ts";
 import { buildDecklinkCaptureIntent } from "../api/intent.ts";
+import { t } from "../i18n/index.ts";
 
 interface CmdRow {
   label: string;
@@ -78,7 +79,7 @@ export function SessionsPage(): React.JSX.Element {
   async function onStart(): Promise<void> {
     const deviceId = intentDeviceId.trim();
     if (deviceId.length === 0) {
-      updateRow(0, { error: "device_id required for intent.devices[]" });
+      updateRow(0, { error: t("sessions.err_device") });
       return;
     }
     dispatchFour({ kind: "DESIRE", target: "Running" });
@@ -101,7 +102,7 @@ export function SessionsPage(): React.JSX.Element {
   async function onStop(): Promise<void> {
     const sid = pickSessionId();
     if (sid === null) {
-      updateRow(1, { error: "no active session" });
+      updateRow(1, { error: t("sessions.err_no_session") });
       return;
     }
     dispatchFour({ kind: "DESIRE", target: "Stopped" });
@@ -119,7 +120,7 @@ export function SessionsPage(): React.JSX.Element {
   async function onRelease(): Promise<void> {
     const sid = pickReleaseSessionId();
     if (sid === null) {
-      updateRow(2, { error: "no active session" });
+      updateRow(2, { error: t("sessions.err_no_session") });
       return;
     }
     dispatchFour({ kind: "DESIRE", target: "Released" });
@@ -150,7 +151,7 @@ export function SessionsPage(): React.JSX.Element {
       }
       await new Promise((r) => setTimeout(r, 500));
     }
-    updateRow(rowIdx, { error: "poll timeout (15s)", polling: false });
+    updateRow(rowIdx, { error: t("sessions.poll_timeout"), polling: false });
   }
 
   function updateRow(idx: number, patch: Partial<CmdRow>): void {
@@ -191,24 +192,24 @@ export function SessionsPage(): React.JSX.Element {
   return (
     <>
       <div className="panel">
-        <h2>4-state machine</h2>
+        <h2>{t("sessions.title_4state")}</h2>
         <div className="kv">
-          <div className="k">desired</div>
+          <div className="k">{t("four.desired")}</div>
           <div className="v">{four.desired ?? "—"}</div>
-          <div className="k">requested</div>
+          <div className="k">{t("four.requested")}</div>
           <div className="v">{four.requested?.state ?? "—"} ({four.requested?.command_id ?? "—"})</div>
-          <div className="k">executing</div>
+          <div className="k">{t("four.executing")}</div>
           <div className="v">{four.executing?.state ?? "—"}</div>
-          <div className="k">observed</div>
+          <div className="k">{t("four.observed")}</div>
           <div className="v">{four.observed ?? "—"}</div>
-          <div className="k">divergence</div>
-          <div className="v">{four.divergence ? "DIVERGENT" : "ok"}</div>
+          <div className="k">{t("four.divergence")}</div>
+          <div className="v">{four.divergence ? "DIVERGENT" : t("sessions.div_ok")}</div>
         </div>
         <div className="credential-banner">{describeFourState(four)}</div>
       </div>
 
       <div className="panel">
-        <h2>Start session</h2>
+        <h2>{t("sessions.start_title")}</h2>
         <div className="kv">
           <div className="k">device_id</div>
           <div className="v">
@@ -216,28 +217,28 @@ export function SessionsPage(): React.JSX.Element {
               className="credential"
               value={intentDeviceId}
               onChange={(e) => setIntentDeviceId(e.target.value)}
-              placeholder="canonical device UUID"
+              placeholder={t("sessions.device_placeholder")}
             />
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-          <button className="primary" onClick={() => void onStart()}>Start</button>
+          <button className="primary" onClick={() => void onStart()}>{t("sessions.btn_start")}</button>
         </div>
         <CommandRowView row={rows[0]} />
       </div>
 
       <div className="panel">
-        <h2>Stop session</h2>
+        <h2>{t("sessions.stop_title")}</h2>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button className="secondary" onClick={() => void onStop()}>Stop</button>
+          <button className="secondary" onClick={() => void onStop()}>{t("sessions.btn_stop")}</button>
         </div>
         <CommandRowView row={rows[1]} />
       </div>
 
       <div className="panel">
-        <h2>Release session</h2>
+        <h2>{t("sessions.release_title")}</h2>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button className="danger" onClick={() => void onRelease()}>Release</button>
+          <button className="danger" onClick={() => void onRelease()}>{t("sessions.btn_release")}</button>
         </div>
         <CommandRowView row={rows[2]} />
       </div>
@@ -250,7 +251,7 @@ export function SessionsPage(): React.JSX.Element {
 function CommandRowView({ row }: { row: CmdRow | undefined }): React.JSX.Element {
   if (row === undefined) return <></>;
   if (row.error !== null) return <div className="error-banner">{row.error}</div>;
-  if (row.command === null) return <div style={{ color: "var(--muted)", fontSize: 12 }}>no command yet</div>;
+  if (row.command === null) return <div style={{ color: "var(--muted)", fontSize: 12 }}>{t("sessions.no_command")}</div>;
   const c = row.command;
   const cls = c.state === "completed" ? "ok" : c.state === "pending" ? "warn" : "err";
   return (
@@ -260,7 +261,7 @@ function CommandRowView({ row }: { row: CmdRow | undefined }): React.JSX.Element
       <div className="k">state</div>
       <div className="v">
         <span className={`state-pill ${cls}`}>{c.state}</span>
-        {row.polling ? <span style={{ marginLeft: 8, color: "var(--muted)" }}>polling…</span> : null}
+        {row.polling ? <span style={{ marginLeft: 8, color: "var(--muted)" }}>{t("sessions.polling")}</span> : null}
       </div>
       {c.classification !== undefined ? (
         <>

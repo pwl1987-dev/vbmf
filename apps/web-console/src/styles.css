@@ -284,3 +284,174 @@ input.credential {
 .event-row .ts {
   color: var(--muted);
 }
+
+/* WCO-01B 01-dashboard（线框 docs/phase-0.5/operator/01-dashboard.html 的 MVP 映射） */
+.dash-statebar {
+  display: flex;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.dash-statebar .dash-item {
+  flex: 1;
+  padding: 10px 14px;
+  border-right: 1px solid var(--border);
+}
+.dash-statebar .dash-item:last-child { border-right: none; }
+.dash-item .label {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.dash-item .val { font-weight: 600; font-size: 13px; }
+.dash-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.dash-dot.green { background: var(--ok); }
+.dash-dot.yellow { background: var(--warn); }
+.dash-dot.red { background: var(--err); }
+.dash-dot.gray { background: #6e7681; }
+.dash-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr 240px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.dash-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+.dash-panel h3 {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 8px;
+}
+.dash-now { border-left: 4px solid var(--err); }
+.dash-next { border-left: 4px solid var(--accent); }
+.dash-video {
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  aspect-ratio: 16 / 9;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dash-player { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.dash-player-idle { color: var(--muted); font-size: 16px; }
+.dash-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--err);
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.dash-vlabel {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+.dash-dim { color: var(--muted); font-size: 11px; margin: 8px 0 0; }
+.dash-status .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.dash-status .row:last-child { border-bottom: none; }
+.dash-status .val { font-weight: 600; font-family: var(--mono); }
+.dash-intent { margin-bottom: 12px; }
+.dash-intent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.dash-step {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+}
+.dash-step .step-label {
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.dash-step .step-val { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.dash-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+}
+.dash-take {
+  background: var(--err);
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.dash-controls button:disabled { opacity: 0.45; cursor: not-allowed; }
+.dash-alarms table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.dash-alarms th {
+  color: var(--muted);
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.dash-alarms td { padding: 5px 8px; border-bottom: 1px solid var(--border); }
+
+/* WCO-01C 02-sources：三段时间切换 + 计数 pill */
+.src-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.src-tabs button {
+  padding: 8px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.src-tabs button.active { color: var(--accent); border-color: var(--accent); background: rgba(79, 140, 255, 0.08); }
+.src-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: rgba(139, 150, 165, 0.15);
+  font-size: 10px;
+}
+

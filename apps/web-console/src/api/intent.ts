@@ -46,3 +46,26 @@ export function buildDecklinkCaptureIntent(deviceId: string): DecklinkCaptureInt
 
 /** StartSessionBody 兼容性：intent 结构必须能作为 POST /api/v1/sessions body。 */
 export type StartIntentBody = StartSessionBody;
+
+/**
+ * WCO-01B：DeckLink 采集 + HLS 输出（dashboard 监看窗数据源）。sink.kind=hls
+ * 经 apps/api schema enum 透传（01A 代码层验证），BMD 实测出片到
+ * /var/lib/vbmf/hls/index.m3u8（nginx 同源 /hls/ 可播）。
+ */
+export function buildDecklinkHlsIntent(deviceId: string): StartIntentBody {
+  return {
+    intent: {
+      version: "1.0",
+      devices: [
+        {
+          device_id: deviceId,
+          role: "CAPTURE",
+          pipeline: {
+            source: { kind: "decklink", device_id: deviceId },
+            sink: { kind: "hls" },
+          },
+        },
+      ],
+    },
+  };
+}

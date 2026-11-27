@@ -14,9 +14,10 @@
     "dev": "vite"
   },
   "dependencies": {
+    "@vbmf/sdk": "file:../../packages/vbmf-sdk",
+    "hls.js": "1.5.17",
     "react": "19.0.0",
-    "react-dom": "19.0.0",
-    "@vbmf/sdk": "file:../../packages/vbmf-sdk"
+    "react-dom": "19.0.0"
   },
   "devDependencies": {
     "@types/node": "^24.7.0",

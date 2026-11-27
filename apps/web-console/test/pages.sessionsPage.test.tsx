@@ -115,6 +115,7 @@ vi.mock("../src/api/client.ts", () => ({
 }));
 
 import { SessionsPage } from "../src/pages/SessionsPage.tsx";
+import { setLocale } from "../src/i18n/index.ts";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -144,6 +145,7 @@ describe("SessionsPage polling lifecycle (BUG-B regression)", () => {
   let root: Root;
 
   beforeEach(() => {
+    setLocale("en-US"); // 钉住改造前英文 chrome（WCO-01A），按钮文本断言才有效
     h.reset();
     vi.useFakeTimers();
     container = document.createElement("div");

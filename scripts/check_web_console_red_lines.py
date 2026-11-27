@@ -98,6 +98,13 @@ def main() -> int:
                 # Look for the FORBIDDEN_PATTERNS array context (sentinel).
                 if "FORBIDDEN_PATTERNS" in text and needle in text.split("FORBIDDEN_PATTERNS")[1].split("];")[0]:
                     continue
+            # WCO-01A: the i18n foundation persists exactly one non-credential
+            # UI key (vbmf.locale) under src/i18n/; the credential red line
+            # still applies to every other file and every other storage key.
+            if "src/i18n/" in rel.as_posix() and (
+                needle.startswith("localStorage") or needle.startswith("sessionStorage")
+            ):
+                continue
             violations.append(f"{rel}: forbidden substring {needle!r}")
     if violations:
         print("WCE-01 same-origin client red-line gate FAILED:")

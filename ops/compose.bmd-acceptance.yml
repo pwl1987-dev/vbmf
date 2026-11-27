@@ -33,6 +33,10 @@ services:
   nginx:
     ports:
       - "8081:80"
+    # HLS 切片静态分发：media-agent（宿主 native）写入 HLS_DIR，nginx 只读挂载分发。
+    # 媒体面归 agent（Media Runtime = DeckLink/FFmpeg sole owner），nginx 不转码不代理流。
+    volumes:
+      - ${VBMF_HLS_DIR:-/var/lib/vbmf/hls}:/usr/share/nginx/html/hls:ro
 
   db:
     ports:

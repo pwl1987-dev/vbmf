@@ -1,50 +1,66 @@
 import type * as React from "react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { CredentialGate } from "./components/CredentialGate.tsx";
+import { LocaleToggle } from "./i18n/LocaleToggle.tsx";
+import { getLocale, subscribeLocale, t } from "./i18n/index.ts";
 import { HealthPage } from "./pages/HealthPage.tsx";
+import { DashboardPage } from "./pages/DashboardPage.tsx";
+import { SourcesPage } from "./pages/SourcesPage.tsx";
 import { RuntimePage } from "./pages/RuntimePage.tsx";
 import { SessionsPage } from "./pages/SessionsPage.tsx";
 import { EventsPage } from "./pages/EventsPage.tsx";
 import { AlarmsPage } from "./pages/AlarmsPage.tsx";
 
-type PageId = "health" | "runtime" | "sessions" | "events" | "alarms";
+type PageId = "dashboard" | "sources" | "health" | "runtime" | "sessions" | "events" | "alarms";
 
 export function App(): React.JSX.Element {
+  const locale = useSyncExternalStore(subscribeLocale, getLocale, getLocale);
   const [authed, setAuthed] = useState(false);
-  const [page, setPage] = useState<PageId>("health");
+  const [page, setPage] = useState<PageId>("dashboard");
 
   if (!authed) {
     return <CredentialGate onAuthenticated={() => setAuthed(true)} />;
   }
 
   return (
-    <div className="app">
+    <div className="app" key={locale}>
       <aside className="sidebar">
-        <h1>VBMF Web Console</h1>
+        <h1>{t("app.title")}</h1>
         <nav>
+          <button className={page === "dashboard" ? "active" : ""} onClick={() => setPage("dashboard")}>
+            {t("nav.dashboard")}
+          </button>
+          <button className={page === "sources" ? "active" : ""} onClick={() => setPage("sources")}>
+            {t("nav.sources")}
+          </button>
           <button className={page === "health" ? "active" : ""} onClick={() => setPage("health")}>
-            Health
+            {t("nav.health")}
           </button>
           <button className={page === "runtime" ? "active" : ""} onClick={() => setPage("runtime")}>
-            Runtime
+            {t("nav.runtime")}
           </button>
           <button className={page === "sessions" ? "active" : ""} onClick={() => setPage("sessions")}>
-            Sessions
+            {t("nav.sessions")}
           </button>
           <button className={page === "events" ? "active" : ""} onClick={() => setPage("events")}>
-            Events
+            {t("nav.events")}
           </button>
           <button className={page === "alarms" ? "active" : ""} onClick={() => setPage("alarms")}>
-            Alarms
+            {t("nav.alarms")}
           </button>
         </nav>
+        <div className="sidebar-locale">
+          <LocaleToggle />
+        </div>
         <div className="meta">
-          Build: dev
+          {t("app.build")}
           <br />
-          Operator: configured
+          {t("app.operator")}
         </div>
       </aside>
       <main className="main">
+        {page === "dashboard" ? <DashboardPage /> : null}
+        {page === "sources" ? <SourcesPage /> : null}
         {page === "health" ? <HealthPage /> : null}
         {page === "runtime" ? <RuntimePage /> : null}
         {page === "sessions" ? <SessionsPage /> : null}
