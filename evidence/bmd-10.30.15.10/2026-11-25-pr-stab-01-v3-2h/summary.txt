@@ -1,0 +1,12 @@
+PASS threads_bounded_oscillation min=31 max=33 spread=2
+PASS fd_bounded first3_avg=17.0 last3_avg=17.0
+PASS rss_bounded first_third=1238.6MB last_third=1240.3MB monotonic=False
+PASS switch_epoch_per_command_plus1 first=1 last=256 expected=256 consecutive_plus1=True
+PASS switches_all_executed_preserved ok=256/256
+PASS observed_tracks_per_command match=256/256 expected=256
+PASS frames_advancing v:25->220487 a:35->293942
+PASS drops_zero 
+PASS watchdog_ticks_advancing mid=366 end=737
+PASS events_no_critical samples=128
+NOTE replays=51 replayed_status=51 (data, not gating)
+VERDICT PASS (10/10 predicates v2)

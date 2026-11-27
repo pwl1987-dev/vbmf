@@ -26,6 +26,15 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: v3 analyzer unit tests
         run: python3 r64-probe/test_analyze_long_v3.py
+      # scripts/check_docs.py 曾因前缀剥离死循环使 G-DOC-READY 从未跑完, 而 CI 不调用
+      # 该脚本 ⇒ 缺陷长期潜伏。此处固化其终止性回归测试; 终止性断言走 collect_covered_ids()
+      # 直接喂合成 id, 故**不依赖 PyYAML**（runner 大概率没有）也不会空转。
+      - name: doc gate script regression tests
+        run: python3 scripts/test_check_docs.py
+      # Desktop Video 运行时版本降级守卫的行为级测试: 纯 fixture + 桩 cargo,
+      # 不需要 BMD 真机 (CI 无 DeckLink runtime), 但守住「守卫必须 fail-closed」。
+      - name: decklink runtime guard tests
+        run: bash scripts/ci/test-decklink-runtime-script.sh
       - name: v3 tooling byte-compile
         run: python3 -m py_compile r64-probe/collect-long-v3.py r64-probe/analyze-long-v3.py
       - name: shell syntax (v3 runner + legacy driver)

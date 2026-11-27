@@ -1,0 +1,10 @@
+# provenance (recorded 2026-11-25T22:11:57+08:00)
+rung=24h
+sdk_module_version=16.5a1
+dpkg_desktopvideo=16.5a1
+kernel=7.0.0-44-generic
+hostname=lytv
+profile=24h protected_pid=5725 commit=8b68f7b4b6a840e979db500d38502b1c5a3624d0
+sdk=16.5a1 kernel=7.0.0-44-generic
+bin_md5=c569aca7179b6b2638ccb5c95349a1f9
+manifest_md5=7521d17e7fd02e50eb2b0a84374a43dd

@@ -1,0 +1,34 @@
+PASS         v2_threads_bounded_oscillation min=31 max=33 spread=2
+PASS         v2_fd_bounded first3=17.0 last3=17.0
+PASS         v2_rss_bounded first_third=1240.7MB last_third=1241.6MB delta=1.0MB monotonic=False
+PASS         v2_switch_epoch_per_command_plus1 first=1 last=1019 expected=1019
+PASS         v2_switches_all_executed_preserved ok=1019/1019 expected=1019
+PASS         v2_observed_tracks_per_command match=1019/1019 expected=1019
+PASS         v2_frames_advancing v=30->880158 a=39->1173387
+PASS         v2_drops_clock_zero 
+PASS         v2_watchdog_ticks_advancing mid=1463 end=2933
+PASS         v2_events_no_critical samples=509
+PASS         v3_evidence_complete rows=1019 expected=1019
+PASS         v3_wallclock_duration sample_span=29321s target=28800s
+PASS         v3_rss_terminal_plateau terminal_half_slope=0.148MB/h steps>=4MB=3
+PASS         v3_fd_highwater initial10pct_median=17.0 max=17
+PASS         v3_replay_exact replayed=203/203 expected=203
+PASS         v3_http_continuity_latency rows=14499 non200=0 p99=2.056ms max=27.052ms
+PASS         v3_watchdog_cadence ticks=2933 max_gap=10.018s
+PASS         v3_anatomy_handles handles=[1, 2]
+PASS         v3_anatomy_buffers_advancing 
+PASS         v3_anatomy_clean_counters 
+PASS         v3_anatomy_video_rate h2=25.00/s h1=25.00/s
+PASS         v3_sidecar_present samples=979
+PASS         v3_sidecar_coverage active_window=29315s target>=28740s warmup_samples=1 active_samples=978
+PASS         v3_sidecar_http_200 warmup_samples=1 active_samples=978
+PASS         v3_topology_constant warmup_samples=1 active_samples=978 expected Capturing devices=3 pipelines=3 sessions=1 inputs=2 switch=true
+PASS         v3_sidecar_drop_clock_zero warmup_samples=1 active_samples=978
+PASS         v3_socket_bounded warmup_samples=1 active_samples=978 base=7.0 tail=7.0 max=8
+PASS         v3_identity_pinned source=8b68f7b4b6a840e979db500d38502b1c5a3624d0 binary=c569aca7179b6b2638ccb5c95349a1f9
+PASS         v3_stop_session_executed 
+PASS         v3_teardown_marker count=1
+PASS         v3_runtime_residue process_absent=True listeners={'8080': False, '50051': False}
+PASS         v3_protected_device_unchanged 
+V2_COMPAT PASS
+V3_VERDICT PASS (fail=0 missing=0)

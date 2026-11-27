@@ -1,6 +1,6 @@
 schema_version: 1
 project: vbmf
-updated_at: '2026-11-18'
+updated_at: '2026-11-27'
 repository:
   branch: main
   checkout: /home/ubuntu/dev/VBMF
@@ -14,12 +14,21 @@ state_authority:
 current_task:
   id: PR-STAB-01
   title: Long Stability v3 qualification (observer-backpressure fix line)
-  status: BLOCKED_AT_RUNG_1
+  status: STABILITY_VERIFIED_PENDING_OWNER_COMMIT
   runtime_commit: 6fc1b1a
   runtime_binary_md5_prefix: 3898ced3
   stability_verified: false
   rd_01a_runtime_implementation: frozen
   summary: |
+    CURRENT (2026-11-26, §3.105–§3.109): root cause LOCKED AND FIXED — closed-source Blackmagic
+    Desktop Video SDK leaked per frame; upgrade 16.2a1 → 16.5a1 cut the live slope
+    +5.97MB/h → +0.12MB/h. Qualification ladder: rung 1 (2h) and rung 2 (8h) both
+    V3_VERDICT PASS (fail=0 missing=0); rung 3 (24h) RUNNING (§3.109 mid-run check at
+    ~14.2h / 1774 of 3055 cycles: every substantive gate PASS, all 10 FAILs are
+    "not-finished-yet" class, Q4 slope +0.028MB/h, no late-onset drift). STABILITY NOT VERIFIED
+    (24h not finished). Finalization pipeline is built and rehearsed end-to-end against the
+    completed 8h evidence (gate-run.log byte-identical, md5 37f3323…, per-file sha256 zero-diff).
+    HISTORY BELOW (§3.93–§3.104) is retained for audit only and is superseded.
     v3 tooling on main + tooling CI green; BMD smoke PASS (NOT qualification).
     True 2h v3 rung FAIL — only failure v3_rss_terminal_plateau (5.457MB/h vs ≤1.0MB/h gate).
     Legacy 8h is PARTIAL/DIAGNOSTIC ONLY (§3.98 GOV-RECON-01). 8h/24h v3 NOT STARTED.
@@ -34,33 +43,53 @@ current_task:
     buffer (5,760,000B) — hypothesis, needs BMD confirmation. Locally re-verified: v3 unit tests
     20/20; historical terminal-half slopes reproduced (2h 0.053 / 8h 4.893 / 24h 5.582 MB/h);
     frozen v3 plan and r64-probe tree unchanged since the 2h rung head.
-    BMD SSH publickey is denied for every local identity → this session's hardware verification
-    level is NOT RUN and no rung was started.
+    §3.105 (2026-11-25): BMD SSH RECOVERED (publickey works; the §3.104 blocker was stale) → all
+    three §3.104 read-only observations executed: (1) heaptrack attribution → the leak is
+    operator new(nothrow) INSIDE closed-source /lib/libDeckLinkAPI.so: 69129 calls / 1380 s =
+    50.1/s = 2 streams x 25 fps → ~16.3 B leaked PER FRAME; (2) LD_PRELOAD mallinfo2 shim →
+    residual growth is LIVE bytes (+5.97 MB/h) funded by the free list, while the 440 MB retained
+    part is separately reclaimable via malloc_trim (RSS 1240→800 MB, p99 1.910 vs 2.033 ms);
+    (3) step timestamps correlate with 25 fps frame delivery. Isolation run (no agent, pure
+    gst-launch) reproduces +6.1 MB/h on 16.2a1 → leak lives in the DeckLink SDK/plugin ingest path,
+    NOT in VBMF Rust code (clock timeline bounded, event ring bounded, no custom allocator).
+    Desktop Video upgraded 16.2a1 → 16.5a1 (official 2.09 GB tar → desktopvideo_16.5a1_amd64.deb,
+    dkms for 7.0.0-30 + 7.0.0-44, initramfs refreshed, two reboots); module version now 16.5a1,
+    media-agent /health = devices:3 / Capturing, protected device-2 sink restored with identical
+    §3.108 (2026-11-25): **8h 资格 rung PASS（阶梯 rung 2 通过）** —— driver_rc=0 collector_rc=0、
+    V3_VERDICT PASS (fail=0 missing=0)、V2_COMPAT PASS；关键 gate：v3_rss_terminal_plateau PASS **0.148MB/h**（2h 为 0.122）、
+    wallclock 29321s>=28800、http p99 2.056ms/14499 rows/non200=0、sidecar 全套 PASS（979 采样·覆盖 29315s>=28740s）、
+    topology_constant、socket_bounded、anatomy 25.00/s、identity_pinned、runtime_residue、protected_device_unchanged、
+    stop_session+teardown 全 PASS。证据已入仓 evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-8h/（30 文件·7.6MB；7 个 .json 被 .gitignore 排除 ⇒ 实际入库 23；工作树未 commit）。
+    **24h rung 已自动交接启动**（22:04：watcher ~/handoff-8h-to-24h.sh 用固定 analyzer 复算 8h 判定 PASS 后才起 run-rung.sh 24h，
+    EV ~/a2-8-02i-evidence/2026-11-25-pr-stab-01-v3-24h/，3055 cycles ⇒ 约 24h，预计 2026-11-26 22:00 前后出判定）。
+    **24h PASS 后三关全 PASS 方可写 STABILITY VERIFIED**（由 owner 决定表述与提交）。
 next_action: |
-  BLOCKED on BMD access (SSH publickey denied for all local identities) — the three decisive
-  read-only observations from §3.104 cannot run without it: (1) `perf probe -x malloc` filtered to
-  size ≥ 4MiB with a call graph to attribute the ≈5.76MB SDK allocation, (2) an LD_PRELOAD shim
-  calling mallinfo2()/malloc_info(0,fd) on SIGUSR1 (no Runtime binary change) to separate live
-  memory from retained-but-free memory, (3) correlating step timestamps with per-cycle events.
-  Do NOT retry any allocator env tuning — §3.103 plus §3.104 show that route is structurally
-  incapable of fixing the defect. Two refuted env edits are quarantined, NOT committed and NOT
-  deployed: (A) this checkout's working tree carries MALLOC_ARENA_MAX=1 + MALLOC_MMAP_THRESHOLD_=131072
-  in r64-probe/run-long-v3.sh plus two CI assertions locking it in (the §3.103 v3-arm config, and it
-  writes no alloc_mitigation marker, so runs from it would be mislabelled); (B) the delivery worktree
-  carries MALLOC_MMAP_THRESHOLD_=1048576 plus production compose/README propagation (the §3.103 v4-arm
-  config, outside §3.102's qualification-only scope). main HEAD is clean on both. Reverting vs recording
-  a formal mitigated FAIL rung stays an owner-level decision (§3.103).
-  Until stability passes, RD-01A Runtime writes stay BLOCKED. BMD hardware/stability evidence
-  required for qualification — VM PASS is not a substitute.
+  [2026-11-27] WCO-01C 02-sources DONE_NEEDS_REVIEW（executor=Agent·未 commit）：SourcesPage 三段 tabs（Local 真设备 / Network·Internal 空态=E-40 后续包）+ 真快照表（id8/设备名/方向/binding 抽取/占用·空闲/Used By=sessions.inputs 真引用）+ 13 个显式 N/A 列（V0.2 无 PCI/connector/format/lock/QC 观测·测试计数钉死）+ Add Source 禁用（清单 systemd/env 权威）+ 2s 轮询 runtime；nav.sources 入侧栏（dashboard 之后）。验证=vitest 88/88（新增 4 项·zh-CN 默认）· tsc 0 · build 0 · 红线 gate PASS。owner 已签字（2026-11-27「01C 全部通过，按此签字」）：diff + 四项偏差（N/A 列清单/Used By 用会话 id 代 channel 名/Add 禁用/Network·Internal 空态）全过。commit 仍归 owner（逐路径 add·禁 git add -A）。
+  [2026-11-27] WCO-01B 01-dashboard DONE_NEEDS_REVIEW（executor=Agent·未 commit）：DashboardPage+HlsMonitor（hls.js 1.5.17 播同源 /hls/index.m3u8）；statebar=PGM 真状态+四格显式 N/A+告警计数；NEXT=空闲输入设备；通道状态=真观测行；意图层=真四状态+DIVERGENT；起停监看走真 Product API（intent sink.kind=hls）；默认落地页=dashboard（D4 兑现·旧 5 页保留）；数据面=2s 轮询 runtime+alarms。验证=vitest 84/84 · tsc 0 · vite build 0 · 红线 gate PASS。BMD 实机 API 往返全通：新签 operator key（30d·id=AOO87XQEQIPXFYbexx8rZ7JA9R6d1tRm·明文只在本轮出现）；stop 旧 RPC 会话 bf27c2b9→released；API start sink.kind=hls→6c659606 running（inputs SDI-IN-1·outputs hls）；/hls/index.m3u8 HTTP 200 且分段实时递增=新会话留播。owner 已签字（2026-11-27「全部通过，按此签字」）：diff 复核 + LOCK 六项偏差全过，旧 bf27c2b9 置换已知悉。commit 仍归 owner（逐路径 add·禁 git add -A）。
+  [2026-11-27] WCO-01A i18n 基础层 DONE_NEEDS_REVIEW（executor=Agent·未 commit）：t()+zh/en 词典+LocaleToggle+默认 zh-CN 全站接入（App/Gate/5 页）；凭据红线改白名单语义（vbmf.locale 可落盘·api key 仍禁）；修复 Node≥25 实验性 localStorage getter 遮蔽 jsdom storage（test/setup.ts 仅缺失时注入内存桩）。验证=vitest 80/80 · tsc 0 · vite build 0 · 红线 gate PASS。owner 复核通过（2026-11-27 签字：credentials.ts 断言放宽 + gate 豁免 + setup.ts 桩）。
+  [2026-11-27] WEB-CONSOLE-OPERATOR-UI-01 已登记 READY（owner 裁决「通过，按此登记排期」·D1–D4 按建议采纳）⇒ 排在 PR-STAB-01 收口落笔之后开工；plan=docs/superpowers/plans/2026-11-27-web-console-operator-ui-01-work-packet.md。
+  PR-STAB-01 **STABILITY VERIFIED（owner 2026-11-27 授权代笔·§3.113）** ⇒ 唯一下一步 = owner 两组 commit（A+C 建议采纳、B 默认不采纳）+ 其余拍板项；RD-01A 解冻可批准。
+  禁止事项：不得用 BMD 侧带 §3.103 被否证 env 的 ~/vbmf-v3/r64-probe/run-long-v3.sh（必须用仓库干净版）；
+  不得在 rung 运行期并行编译/heapprofile；不得自行 commit（AGENTS.md 默认不 commit）。
+  **收官默认姿态（2026-11-26 12:38 问卷 60s 超时由系统自动选定，explicitUserConfirmation=false ⇒ 未确认，owner 可随时改）**：①改动不 commit（保持工作树，由 owner 提交）②不为 evidence JSON 加 .gitignore 窄例外（判定可由仓库内 analyzer 确定性复算）③AGENTS.md 顶部过期摘要完全不动 ④两个可选候选（plateau 门限参数化 / 有界 malloc_trim）均不采纳，保留为工作树候选。⇒ 四项均为「不新增动作」，故 24h 收官不含任何不可逆或对外可见操作。
+  **owner 待拍板五项的现状复核与建议（21:10·新增证据）**：①**是否 commit** —— 维持「不 commit」默认；index 仍混有 B 组 6 项且与工作树分叉 10 路径 ⇒ 若 owner 要提交，须**逐路径 add**（清单见 §3.110）且**禁 `git add -A`**。②**AGENTS.md 顶部过期摘要** —— 未擅改（待 owner 裁决）。③**`evidence/**/*.json` 窄例外** —— **新证据支持加窄例外**：被排除的 7 个 JSON **总计仅 32K**（`health.json` 99B / `health0.json` 99B / `runtime-before.json` 2.3K / `stop-response.json` 143B / `v3-identity.json` 824B / `v3-postrun.json` 670B / **`v3-summary.json` 4.5K**），而它们恰恰是**判定与溯源的关键小件**（机器判定 + identity 钉扎 + teardown 响应）⇒ **建议加窄例外**（至少放行 `v3-summary.json` / `v3-identity.json` / `v3-postrun.json` / `stop-response.json`，合计 <6K），代价可忽略。④**两个可选候选** —— B 组的 fmt 门禁风险**已于 21:05 关闭**（CI 钉的 rustfmt 1.98.1 内含 1.9.0，对 4 个 Rust 文件 `--check` 全 rc=0）；但 B 组含 **Runtime source 变更** ⇒ 采纳即触发「同 binary 重走 ladder」，与本次修复目标冲突 ⇒ 维持**不采纳**默认。⑤**C 组 3 项是否纳入** —— **新证据：纳入对 CI 影响为 0**（workflow 新增 step 跑的是回归测试 `scripts/test_check_docs.py`，**不是门禁本体**；那 22 条既有 Phase 0.6 债只在人工运行门禁时出现，而此前该门禁是无限挂起 ⇒ **净改善**）⇒ **建议纳入**。
+  **§3.111 条目生成器（19:42·编号顺延）**：`/tmp/gen-3110.py`（md5 `c1a8a4a97ed94b1b6ec4e60170dd448d`，VM80 `/home/ubuntu/dev/` 同 md5）——从 `v3-summary.json`/`environment.txt`/`md5s.txt` **机械生成** §3.111 条目正文（判定、plateau 斜率、wallclock、HTTP rows/p99/max、sidecar 覆盖、identity 钉扎、文件数、rc、环境、冻结偏差），**杜绝手抄错误**；已用已完成的 8h 证据演练（输出逐位一致）+ **合成 FAIL 用例实测**（门禁状态取自 JSON·缺失门禁单列·非 PASS 门禁单列⇒不会把 FAIL 报成 PASS）；**19:43 扩展为一次产出三处**：A=§3.111 条目 / B=报告 §7 表格行（程序化保证 7 列）/ C=§9 就绪度行（PASS⇒9/10、FAIL⇒8/10+NOT VERIFIED）⇒ **今晚三处数字与列数均无手抄面**；19:44 黄金测试：生成器为 2h/8h 产出的行与报告手写行**逐项吻合** ⇒ 生成器与人工互为印证；sidecar 计数口径已统一为「active + present 双标注」（0.148MB/h、29321s、14499 rows/p99 2.056ms、source 8b68f7b / binary c569aca7、30 文件 / md5s 24 条、rc=0）。runbook 第 4/6 步已接入（runbook md5 `dd58e0954c3a9c9c8c09825971850f68`（19:45 最新：含「§7.5 汇报模板」七段——结论/三关总表/24h 关键数字/判据核对/本次交付/待拍板/未验证项；槽位由生成器填））。
+  **B 组采纳前必须带 fmt 修正（否则 CI 直接红）**：`cargo fmt --all -- --check`（CI 的 Format check 是 required 步骤）在工作树曾 FAIL（`services/media-agent/src/memtrim.rs:82` 单行 `assert_eq!` 超宽）⇒ 已按 rustfmt 1.9.0 期望输出就地改正，VM80 复验 **fmt_rc=0** + `cargo test --lib` **346/346**；若 owner 采纳 B 组却漏掉该文件，media-agent CI 的 Format check 会红（§3.110）。
+  **收官工具链第三方独立审计（21:00–21:10·verdict PARTIAL·7 处 fail-open 已全修）**：审计确认工具不会把 FAIL 写成 PASS、不会写坏表格、不会破坏原始证据（2h/8h 证据与报告/索引演练前后 md5 逐字节一致）；查出并已修掉 7 处缺口——① `finalize-24h-remote.sh` 强制比对 analyzer md5（≠713292b0 ⇒ exit 1）② `gen-verdict9.py` 第 8 项同校验收官实际使用的 `~/vbmf-v3` 那份 analyzer（原先只校冻结 clone ⇒ 「未被事后改动」只是声明）③ `gen-3110.py` §7 状态词按门禁实算（原为硬编码 `PASS（fail=0 missing=0）`）④ `gen-index-row.py` 状态词按门禁实算 + 修正 `g` 取状态用错字典键的潜在 bug ⑤ 第 4/5 项缺档不再断言三档一致 ⑥ `finalize-rung.sh` 第 6/7 步失败真正中止（原先无 `set -e` ⇒ 复算 FAIL 也打 FINALIZE-OK）⑦ `post-ladder-bmd.sh` 20 项测试不再被管道吞退出码。**工具 md5 已变（收官必须用新版）**：finalize-rung `29d2efc9…`、helper `b645cf84…`、gen-3110 `c1a8a4a9…`、gen-verdict9 `4c6793cf…`、gen-index-row `5c0d721a…`、post-ladder `7378aa03…`、runbook `dd58e095…`（Mac/VM80 两侧一致；新版 helper 已推 BMD）。
+  **收官执行器（21:20·Mac `/tmp/close-24h-a.sh` md5 `fbe253aca3a12beadbe559c8dd0d2093`·VM80 `/home/ubuntu/dev/` 同 md5）**：一键收官（A0 前置自检 → A1 finalize-rung → A2 §7 行 → A3 §9 第 4 列 → A4 索引转态 → A5 自检 → A6 打印生成内容）；退出码 0/2/3/1 语义明确（3 = FINALIZE-PENDING 未跑完，非失败）；已在仓库副本上完整演练 A0–A6 全绿、真实仓库零污染。
+  **阶段 B 写入器（21:30·Mac `/tmp/close-24h-b.py` md5 `11f7b0b2451382479fe0b21bac1851c1`·VM80 同 md5）**：把阶段 A 的生成内容机械写入 **STATE §3.111 + 报告 6 处 + current-work.yaml**，按判定**自动分支** PASS/FAIL 两套措辞（失败绝不会被写成通过）；每个锚点必须恰好命中 1 次，否则 ABORT 且不写文件；STATE 已有 §3.111 则拒绝重入。**PASS/FAIL 双分支均在仓库副本上实测**：副本 APPLY 后报告 8 表与索引 9 表列数零错位、§3.111 恰好 1 处、YAML 在 VM80 解析通过、报告内无残留旧表述；**真实仓库零污染**。
+  **收官期新增五个机械工具 + 一个 BMD 收尾脚本（20:15–20:40·均不入库·Mac /tmp + VM80 /home/ubuntu/dev/ 同 md5）**：`/tmp/post-ladder-bmd.sh`（md5 `7378aa03eba0b3dbf25d2c22535c5a74`）——**收官后在 BMD 上**复验新版降级守卫并同步 `~/rt-check/` 验签树（自带前置自检：ladder 在跑 ⇒ ABORT exit 1，已实测；5 步 = 同步 → md5 双侧比对 → 真机跑守卫 → 真机跑 20 项行为测试 → 伪造 16.2a1 分支 ⇒ 末行 POST-LADDER-BMD-OK）；另五个：`/tmp/gen-index-row.py`（md5 `5c0d721a8826fa5b9cca9cf2ae8df2fe`）——从证据机械生成 EVIDENCE-INDEX 的档位行（状态词 fail-closed：非 PASS ⇒ Current 绝不写 Acceptance）；`/tmp/apply-index.py`（md5 `8965703b08d018698399e0e84f5185cf`）——幂等插入（已存在⇒不重复）+ fail-closed（锚点行缺失⇒不写文件退出 1）；另三个：`/tmp/gen-verdict9.py`（md5 `4c6793cf758844c5d7d913dfc3c7f77d`）——从三档归档证据机械判定报告 §9 十项判据、输出表格第 4 列逐行状态（**fail-closed**：任一不一致 ⇒ NOT VERIFIED；`--live` 做第 8/9 项现场复核、须 driver 停止后用）；`/tmp/apply-9.py`（md5 `987b05e93f2b95588a410664b89840e7`）——把 §9 第 4 列机械写入报告（fail-closed；只动第 4 列，判据/权威出处为事前声明不可动）；`/tmp/apply-7.py`（md5 `1b9d87f2b4c09d5f0b106dd738970f67`）——把 §7 阶梯表的 24h 行机械覆盖。三者均在报告**副本**上试跑并复校列数零错位 ⇒ **收官时报告侧不再有任何手抄数字**（PASS/FAIL 双路径均实测）。
+  **收官脚本最终态（19:38 复核）**：`finalize-rung.sh` md5 `29d2efc96efd6ceebb72a61c6dee9ca9`、`finalize-24h-remote.sh` md5 `b645cf84977b3414e67d0b031ec44070`，Mac `/tmp` 与 VM80 `/home/ubuntu/dev/` **两侧逐位一致**；第 2 步 helper 推送已加**容错**（scp 失败回退 BMD 预置副本，BMD 已预置）⇒ Mac `/tmp` 丢失也不阻塞收官。改后脚本已用 8h 回归全链（`FINALIZE-OK`·exit 0·sha256 30 文件零差异）。runbook md5 `dd58e0954c3a9c9c8c09825971850f68`（19:45 更新：加「运行期禁止跑 finalize-rung.sh / ladder-check.sh」禁令 + 文件集预登记更正为 18 现 + 12 产出 = 30）。
+  **外部 staging 状态提醒（2026-11-26 13:41）**：`git status` 实测 index 已暂存 **50 项**（A 组证据/脚本 + **B 组 6 项候选**混在一起），其中 `STATE/current-work/EVIDENCE-INDEX` 是 `MM`（暂存旧快照、工作树有更新）；HEAD 仍 `8b68f7b`、**未 commit**。本 Agent 未执行写 index 的 `git add`（仅用过 `git add -An`/`--dry-run`），因此**不擅自 unstage** 用户已有 staging。若 owner 维持「两个候选不采纳」，提交前须从 index 移除 B 组 6 项，并重新 stage 最新 A 组（尤其 `MM` 三文件）；否则提交会采纳 Runtime source 候选并触发重走 ladder。
+  **收官 Runbook（2026-11-26 13:42 固化）**：`/tmp/runbook-24h.md`（Mac，53 行）+ 持久副本 VM80 `/home/ubuntu/dev/runbook-24h.md`（md5 `3965796de0e39a94a24cd210bedf3599`）——逐条写明：① 一键收官命令与 `FINALIZE-PENDING`(exit 3)=未跑完≠失败的判读 ② §9 十项判据的核对顺序 ③ 文件集 30 的事前预登记对照 ④ §3.111 该写什么、§4/§5 指针需同步为「§3.105–§3.111」⑤ current-work.yaml 改法（含 YAML 缩进教训）⑥ 索引 Current→Acceptance 转态 ⑦ 报告 §7/§7.1/§9 收口项 ⑧ 汇报格式与「勿 git add -A」提交陷阱 ⑨ 可选项。
+  **提交陷阱（若 owner 今晚自行 commit）**：工作树 19 条按归属拆为 A 组 10 项（本次修复必需：文档/账本/EVIDENCE-INDEX 登记/守卫脚本/build-bmd.sh/两个证据目录 ⇒ **零 Runtime source 变更**）、B 组 6 项（两个未采纳候选：analyzer 门限参数化 + memtrim 及其在 lib/config/bin 的接线）与 **C 组 3 项（`scripts/check_docs.py` 的 G-DOC-READY 死循环修复·含抽出 `collect_covered_ids()` 使回归测试不依赖 PyYAML + `scripts/test_check_docs.py` 回归测试 5 项 + `.github/workflows/v3-harness-tooling.yml` 新增 CI 步骤·§3.110·不触碰 Runtime source·**对 CI 的影响为 0**：workflow 新增 step 跑的是**回归测试** `scripts/test_check_docs.py`、**不是门禁本体** `scripts/check_docs.py` ⇒ 22 条既有 Phase 0.6 phase06 债只在**人工运行门禁**时出现，而此前是**无限挂起** ⇒ **净改善（挂起 → 可读债务清单）**）**。**提交前必做动作（2026-11-26 20:35 审计后更新·index 已与工作树分叉）**：**index 里的 A/C 组内容已过期**（第三方审计实测：index 版守卫仍是 sysfs-only + 16 项测试、文档写 16/16）⇒ 直接 `git commit` 会把**旧守卫 + 旧文档**一起入库（入库文档声称有 modinfo/dpkg 回退、代码却没有 ⇒ 自相矛盾）。 ① **逐路径重新 `git add` 这 10 个已分叉路径**（`git diff --name-only` 为准）：`.github/workflows/v3-harness-tooling.yml`、`.project/STATE.md`、`.project/current-work.yaml`、`docs/phase-0.6/BMD-LOCAL-BUILD.md`、`docs/superpowers/reports/2026-11-25-pr-stab-01-sdk-leak-attribution.md`、`evidence/bmd-10.30.15.10/EVIDENCE-INDEX.md`、`scripts/check_docs.py`、`scripts/ci/test-decklink-runtime-script.sh`、`scripts/ci/verify-decklink-runtime.sh`、`services/media-agent/src/memtrim.rs`（B 组）； ② **补 add 未跟踪文件** `scripts/test_check_docs.py`（漏了 CI step 直接 can't open file）； ③ 若采纳 B 组，**必须包含 `memtrim.rs` 的 rustfmt 修正**（index 那份**未经 rustfmt 规范化** ⇒ required 的 `rust-format` 会必红），若不采纳则 B 组 6 项整体移出 index。**勿用 `git add -A`** —— 那会连带提交 B 组，等于在无意间采纳两个候选，并按冻结计划触发「Runtime source 变更 ⇒ 重走 ladder」（详见 STATE §3.109 文件级拆分）。
+  **B 组 CI 等价验证已穷尽（2026-11-26 13:37 完成·无需阶梯后补做）**：VM80 侧 test 346/346(default+simulation)、mock 四子集 37/15/6/10、check 四组合 OK、clippy `-D warnings` 三组合 OK；需 SDK 的三个组合（`bmd,gstreamer` / `hardware-test` / `bmd-provider,ffmpeg-backend`）已在 BMD 上用 `CARGO_TARGET_DIR` **隔离 target 目录**当场验完全绿，**全程 ladder 二进制 md5 保持 `c569aca7…` 未变**（运行期零扰动）。
+  **BMD 侧守夜器 v2（2026-11-26 12:54 部署·脱管运行 pid 1206779·独立 session）**：`/home/lytv/post-24h-recorder2.sh` 在 24h driver(pid 630626) 退出后，**先等 `v3-summary.json` 出现（= collector 已收尾）**再动手，然后用冻结 analyzer（md5 713292b0·strict 口径·与 2h/8h `gate-run.log` 同惯例）写 `$EV/gate-run.log`，并把判定摘要写入 `/home/lytv/dv-upgrade/verdict-24h.txt` ⇒ **权威判定在跑完那一刻冻结在 BMD，不依赖控制端 Mac 是否醒着**。日志 `dv-upgrade/post-24h-recorder.log`。
+  **v1→v2 的成因（演练抓到的真 bug·非猜测）**：v1 固定 `sleep 15` 就分析，但 **collector 可能尚未收尾**（sidecar 采样不全 ⇒ `v3_sidecar_coverage` 会假 FAIL）；且 v1 从 `v3-summary.json` 读判定，而该文件由 wrapper 在 collector **之后**才写 ⇒ 可能根本不存在（退化成 `NO_JSON`）。v2 改为等该文件 + **从自己产出的 `gate-run.log` 解析判定**。**等价演练已通过**：用已完成的 8h 证据跑 v2 全路径 ⇒ `v3=PASS (fail=0 missing=0) v2=PASS terminal_half_slope=0.148MB/h fails=0 not_measured=0`、产出 `gate-run.log` 与已归档版本**字节一致**（md5 `37f3323…`）、并确认 8h `v3-summary.json` md5 未变（`d7a5e70c…`）⇒ 守夜器只读、不扰动证据。等待分支亦实测：活 pid ⇒ 继续等；死 pid ⇒ 立即执行。（v1 已 kill，当前仅一个守夜实例；此器为一次性产物，与 finalize-*.sh 同处 `/home/lytv`，不入库。）
 issue_pointers:
   overview: 'pwl1987-dev/vbmf#43 (navigation only, not execution Authority)'
   story_chain: '#107 GOV-RECON-01 COMPLETE → #108 PR-STAB-01 v3 qualification'
 blockers:
-  - id: BMD-ACCESS
-    detail: >-
-      SSH 10.30.15.10 reachable (host key known) but publickey denied for every local identity
-      (id_pwl / migration_ed25519 / shdp-github-agent / proxy-agent-remote / gpuvm-ninfer-audit).
-      No hardware access, so no rung can start and the three §3.104 observations cannot run.
   - id: CI-MEDIA-RUNNER
     detail: >-
       The vbmf-media self-hosted runner (vbmf-ci-media) is no longer registered to the repo, so
@@ -70,9 +99,20 @@ blockers:
       (CI_RUNNER_STRATEGY deployment red line), so the media host is a different machine.
       Do NOT claim the pushed head is fully green.
 ci_status:
-  observed_at_commit: d233444a2770678ac4d82be01f696ed611eec564
+  observed_at_commit: 8b68f7b4b6a840e979db500d38502b1c5a3624d0
   note: >-
     Live HEAD is obtained with `git rev-parse origin/main`; this file never pins a
     self-referential HEAD SHA. Re-check the exact head before quoting CI status.
   green: [rust-format, rust-test-matrix, rust-clippy, architecture-portability, session-lifecycle, control-plane, v3-harness-tooling]
   blocked: [gstreamer-build, hardware-test-compile]
+  job_level_evidence:
+    observed_at: '2026-11-26T20:40Z'
+    media_agent_run: 44165205046
+    media_agent_run_conclusion: cancelled
+    hosted_success: [architecture-portability, session-lifecycle, rust-clippy, rust-format, rust-test-matrix]
+    self_hosted_cancelled_after_24h_queue: [hardware-test-compile, gstreamer-build]
+    cause: >-
+      Both self-hosted jobs require the vbmf-media label (media-agent.yml:320/406), but the only
+      registered runner vbmf-ci-02 carries self-hosted,Linux,X64,vbmf,vbmf-general - no runner can
+      be scheduled. Queue timeout, not a code failure. That runner host is neither BMD nor VM80, so
+      its DeckLink SDK availability is UNVERIFIED. Do NOT claim these two required checks passed.

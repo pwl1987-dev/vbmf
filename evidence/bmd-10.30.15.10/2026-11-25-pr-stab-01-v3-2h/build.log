@@ -1,0 +1,4 @@
+== BMD local build: features=bmd,gstreamer ==
+   DECKLINK_SDK_INCLUDE=/home/lytv/decklink-sdk-include
+   LIBCLANG_PATH=/usr/lib/llvm-21/lib
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.10s

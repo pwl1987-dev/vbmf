@@ -40,3 +40,8 @@ LICENSE text eol=lf
 *.pdf binary
 *.mp4 binary
 *.zip binary
+
+# Evidence archives: keep exact bytes from the source host
+# (md5s.txt in each dir is the integrity record; CRLF must not be normalized)
+evidence/**/*.csv -text
+evidence/**/*.jsonl -text

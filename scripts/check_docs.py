@@ -337,6 +337,38 @@ PHASE06_COVERAGE_REQUIRED = {
 }
 
 
+def id_prefixes(tid):
+    """返回 tid 自身 + 逐层剥掉尾部 '-NNN'/'_NNN' 后的所有前缀。
+
+    终止条件必须是「剥离后不再变化」: 旧实现按「t 回到原 tid」判定, 而剥离会停在
+    最后一个「无分隔符末段」(如 'AC-03B-2-001' -> 'AC'), 此时 re.sub 不再变化而
+    t != tid ⇒ 永不 break ⇒ G-DOC-READY 自落地起从未跑完。
+    (无分隔符的单 token id 如 'HA01' 首轮即 t == tid, 旧实现能正常退出。)
+    """
+    out = {tid}
+    t = tid
+    while True:
+        nt = re.sub(r"[-_][^-_]+$", "", t)
+        if nt == t or not nt:
+            break
+        t = nt
+        out.add(t)
+    return out
+
+
+def collect_covered_ids(tests):
+    """把 Test Case id 归一化为「规范条目 token」集合 (逐层剥前缀)。
+
+    独立成函数是为了让终止性回归测试无需 PyYAML 即可覆盖这条真实代码路径。
+    """
+    covered = set()
+    for _, d in tests:
+        tid = (d or {}).get("id") or ""
+        if tid:
+            covered.update(id_prefixes(tid))
+    return covered
+
+
 def check_phase06_harness():
     """Phase 0.6 G-DOC-READY 门禁 (回应 GDOC-01/02/03): 拆成 3 个子门禁, 全部 PASS 才 G-DOC-READY。
 
@@ -386,18 +418,7 @@ def check_phase06_harness():
     # ---------- COVERAGE ----------
     # 收集所有 Test Case id, 归一化为 "规范条目 token" (去掉末尾 -NNN / _NNN),
     # 再用结构化比对 (非 id 子串猜测) 核对 PHASE06_COVERAGE_REQUIRED 全条目均已被覆盖。
-    covered_ids = set()
-    for y, d in tests:
-        tid = d.get("id") or ""
-        if tid:
-            covered_ids.add(tid)
-            # 逐层剥前缀, 允许 AC-03B-2-001 同时计入 AC-03B-2 与 AC-03B
-            t = tid
-            while True:
-                t = re.sub(r"[-_][^-_]+$", "", t)
-                if t == tid or not t:
-                    break
-                covered_ids.add(t)
+    covered_ids = collect_covered_ids(tests)
 
     present = sorted(covered_ids)
     for item in PHASE06_COVERAGE_REQUIRED:
