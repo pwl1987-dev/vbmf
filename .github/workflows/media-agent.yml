@@ -296,6 +296,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: media-agent-linux-default
+          retention-days: 7
           path: ${{ runner.environment == 'self-hosted' && 'media-agent-linux-default-bin' || 'services/media-agent/target/debug/media-agent' }}
 
   # ── hardware-test-compile ────────────────────────────────────────────────────
@@ -323,6 +324,38 @@ jobs:
       DECKLINK_SDK_INCLUDE_HOST: /usr/local/share/decklink-sdk/include
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      # Media-scope change detection (2026-11-27): these two media-tier compile
+      # jobs are the only CI cost that occupies the BMD production box (~6-10 min
+      # each). When the diff cannot affect media-agent, skip the compile instead
+      # of compiling on the acceptance machine. The job still reports success, so
+      # the required check stays satisfied (skipped steps do not fail a job).
+      - name: Detect media-scope changes
+        id: scope
+        run: |
+          set -u
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          if ! changed="$(git diff --name-only "$base" "$GITHUB_SHA" 2>/dev/null)"; then
+            echo "media_scope=true (diff unavailable -> compile)"
+            echo "media_scope=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # No here-string and no pipefail on purpose: the pipeline exit status is
+          # grep's, so grep -q exiting early (SIGPIPE on echo) cannot flip the
+          # verdict. This form is portable and testable on both CI and a sandbox
+          # that forbids here-documents.
+          if echo "$changed" | grep -qE "^(services/media-agent/|scripts/ci/|Cargo\.toml$|\.github/workflows/media-agent\.yml$|rust-toolchain)"; then
+            scope=true
+          else
+            scope=false
+          fi
+          echo "changed files: $changed"
+          echo "media_scope=$scope"
+          echo "media_scope=$scope" >> "$GITHUB_OUTPUT"
       # GitHub-hosted (fork) path only: kept for boundary parity; the SDK build
       # itself never runs there (fork PRs have no SDK source by design).
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
@@ -345,7 +378,7 @@ jobs:
       # pattern) + persistent dirs outside the checkout (D3); dedicated
       # target-hwtest keeps the FFI build cache separate per job.
       - name: Rust env (self-hosted)
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         run: |
           if [ -n "${RUSTUP_TOOLCHAIN:-}" ]; then
             echo "caller RUSTUP_TOOLCHAIN present; refusing" >&2
@@ -358,31 +391,33 @@ jobs:
           echo "CARGO_TARGET_DIR=$ws_parent/target-hwtest" >> "$GITHUB_ENV"
           echo "DECKLINK_SDK_INCLUDE=$DECKLINK_SDK_INCLUDE_HOST" >> "$GITHUB_ENV"
       - name: build --features hardware-test (bindgen parse + FFI compile)
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         run: cargo build --features hardware-test
       - name: compile tests --features bmd-provider,ffmpeg-backend
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         run: cargo test --no-run --features bmd-provider,ffmpeg-backend
       # CARGO_TARGET_DIR redirect moves outputs outside the checkout and
       # upload-artifact v4 rejects '..' in path patterns — stage copies into
       # the workspace first (P2-E3 D5 pattern).
       - name: Stage artifacts for upload (self-hosted)
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         run: |
           cp "$CARGO_TARGET_DIR/debug/media-agent" "$GITHUB_WORKSPACE/media-agent-linux-hwtest-bin"
           mkdir -p "$GITHUB_WORKSPACE/bindings-debug"
           find "$CARGO_TARGET_DIR" -path '*/out/bindings.rs' -exec cp {} "$GITHUB_WORKSPACE/bindings-debug/" \;
       - name: debug-upload generated FFI bindings
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: decklink-bindings-debug
+          retention-days: 7
           path: bindings-debug/bindings.rs
       - name: upload media-agent-linux (hardware-test binary for BMD)
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: media-agent-linux
+          retention-days: 7
           path: media-agent-linux-hwtest-bin
 
   # ── gstreamer-build ──────────────────────────────────────────────────────────
@@ -410,6 +445,38 @@ jobs:
       CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      # Media-scope change detection (2026-11-27): these two media-tier compile
+      # jobs are the only CI cost that occupies the BMD production box (~6-10 min
+      # each). When the diff cannot affect media-agent, skip the compile instead
+      # of compiling on the acceptance machine. The job still reports success, so
+      # the required check stays satisfied (skipped steps do not fail a job).
+      - name: Detect media-scope changes
+        id: scope
+        run: |
+          set -u
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base="$(git rev-list --max-parents=0 HEAD)"
+          fi
+          if ! changed="$(git diff --name-only "$base" "$GITHUB_SHA" 2>/dev/null)"; then
+            echo "media_scope=true (diff unavailable -> compile)"
+            echo "media_scope=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # No here-string and no pipefail on purpose: the pipeline exit status is
+          # grep's, so grep -q exiting early (SIGPIPE on echo) cannot flip the
+          # verdict. This form is portable and testable on both CI and a sandbox
+          # that forbids here-documents.
+          if echo "$changed" | grep -qE "^(services/media-agent/|scripts/ci/|Cargo\.toml$|\.github/workflows/media-agent\.yml$|rust-toolchain)"; then
+            scope=true
+          else
+            scope=false
+          fi
+          echo "changed files: $changed"
+          echo "media_scope=$scope"
+          echo "media_scope=$scope" >> "$GITHUB_OUTPUT"
       # GitHub-hosted (fork) path only: kept for boundary parity — the build
       # itself never runs there (fork PRs have no SDK source by design).
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
@@ -437,7 +504,7 @@ jobs:
       # target-gstbuild keeps this feature set's build cache separate from
       # target-hwtest (different feature sets would invalidate each other).
       - name: Rust env (self-hosted)
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         run: |
           if [ -n "${RUSTUP_TOOLCHAIN:-}" ]; then
             echo "caller RUSTUP_TOOLCHAIN present; refusing" >&2; exit 1
@@ -449,17 +516,18 @@ jobs:
           echo "CARGO_TARGET_DIR=$ws_parent/target-gstbuild" >> "$GITHUB_ENV"
           echo "DECKLINK_SDK_INCLUDE=$DECKLINK_SDK_INCLUDE_HOST" >> "$GITHUB_ENV"
       - name: build --features bmd,gstreamer
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         run: cargo build --features bmd,gstreamer
       # CARGO_TARGET_DIR redirect moves the binary outside the checkout and
       # upload-artifact v4 rejects '..' in path patterns — stage a copy into
       # the workspace first (P2-E3 D5 pattern).
       - name: Stage artifact for upload (self-hosted)
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         run: cp "$CARGO_TARGET_DIR/debug/media-agent" "$GITHUB_WORKSPACE/media-agent-linux-gst-bin"
       - name: upload media-agent-gstreamer-linux
-        if: runner.environment == 'self-hosted'
+        if: runner.environment == 'self-hosted' && steps.scope.outputs.media_scope == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: media-agent-gstreamer-linux
+          retention-days: 7
           path: media-agent-linux-gst-bin
