@@ -69,6 +69,7 @@ next_action: |
   [2026-11-27] WCO-01A i18n 基础层 DONE_NEEDS_REVIEW（executor=Agent·未 commit）：t()+zh/en 词典+LocaleToggle+默认 zh-CN 全站接入（App/Gate/5 页）；凭据红线改白名单语义（vbmf.locale 可落盘·api key 仍禁）；修复 Node≥25 实验性 localStorage getter 遮蔽 jsdom storage（test/setup.ts 仅缺失时注入内存桩）。验证=vitest 80/80 · tsc 0 · vite build 0 · 红线 gate PASS。owner 复核通过（2026-11-27 签字：credentials.ts 断言放宽 + gate 豁免 + setup.ts 桩）。
   [2026-11-27] WEB-CONSOLE-OPERATOR-UI-01 已登记 READY（owner 裁决「通过，按此登记排期」·D1–D4 按建议采纳）⇒ 排在 PR-STAB-01 收口落笔之后开工；plan=docs/superpowers/plans/2026-11-27-web-console-operator-ui-01-work-packet.md。
   PR-STAB-01 **STABILITY VERIFIED** + 两组 commit 已落 main（`4188981` PR-STAB / `51359bf` WCO-01·§3.114）⇒ 唯一下一步 = owner 五项拍板 + B 组与 `ops/standalone/README.md` 留树处置。
+  [2026-11-27] §3.115 vbmf-media runner 落地 BMD（owner「就装在BMD」裁定·覆盖 CI_RUNNER_STRATEGY 旧拓扑）⇒ media-agent CI run 45964172322 全绿 7/7·blockers CI-MEDIA-RUNNER 关闭·章程 §15.1 文内更正待 owner。vite dev(5173) 为 1h 上限一次性后台任务，到期需重启。
   禁止事项：不得用 BMD 侧带 §3.103 被否证 env 的 ~/vbmf-v3/r64-probe/run-long-v3.sh（必须用仓库干净版）；
   不得在 rung 运行期并行编译/heapprofile；不得自行 commit（AGENTS.md 默认不 commit）。
   **收官默认姿态（2026-11-26 12:38 问卷 60s 超时由系统自动选定，explicitUserConfirmation=false ⇒ 未确认，owner 可随时改）**：①改动不 commit（保持工作树，由 owner 提交）②不为 evidence JSON 加 .gitignore 窄例外（判定可由仓库内 analyzer 确定性复算）③AGENTS.md 顶部过期摘要完全不动 ④两个可选候选（plateau 门限参数化 / 有界 malloc_trim）均不采纳，保留为工作树候选。⇒ 四项均为「不新增动作」，故 24h 收官不含任何不可逆或对外可见操作。
@@ -92,19 +93,20 @@ issue_pointers:
 blockers:
   - id: CI-MEDIA-RUNNER
     detail: >-
-      The vbmf-media self-hosted runner (vbmf-ci-media) is no longer registered to the repo, so
-      the required checks gstreamer-build and hardware-test-compile stay queued. Last successful
-      media-agent CI was on 939faf7 (2026-11-02) — a pre-existing infrastructure gap, unrelated
-      to the 2026-11-18 commits (docs + 2 shell scripts only). BMD may not host a runner
-      (CI_RUNNER_STRATEGY deployment red line), so the media host is a different machine.
-      Do NOT claim the pushed head is fully green.
+      RESOLVED 2026-11-27 (STATE §3.115, owner ruling to host the media runner on BMD itself):
+      vbmf-bmd-media (actions/runner 2.338.2, labels vbmf,vbmf-media) is registered as a systemd
+      service on the BMD box, superseding the earlier CI_RUNNER_STRATEGY placement (old
+      vbmf-ci-media KVM VM dropped out of repo registration ~2026-11-02; charter kept BMD
+      runner-free). media-agent CI run 45964172322 (d2ffe61) went fully green 7/7 including
+      gstreamer-build and hardware-test-compile. Discipline: keep CI builds out of future BMD
+      ladder measurement windows; CI_RUNNER_STRATEGY.md doc amendment pending owner.
 ci_status:
   observed_at_commit: 8b68f7b4b6a840e979db500d38502b1c5a3624d0
   note: >-
     Live HEAD is obtained with `git rev-parse origin/main`; this file never pins a
     self-referential HEAD SHA. Re-check the exact head before quoting CI status.
-  green: [rust-format, rust-test-matrix, rust-clippy, architecture-portability, session-lifecycle, control-plane, v3-harness-tooling]
-  blocked: [gstreamer-build, hardware-test-compile]
+  green: [rust-format, rust-test-matrix, rust-clippy, architecture-portability, session-lifecycle, control-plane, v3-harness-tooling, gstreamer-build, hardware-test-compile]
+  blocked: []
   job_level_evidence:
     observed_at: '2026-11-26T20:40Z'
     media_agent_run: 44165205046
