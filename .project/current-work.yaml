@@ -14,7 +14,7 @@ state_authority:
 current_task:
   id: PR-STAB-01
   title: Long Stability v3 qualification (observer-backpressure fix line)
-  status: STABILITY_VERIFIED_PENDING_OWNER_COMMIT
+  status: STABILITY_VERIFIED_AND_TWO_GROUPS_COMMITTED_RESIDUALS_PENDING
   runtime_commit: 6fc1b1a
   runtime_binary_md5_prefix: 3898ced3
   stability_verified: false
@@ -68,7 +68,7 @@ next_action: |
   [2026-11-27] WCO-01B 01-dashboard DONE_NEEDS_REVIEW（executor=Agent·未 commit）：DashboardPage+HlsMonitor（hls.js 1.5.17 播同源 /hls/index.m3u8）；statebar=PGM 真状态+四格显式 N/A+告警计数；NEXT=空闲输入设备；通道状态=真观测行；意图层=真四状态+DIVERGENT；起停监看走真 Product API（intent sink.kind=hls）；默认落地页=dashboard（D4 兑现·旧 5 页保留）；数据面=2s 轮询 runtime+alarms。验证=vitest 84/84 · tsc 0 · vite build 0 · 红线 gate PASS。BMD 实机 API 往返全通：新签 operator key（30d·id=AOO87XQEQIPXFYbexx8rZ7JA9R6d1tRm·明文只在本轮出现）；stop 旧 RPC 会话 bf27c2b9→released；API start sink.kind=hls→6c659606 running（inputs SDI-IN-1·outputs hls）；/hls/index.m3u8 HTTP 200 且分段实时递增=新会话留播。owner 已签字（2026-11-27「全部通过，按此签字」）：diff 复核 + LOCK 六项偏差全过，旧 bf27c2b9 置换已知悉。commit 仍归 owner（逐路径 add·禁 git add -A）。
   [2026-11-27] WCO-01A i18n 基础层 DONE_NEEDS_REVIEW（executor=Agent·未 commit）：t()+zh/en 词典+LocaleToggle+默认 zh-CN 全站接入（App/Gate/5 页）；凭据红线改白名单语义（vbmf.locale 可落盘·api key 仍禁）；修复 Node≥25 实验性 localStorage getter 遮蔽 jsdom storage（test/setup.ts 仅缺失时注入内存桩）。验证=vitest 80/80 · tsc 0 · vite build 0 · 红线 gate PASS。owner 复核通过（2026-11-27 签字：credentials.ts 断言放宽 + gate 豁免 + setup.ts 桩）。
   [2026-11-27] WEB-CONSOLE-OPERATOR-UI-01 已登记 READY（owner 裁决「通过，按此登记排期」·D1–D4 按建议采纳）⇒ 排在 PR-STAB-01 收口落笔之后开工；plan=docs/superpowers/plans/2026-11-27-web-console-operator-ui-01-work-packet.md。
-  PR-STAB-01 **STABILITY VERIFIED（owner 2026-11-27 授权代笔·§3.113）** ⇒ 唯一下一步 = owner 两组 commit（A+C 建议采纳、B 默认不采纳）+ 其余拍板项；RD-01A 解冻可批准。
+  PR-STAB-01 **STABILITY VERIFIED** + 两组 commit 已落 main（`4188981` PR-STAB / `51359bf` WCO-01·§3.114）⇒ 唯一下一步 = owner 五项拍板 + B 组与 `ops/standalone/README.md` 留树处置。
   禁止事项：不得用 BMD 侧带 §3.103 被否证 env 的 ~/vbmf-v3/r64-probe/run-long-v3.sh（必须用仓库干净版）；
   不得在 rung 运行期并行编译/heapprofile；不得自行 commit（AGENTS.md 默认不 commit）。
   **收官默认姿态（2026-11-26 12:38 问卷 60s 超时由系统自动选定，explicitUserConfirmation=false ⇒ 未确认，owner 可随时改）**：①改动不 commit（保持工作树，由 owner 提交）②不为 evidence JSON 加 .gitignore 窄例外（判定可由仓库内 analyzer 确定性复算）③AGENTS.md 顶部过期摘要完全不动 ④两个可选候选（plateau 门限参数化 / 有界 malloc_trim）均不采纳，保留为工作树候选。⇒ 四项均为「不新增动作」，故 24h 收官不含任何不可逆或对外可见操作。
