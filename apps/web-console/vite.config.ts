@@ -15,6 +15,13 @@ export default defineConfig({
     port: 5173,
     host: "0.0.0.0",
     strictPort: true,
+    // dev-only：本 Mac 上看新 console 时直连 BMD nginx（产品后端）；生产仍是 Nginx 同源反代，红线不变。
+    const devTarget = process.env.VBMF_DEV_PROXY ?? "http://10.30.15.10:8081";
+    proxy: {
+      "/api": { target: devTarget, changeOrigin: true },
+      "/events": { target: devTarget, changeOrigin: true },
+      "/health": { target: devTarget, changeOrigin: true },
+    },
   },
   preview: {
     port: 5173,
