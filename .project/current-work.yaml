@@ -20,7 +20,7 @@ current_task:
   stability_verified: true
   rd_01a_runtime_implementation: frozen
   summary: |
-    CURRENT (2026-11-27, §3.105–§3.128): root cause LOCKED AND FIXED — closed-source Blackmagic
+    CURRENT (2026-11-27, §3.105–§3.135): root cause LOCKED AND FIXED — closed-source Blackmagic
     Desktop Video SDK leaked per frame; upgrade 16.2a1 → 16.5a1 cut the live slope +5.97MB/h →
     +0.066MB/h (24h 终段). Qualification ladder rung 1 (2h) / rung 2 (8h) / rung 3 (24h) ALL
     V3_VERDICT PASS (fail=0 missing=0) ⇒ **STABILITY VERIFIED**（§3.113）。绑定四元组 =
