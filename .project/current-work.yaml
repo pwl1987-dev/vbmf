@@ -71,6 +71,7 @@ next_action: |
   PR-STAB-01 **STABILITY VERIFIED** + 两组 commit 已落 main（`4188981` PR-STAB / `51359bf` WCO-01·§3.114）⇒ 唯一下一步 = owner 五项拍板 + B 组与 `ops/standalone/README.md` 留树处置。
   [2026-11-27] §3.115 vbmf-media runner 落地 BMD（owner「就装在BMD」裁定·覆盖 CI_RUNNER_STRATEGY 旧拓扑）⇒ media-agent CI run 45964172322 全绿 7/7·blockers CI-MEDIA-RUNNER 关闭·章程 §15.1 文内更正待 owner。vite dev(5173) 为 1h 上限一次性后台任务，到期需重启。
   [2026-11-27] §3.116 四笔 commit 落 main（81735ac/ded070b/ee43eaa/411b973）⇒ BMD **systemd 托管版 runner 已接完整 job**（journal 铁证：hardware-test-compile 09:33:58→09:35:52 Succeeded、gstreamer-build 09:35:57→09:36:24 Succeeded，systemd MainPID 2279226 未变）。B 组 6 项仍未提交（Runtime source 变更 ⇒ 失效 VERIFIED 绑定 ⇒ 默认不采纳·留树）。教训：vite.config.ts 改动后 tsc 不算数，必须 vitest run（esbuild 才加载 config）。
+  [2026-11-27] §3.117 B 组 6 项**拆分拍板**（owner 授权 Agent 拍板）：A 档 2 项（参数化 analyzer + 单测）**采纳入库**（commit e53ef13·默认门限 1.0 ⇒ 行为等价·8h 回归逐位一致·单测 22/22·三条 CI 全绿）⇒ **零 Runtime 改动 ⇒ VERIFIED 绑定与三档判定均不受影响、无需重走 ladder**；B 档 4 项（memtrim.rs 105 行 + lib/config/bin 接线）**stash@{0} 保留不进主干**（Runtime 变更 ⇒ 必失效 VERIFIED 须重走 26h+ 阶梯；且 440MB 可回收量在 16.5 下属未知·收益前提已被推翻）⇒ 恢复用 git stash pop。
   禁止事项：不得用 BMD 侧带 §3.103 被否证 env 的 ~/vbmf-v3/r64-probe/run-long-v3.sh（必须用仓库干净版）；
   不得在 rung 运行期并行编译/heapprofile；不得自行 commit（AGENTS.md 默认不 commit）。
   **收官默认姿态（2026-11-26 12:38 问卷 60s 超时由系统自动选定，explicitUserConfirmation=false ⇒ 未确认，owner 可随时改）**：①改动不 commit（保持工作树，由 owner 提交）②不为 evidence JSON 加 .gitignore 窄例外（判定可由仓库内 analyzer 确定性复算）③AGENTS.md 顶部过期摘要完全不动 ④两个可选候选（plateau 门限参数化 / 有界 malloc_trim）均不采纳，保留为工作树候选。⇒ 四项均为「不新增动作」，故 24h 收官不含任何不可逆或对外可见操作。
