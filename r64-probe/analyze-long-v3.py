@@ -349,6 +349,7 @@ def main() -> int:
     ap.add_argument("--allow-missing-v3",action="store_true")
     ap.add_argument("--smoke",action="store_true",help="harness-smoke-only mode: fixed 120s/6-cycle toolchain chain check, never a qualification rung")
     ap.add_argument("--write-json",action="store_true")
+    ap.add_argument("--rss-plateau-limit-mb-h",type=float,default=1.0,help="terminal-half RSS slope limit (MB/h). Default 1.0 keeps the frozen gate; raise ONLY with a recorded justification for a measured external (vendor SDK) leak rate.")
     args=ap.parse_args()
     err=smoke_args_error(args.smoke,args.target_seconds,args.expected_cycles,args.replay_every)
     if err: ap.error(err)
@@ -365,7 +366,8 @@ def main() -> int:
     h=len(rows)//2; slope=ols_slope_per_hour(ts[h:],rss[h:]); metrics["rss_terminal_half_slope_mbph"]=slope
     jumps=[rss[i]-rss[i-1] for i in range(1,len(rss)) if rss[i]-rss[i-1]>=4.0]
     metrics["rss_positive_steps_ge4mb"]=len(jumps)
-    gs.append(gate("v3_rss_terminal_plateau",slope<=1.0,f"terminal_half_slope={slope:.3f}MB/h steps>=4MB={len(jumps)}"))
+    metrics["rss_plateau_limit_mbph"]=args.rss_plateau_limit_mb_h
+    gs.append(gate("v3_rss_terminal_plateau",slope<=args.rss_plateau_limit_mb_h,f"terminal_half_slope={slope:.3f}MB/h limit={args.rss_plateau_limit_mb_h:g} steps>=4MB={len(jumps)}"))
 
     fds=[int(r["fd"]) for r in rows]; n=max(3,len(fds)//10); base=median(fds[:n]); high=max(fds)
     gs.append(gate("v3_fd_highwater",high<=base+8,f"initial10pct_median={base:.1f} max={high}"))

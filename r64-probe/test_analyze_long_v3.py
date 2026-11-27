@@ -384,6 +384,51 @@ class LongStabilityV3Tests(unittest.TestCase):
             self.assertTrue(j["harness_smoke_only"])
             self.assertEqual(j["v3_verdict"], "SMOKE_FAIL")
 
+    def _write_rising_samples(self, root: Path, cycles: int = 6, step_kb: int = 10000):
+        fields = ["cycle", "ts", "rss_kb", "threads", "fd", "sw_epoch",
+                  "frames_v", "frames_a", "dropped", "clock_lost"]
+        with (root / "samples.csv").open("w", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields)
+            w.writeheader()
+            for i in range(cycles):
+                w.writerow({"cycle": i + 1, "ts": 1000 + i * 600, "rss_kb": 100000 + i * step_kb,
+                            "threads": 10, "fd": 40, "sw_epoch": i + 1,
+                            "frames_v": 1000 * (i + 1), "frames_a": 500 * (i + 1),
+                            "dropped": 0, "clock_lost": 0})
+
+    def _plateau_gate(self, root: Path):
+        j = json.loads((root / "v3-summary.json").read_text())
+        return [g for g in j["gates"] if g["name"] == "v3_rss_terminal_plateau"][0]
+
+    def test_rss_plateau_limit_default_is_frozen(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_rising_samples(root)
+            rc, out = self._run_analyzer([
+                "analyze-long-v3.py", str(root),
+                "--target-seconds", "1200", "--expected-cycles", "6",
+                "--replay-every", "5", "--allow-missing-v3", "--write-json",
+            ])
+            g = self._plateau_gate(root)
+            self.assertEqual(g["status"], "FAIL")
+            self.assertIn("limit=1", g["note"])
+
+    def test_rss_plateau_limit_explicit_raise_is_recorded(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            self._write_rising_samples(root)
+            rc, out = self._run_analyzer([
+                "analyze-long-v3.py", str(root),
+                "--target-seconds", "1200", "--expected-cycles", "6",
+                "--replay-every", "5", "--allow-missing-v3",
+                "--rss-plateau-limit-mb-h", "80", "--write-json",
+            ])
+            g = self._plateau_gate(root)
+            self.assertEqual(g["status"], "PASS")
+            self.assertIn("limit=80", g["note"])
+            j = json.loads((root / "v3-summary.json").read_text())
+            self.assertEqual(j["metrics"]["rss_plateau_limit_mbph"], 80.0)
+
     def test_cli_rejects_smoke_param_mismatches(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
