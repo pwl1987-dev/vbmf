@@ -1,0 +1,15 @@
+{
+  "machine_id": "10.30.15.10",
+  "source_commit": "8b68f7b4b6a840e979db500d38502b1c5a3624d0",
+  "binary_path": "/home/lytv/main-20261124/services/media-agent/target/debug/media-agent",
+  "binary_md5": "c569aca7179b6b2638ccb5c95349a1f9",
+  "manifest_path": "/home/lytv/a2-8-02i-v5.manifest.json",
+  "manifest_md5": "7521d17e7fd02e50eb2b0a84374a43dd",
+  "driver_path": "/tmp/vbmf-pr-stab-01-v3-8h-soak.sh",
+  "driver_sha256": "e1f8dd30a234352786d7d910e7d13e11677771df6160470271c605f9839431c5",
+  "target_seconds": 28800,
+  "runtime_pid": 313818,
+  "protected_pid": 5725,
+  "protected_cmdline_before": "gst-launch-1.0 -e videotestsrc is-live=true pattern=ball ! video/x-raw,format=UYVY,width=1920,height=1080,framerate=25/1 ! decklinkvideosink device-number=2 mode=1080p25",
+  "collector_started_epoch": 1795586070.8792238
+}

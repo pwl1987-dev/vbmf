@@ -29,6 +29,20 @@ ops/.env.*
 
 evidence/**/*.json
 
+# Narrow exception (2026-11-27): PR-STAB-01 v3 ladder verdict JSONs (2h/8h/24h).
+# These 7 files per rung are the judgment + provenance anchors (v3-summary verdict,
+# v3-identity source/binary pin, teardown responses) and are listed in each rung's
+# md5s.txt integrity record -> they must be byte-exact in Git. Explicit per-file
+# allowlist on purpose: do NOT widen to all evidence JSON (keeps the UTF-16LE
+# incident guard of commit 54af3de intact).
+!evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/health.json
+!evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/health0.json
+!evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/runtime-before.json
+!evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/stop-response.json
+!evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/v3-identity.json
+!evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/v3-postrun.json
+!evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/v3-summary.json
+
 # build artifacts
 *.tar.gz
 **/graphify-out/

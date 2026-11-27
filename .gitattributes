@@ -45,3 +45,6 @@ LICENSE text eol=lf
 # (md5s.txt in each dir is the integrity record; CRLF must not be normalized)
 evidence/**/*.csv -text
 evidence/**/*.jsonl -text
+# PR-STAB-01 v3 ladder verdict JSONs are covered by each rung's md5s.txt integrity
+# record -> byte-exact, no line-ending normalization.
+evidence/bmd-10.30.15.10/2026-11-25-pr-stab-01-v3-*/*.json -text

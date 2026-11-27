@@ -1,0 +1,14 @@
+{
+  "collector_finished_epoch": 1795585932.4401455,
+  "stop_marker_seen": true,
+  "runtime_process_absent": true,
+  "listeners": {
+    "8080": false,
+    "50051": false
+  },
+  "protected_pid": 5725,
+  "protected_alive_after": true,
+  "protected_cmdline_before": "gst-launch-1.0 -e videotestsrc is-live=true pattern=ball ! video/x-raw,format=UYVY,width=1920,height=1080,framerate=25/1 ! decklinkvideosink device-number=2 mode=1080p25",
+  "protected_cmdline_after": "gst-launch-1.0 -e videotestsrc is-live=true pattern=ball ! video/x-raw,format=UYVY,width=1920,height=1080,framerate=25/1 ! decklinkvideosink device-number=2 mode=1080p25",
+  "protected_unchanged": true
+}

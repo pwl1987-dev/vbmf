@@ -1,0 +1,178 @@
+{
+  "evidence_dir": "/home/lytv/a2-8-02i-evidence/2026-11-25-pr-stab-01-v3-2h",
+  "harness_smoke_only": false,
+  "v2_compat_verdict": "PASS",
+  "v3_verdict": "PASS",
+  "smoke_tolerated_failures": [],
+  "gates": [
+    {
+      "name": "v2_threads_bounded_oscillation",
+      "status": "PASS",
+      "note": "min=31 max=33 spread=2"
+    },
+    {
+      "name": "v2_fd_bounded",
+      "status": "PASS",
+      "note": "first3=17.0 last3=17.0"
+    },
+    {
+      "name": "v2_rss_bounded",
+      "status": "PASS",
+      "note": "first_third=1238.6MB last_third=1240.3MB delta=1.7MB monotonic=False"
+    },
+    {
+      "name": "v2_switch_epoch_per_command_plus1",
+      "status": "PASS",
+      "note": "first=1 last=256 expected=256"
+    },
+    {
+      "name": "v2_switches_all_executed_preserved",
+      "status": "PASS",
+      "note": "ok=256/256 expected=256"
+    },
+    {
+      "name": "v2_observed_tracks_per_command",
+      "status": "PASS",
+      "note": "match=256/256 expected=256"
+    },
+    {
+      "name": "v2_frames_advancing",
+      "status": "PASS",
+      "note": "v=25->220487 a=35->293942"
+    },
+    {
+      "name": "v2_drops_clock_zero",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "name": "v2_watchdog_ticks_advancing",
+      "status": "PASS",
+      "note": "mid=366 end=737"
+    },
+    {
+      "name": "v2_events_no_critical",
+      "status": "PASS",
+      "note": "samples=128"
+    },
+    {
+      "name": "v3_evidence_complete",
+      "status": "PASS",
+      "note": "rows=256 expected=256"
+    },
+    {
+      "name": "v3_wallclock_duration",
+      "status": "PASS",
+      "note": "sample_span=7345s target=7200s"
+    },
+    {
+      "name": "v3_rss_terminal_plateau",
+      "status": "PASS",
+      "note": "terminal_half_slope=0.122MB/h steps>=4MB=3"
+    },
+    {
+      "name": "v3_fd_highwater",
+      "status": "PASS",
+      "note": "initial10pct_median=17.0 max=17"
+    },
+    {
+      "name": "v3_replay_exact",
+      "status": "PASS",
+      "note": "replayed=51/51 expected=51"
+    },
+    {
+      "name": "v3_http_continuity_latency",
+      "status": "PASS",
+      "note": "rows=3642 non200=0 p99=2.104ms max=21.931ms"
+    },
+    {
+      "name": "v3_watchdog_cadence",
+      "status": "PASS",
+      "note": "ticks=737 max_gap=10.009s"
+    },
+    {
+      "name": "v3_anatomy_handles",
+      "status": "PASS",
+      "note": "handles=[1, 2]"
+    },
+    {
+      "name": "v3_anatomy_buffers_advancing",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "name": "v3_anatomy_clean_counters",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "name": "v3_anatomy_video_rate",
+      "status": "PASS",
+      "note": "h1=25.00/s h2=25.00/s"
+    },
+    {
+      "name": "v3_sidecar_present",
+      "status": "PASS",
+      "note": "samples=246"
+    },
+    {
+      "name": "v3_sidecar_coverage",
+      "status": "PASS",
+      "note": "active_window=7321s target>=7140s warmup_samples=1 active_samples=245"
+    },
+    {
+      "name": "v3_sidecar_http_200",
+      "status": "PASS",
+      "note": "warmup_samples=1 active_samples=245"
+    },
+    {
+      "name": "v3_topology_constant",
+      "status": "PASS",
+      "note": "warmup_samples=1 active_samples=245 expected Capturing devices=3 pipelines=3 sessions=1 inputs=2 switch=true"
+    },
+    {
+      "name": "v3_sidecar_drop_clock_zero",
+      "status": "PASS",
+      "note": "warmup_samples=1 active_samples=245"
+    },
+    {
+      "name": "v3_socket_bounded",
+      "status": "PASS",
+      "note": "warmup_samples=1 active_samples=245 base=7.0 tail=7.0 max=8"
+    },
+    {
+      "name": "v3_identity_pinned",
+      "status": "PASS",
+      "note": "source=8b68f7b4b6a840e979db500d38502b1c5a3624d0 binary=c569aca7179b6b2638ccb5c95349a1f9"
+    },
+    {
+      "name": "v3_stop_session_executed",
+      "status": "PASS",
+      "note": ""
+    },
+    {
+      "name": "v3_teardown_marker",
+      "status": "PASS",
+      "note": "count=1"
+    },
+    {
+      "name": "v3_runtime_residue",
+      "status": "PASS",
+      "note": "process_absent=True listeners={'8080': False, '50051': False}"
+    },
+    {
+      "name": "v3_protected_device_unchanged",
+      "status": "PASS",
+      "note": ""
+    }
+  ],
+  "metrics": {
+    "rss_first_third_mb": 1238.6080882352942,
+    "rss_last_third_mb": 1240.3279411764706,
+    "rss_third_delta_mb": 1.7198529411764412,
+    "rss_terminal_half_slope_mbph": 0.12197370438274992,
+    "rss_positive_steps_ge4mb": 3,
+    "http_p99_ms": 2.104,
+    "http_max_ms": 21.930999999999997
+  }
+}
