@@ -58,6 +58,6 @@
 ## 5. Phase 0.6 当前总体状态
 
 - **Architecture Contract**：`FROZEN`（`CONTRACT_STATUS = FROZEN`）。
-- **Implementation Gate**：`NOT PASSED`（`ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 当前编译不过）。
+- **Implementation Gate**：`NOT PASSED`（`ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 当前编译不过）。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 - **含义**：契约关系已锁定（后续实现不得再发明新抽象）；但代码实现仍须过两门禁后才算 P0 完成。
 - 这正是 `ARCHITECTURE_FREEZE ≠ IMPLEMENTATION_FREEZE`：架构冻结 ≠ 实现完成。

@@ -193,6 +193,11 @@ Phase 0.5B 用了 6 个**编号工作域**:
 
 ## 4. 权限到域的映射 (Phase 0.5C 锁定)
 
+> ⚠️ **角色口径冲突（2026-11-27 M0 标注 · 未擅改语义）**
+> 本表是 **7 角色版**（Phase 0.5C），而 `OPERATOR_WORKFLOW.md:9-14` 与 `SURFACE_SPEC.md:148-155` 是 **4 角色版**（LOCK），且 `SURFACE_SPEC.md:123` 明写「仅内置 **4 角色**（不可删提示）」。
+> **当前权威 = 4 角色版**（有 LOCK 声明且与权限矩阵 `SURFACE_SPEC.md:173-186` 一致）；本表多出的 **SRE / Content Manager / Editor** 三角色在 LOCK 权限矩阵中无对应行。
+> 收敛裁决待 owner 拍板（`docs/VBMF_PRODUCT_PRD.md` §11 Q2）—— 在裁决前，本表仅供导航参考，**不得作为权限实现依据**。
+
 | 角色 | BROADCAST | MEDIA | ENGINEERING | ADMIN |
 |---|---|---|---|---|
 | **Operator** | R/W (切播) | R | R | — |

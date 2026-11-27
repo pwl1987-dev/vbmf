@@ -2,6 +2,12 @@
 
 ## API / External Integration / Device Control / Event Federation
 
+> 📜 **状态：裁剪采纳 —— 本 PRD 不全盘接受。**
+> - **#1–#137** → 可作 P1 规划基线（多数已在 0.7C / 0.7D 落地，见新 PRD §7.1）
+> - **#138–#170** → **外置，不得回流**（Multi-site / Federation / Agent Registration / Artifact 上传子系统 / Event 三套推送 / Recording-Playback）；依据 `PRD_REVIEW_EXTERNAL_API.md` §0.5 与 §3.5（I–Q），理由：**无消费方不建抽象**
+> **产品层唯一入口改看：** [`VBMF_PRODUCT_PRD.md`](./VBMF_PRODUCT_PRD.md)（V1.0 DRAFT，2026-11-27）；外置清单见新 PRD §0.3 与 §1.3。
+> **处置**：原文保留作审计留痕，不删改。
+
 **项目：** VBMF  
 **阶段：** Runtime Abstraction 后续配套架构  
 **文档类型：** 独立 PRD + API Architecture Contract  

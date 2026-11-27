@@ -7,12 +7,12 @@ role: technical-design
 spec: openspec
 canonical_spec: openspec
 links:
-  - "[p06-bc-provider-backend-spi](p06-bc-provider-backend-spi)"
+  - "[p06-bc-provider-backend-spi](../2026-08-29-p06-bc-provider-backend-spi/)"
 ---
 
 # Design Doc — Phase 0.6 C1 (0.6B+C): Provider/Backend SPI 抽取
 
-> 本设计文档对应 OpenSpec change [`p06-bc-provider-backend-spi`](../../../changes/p06-bc-provider-backend-spi)（canonical spec = OpenSpec）。
+> 本设计文档对应 OpenSpec change [`p06-bc-provider-backend-spi`](../../../changes/archive/2026-08-29-p06-bc-provider-backend-spi)（canonical spec = OpenSpec）。
 > Superpowers 深度设计文档。配套 `proposal.md` / `tasks.md`（open 阶段产物）。本文件是 design 阶段交付物，聚焦**可执行边界**与**逐文件迁移方案**。
 
 ## 1. 现状事实（已核验，非臆测）

@@ -1,6 +1,6 @@
 # RUNTIME_BINDING_MODEL（Binding 契约）
 
-> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.6, P0）
+> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.6, P0）（**状态订正 2026-11-27 · gap matrix `Runtime Binding` 行**）：IMPLEMENTATION = `PARTIAL`；VERIFICATION = **`LAB_VERIFIED`**（仅单测 `Partial`，**无真机执行**；所引 `evidence/.../acceptance` 在仓内不可解析）；GATE 以 `PHASE_0_6_ACCEPTANCE_MATRIX.md` 为准。**边界**：本节 `HW-PORT-01` / #144 Device Replacement Acceptance 在 Acceptance Matrix 无门禁判定记录 ⇒ 未计入验证级别。
 > 来源：Portability PRD #19, #60, #102, #115, #116, #117, #118, #119
 > 关联：`RUNTIME_SESSION_MODEL.md`、`RUNTIME_RESOURCE_MODEL.md`
 

@@ -7,7 +7,7 @@ role: technical-design
 spec: openspec
 canonical_spec: openspec
 links:
-  - "[p06-g-arch-portability-gate](p06-g-arch-portability-gate)"
+  - "[p06-g-arch-portability-gate](../2026-08-29-p06-g-arch-portability-gate/)"
 ---
 
 # Design: Phase 0.6 C4 — ARCH-PORTABILITY-01

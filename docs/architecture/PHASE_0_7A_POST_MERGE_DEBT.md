@@ -10,16 +10,16 @@
 | # | 债务 | 现状 | 关闭条件 | 目标阶段 |
 |---|------|------|----------|----------|
 | D1 | ~~**LifecycleJournal / LifecycleTransaction**：`start()` 各失败点各自手写 rollback~~ ✅ **CLOSED @ RH-LC-01 (2026-09-18)**：`SessionManager::start()` 引入私有 `CompletedStep[]` + 单一 `rollback_start_journal()`；已实例化/已启动 handles 逆序 stop 后才释放 allocation→lease→reservation；materialize/instantiate/partial-allocation/start failure 统一入口；新增双输入第二句柄 start 失败测试机械锁定逆序 stop 与零双清理 | 统一 journal 已落地；create/stop/Program ownership 未改 | software：mock 429/429 + default 246/246 + integration 9/9+12/12 + fmt/clippy；CI `35279581145`；BMD exact-commit smoke 因当前工具通道限制 deferred | CLOSED |
-| D2 | **derive_claims FAIL 化（RESOURCE-RESOLUTION-01）**：intent 设备找不到 Resource 时 claims 为空 → Preflight 仅 WARN | WARN（legacy/无 manifest 路径兼容） | 资源解析三态 `Resolved/Missing/Ambiguous`：Missing/Ambiguous → FAIL | 0.7B |
+| D2 | ~~**derive_claims FAIL 化（RESOURCE-RESOLUTION-01）**：intent 设备找不到 Resource 时 claims 为空 → Preflight 仅 WARN~~ ✅ **CLOSED @ p07c-runtime-state (2026-08-31)**：preflight Stage3 三态 Resolution，设备无派生 input 资源 ⇒ FAIL | ~~WARN（legacy/无 manifest 路径兼容）~~ → 三态 Resolved/Missing/Ambiguous | 资源解析三态 `Resolved/Missing/Ambiguous`：Missing/Ambiguous → FAIL | ~~0.7B~~ → CLOSED |
 | D3 | ~~**per-claim Reservation TTL**：预留过期以 Session Reserved 相位停留窗口近似~~ ✅ **CLOSED @ RH-RES-01A (2026-09-18)**：Resource Registry 持有 per-claim internal deadline；Reserve/Renew/Expire/Abort 显式化；expected-claims Renew 同锁域 all-or-none，错 holder/已到 TTL 不得续活；Session created-time TTL 删除 | per-claim TTL truth 已收敛到 Resource Registry；wire JSON 不新增字段 | Resource 7/7 + Session 6/6；mock 432/432 + 9/9+12/12；default 248/248；CI `35293309933` 7/7；BMD not required | CLOSED |
 
 ## Preflight 精确化（P1-2 类）
 
 | # | 债务 | 现状 | 关闭条件 | 目标阶段 |
 |---|------|------|----------|----------|
-| D4 | **PortAvailability 精确到端口**：当前仅"设备有任意端口" | 设备级判定 | `source.port_id → 具体端口 → direction==Input → capability 兼容 → runtime binding 可用`（SDI/HDMI/IP 混合卡前置条件） | 0.7B（Port Availability Contract） |
-| D5 | **IdentityBinding 实查强度（IDENTITY-BINDING-01）**：当前仅 key-existence | contains_key | 实查 `Confidence==High / match_kind==ManifestVerified` + identity strength 分别判定 | 0.7B |
-| D6 | **BACKEND-CAPABILITY-01**：BackendCapability stage 恒 WARN 占位 | 占位报告 | 真实能力探针接线 + 硬性判定规则 | 0.7B/0.7C |
+| D4 | ~~**PortAvailability 精确到端口**：当前仅"设备有任意端口"~~ ✅ **CLOSED @ p07c-runtime-state**：端口级（port_id 精确匹配 + 方向 / None ⇒ ≥1 Input 端口），镜像 materialize 冻结语义 | ~~设备级判定~~ → 端口级判定 | `source.port_id → 具体端口 → direction==Input → capability 兼容 → runtime binding 可用`（SDI/HDMI/IP 混合卡前置条件） | ~~0.7B（Port Availability Contract）~~ → CLOSED |
+| D5 | ~~**IdentityBinding 实查强度（IDENTITY-BINDING-01）**：当前仅 key-existence~~ ✅ **CLOSED @ p07c-runtime-state**：`is_production_grade()`（HIGH + 精确匹配 / ManifestVerified），preflight + create 双侧实查 | ~~contains_key~~ → 实查强度判定 | 实查 `Confidence==High / match_kind==ManifestVerified` + identity strength 分别判定 | ~~0.7B~~ → CLOSED |
+| D6 | ~~**BACKEND-CAPABILITY-01**：BackendCapability stage 恒 WARN 占位~~ ✅ **CLOSED @ p07c-runtime-query (2026-08-31)**：capability projection（DeviceCapabilities→DeviceCapabilitiesSummary）+ preflight 硬判定（Unsupported ⇒ FAIL / Unknown ⇒ WARN 不臆造 / Supported ⇒ Pass）；真机 DeviceCapabilities 未探测 ⇒ Unknown 合法 | ~~占位报告~~ → 真实能力投影 + 硬判定 | 真实能力探针接线 + 硬性判定规则 | ~~0.7B/0.7C~~ → CLOSED（**演进项**：真实 BMD SDK 深度探针仍 OPEN·非阻塞，见下方优先级分组） |
 
 ## 结构清理（P1-3 类）
 

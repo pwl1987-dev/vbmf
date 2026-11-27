@@ -1,6 +1,6 @@
 # VBMF — IP 广播媒体信号处理平台
 
-> **V0.2 架构基线 LOCK FINAL · 22 轮 review · 12 Engines + 5 横向系统 + 6 横切能力 + 22 原则 + 57 决策**
+> **V0.2 架构基线 LOCK FINAL · 22 轮 review · 12 Engines + 5 横向系统 + 6 横切能力 + 57 决策**
 >
 > **V0.2 Runtime Semantics CLOSED · implementation_ambiguity: NONE · 不再开 V0.2.5**
 >
@@ -47,9 +47,9 @@
 | **Phase 0.5B Product Surface** | ✅ UX BASELINE LOCK FINAL | 56 surfaces（32 LOCK + 24 SPEC (语义契约锁定, Phase 4 实施)，SoT: SURFACE_REGISTRY.yaml）+ 5 P0 wireframes + 36 项语义收口（31 P0 + 5 P1）+ Design System + i18n |
 | **Phase 0.5C Info Arch** | 🟢 LOCK FINAL | 目录归并 + Object Vocabulary + Navigation 4 域 + Product Object Model + 0.6 语义修复 (派生自 MILESTONES.md SoT) |
 | **Phase 0.5D P0 Product Surfaces** | 🟢 LOCK FINAL | D1-D7 原型已建 + 0.5D.1 Semantic Closure (6 项) |
-| **Reference Implementation** | 📋 Phase 0.6 (前置: 0.5 LOCK FINAL) | Reference A1/A2/B + 8 Fault Injection (FI-01A/B/02~07) = Executable Acceptance Spec |
-| **Media Agent (Rust)** | 📋 Phase 1 | JSON-RPC + Session Manager + FfmpegCommandBuilder + 24h 稳定性 |
-| **Web Console** | 📋 Phase 4 | 4 域 × 32 LOCK + 24 SPEC (语义契约锁定, Phase 4 实施) = 56 surfaces (权威: `docs/phase-0.5/SURFACE_REGISTRY.yaml`) |
+| **Reference Implementation** | 🟡 规范已建模（G-DOC-READY PASS）· 真机执行待跑 | Reference A1/A2/B + 10 Fault Injection (FI-01A/B/02~09) = Executable Acceptance Spec；G-RUNTIME（真机执行）未开始 |
+| **Media Agent (Rust)** | ✅ 已实现 · **STABILITY VERIFIED** | Rust 运行时（84 文件 / 55,752 行）+ Session Manager + Preflight + Resource/Lease + Provider Registry + Event Projection；24h 资格阶梯 2h/8h/24h 全 PASS（绑定 exact commit/binary/SDK/kernel，任一项变更即失效） |
+| **Web Console** | 🟡 部分交付（**2 / 32 LOCK 表面**） | Fastify 同源控制面（11 端点）+ Vite/React 控制台 7 页；已实现 01-dashboard（hls.js 监看）+ 02-sources + i18n 层；4 域 × 32 LOCK + 24 SPEC = 56 surfaces 目标未达（权威: `docs/phase-0.5/SURFACE_REGISTRY.yaml` · 产品层 PRD: `docs/VBMF_PRODUCT_PRD.md`） |
 
 ### 🏗️ 12 Engines + 5 横向系统 + 6 横切能力
 
@@ -113,9 +113,9 @@ VBMF 是从 **V0.1 Web 视频编码器** 演进而来的，**V0.1 的所有基�
 | **Phase 0.5B** Product Surface + 0.5B.1 P0 Wireframes + 0.5B.2 Product UX Closure | ✅ **UX BASELINE LOCK FINAL** | 56 surfaces（32 LOCK + 24 SPEC (语义契约锁定, Phase 4 实施)，SoT: SURFACE_REGISTRY.yaml；0.5C 起归并为 4 域）+ 5 P0 wireframes + 36 项语义收口（31 P0 + 5 P1）+ Design System + i18n — [SURFACE_SPEC](docs/phase-0.5/SURFACE_SPEC.md) + [DESIGN_SYSTEM](docs/phase-0.5/DESIGN_SYSTEM.md) + [I18N_SPEC](docs/phase-0.5/I18N_SPEC.md) + [MILESTONES](docs/phase-0.5/MILESTONES.md) |
 | **Phase 0.5C** Info Arch Closure | 🟢 **LOCK FINAL** | 目录归并 + Object Vocabulary + Navigation 4 域 + Product Object Model + 0.6 语义修复 |
 | **Phase 0.5D** P0 Product Surfaces | ✅ 已完成 (LOCK FINAL) | M-17 Realtime Session / E-38 Hardware / E-37 Clock 升级 / P-20 Profile Center / P-28 Bundle / M-18 Job Detail / M-14 重画 |
-| **Phase 0.6** Reference + FI | 📋 (前置: Phase 0.5 LOCK FINAL) | Reference A1/A2/B + 8 Fault Injection (FI-01A/B/02~07) = Executable Acceptance Spec |
-| **Phase 1** Media Agent (Rust) | 📋 | JSON-RPC + Session Manager + FfmpegCommandBuilder + 24h 稳定性 |
-| **Phase 4** Web Console | 📋 | 4 域 × 32 LOCK + 24 SPEC (语义契约锁定, Phase 4 实施) = 56 surfaces + 4 链验证 + VBMF Web UI |
+| **Phase 0.6** Reference + FI | 🟡 规范已建模（G-DOC-READY PASS） | Reference A1/A2/B + 10 Fault Injection (FI-01A/B/02~09) = Executable Acceptance Spec；真机执行（G-RUNTIME）未开始 |
+| **Phase 1** Media Agent (Rust) | ✅ **STABILITY VERIFIED** | Rust 运行时全栈落地（Session / Resource / Preflight / Registry / Event / API Boundary）+ 24h 资格阶梯三档全 PASS |
+| **Phase 4** Web Console | 🟡 部分交付（**2 / 32 LOCK 表面**） | 4 域 × 32 LOCK + 24 SPEC (语义契约锁定, Phase 4 实施) = 56 surfaces 目标；当前已实现 01-dashboard + 02-sources + i18n，4 链尚未端到端走通 |
 
 **V0.1 → V0.2 为什么必须升级（架构级问题不能局部修）：**
 
@@ -154,6 +154,8 @@ VBMF 是从 **V0.1 Web 视频编码器** 演进而来的，**V0.1 的所有基�
 | BMD DeckLink | 3 张 (2× SDI legacy + 1× Mini Monitor 4K) | Runtime Discovery |
 | OS | Ubuntu 26.04 | Runtime Discovery |
 
+> ⚠️ **上表是 V0.2 §3.11 冻结时的历史快照，不是当前部署现状**（CPU/RAM/Disk/设备数与实际运行主机可能不同）—— 以 `current_host_snapshot` 实测为准。
+>
 > 任何硬件增配 / 替换 **不需要修改 V0.2 架构**。
 
 ### 🛠️ 开发
@@ -224,8 +226,8 @@ start docs/phase-0.5/product/M-11-media-library.html
 | Phase 0.5A Operator Semantics | ✅ Complete | 10 wireframes (bilingual) + 4 chains + 20 UI semantic fixes ([ERRATA](docs/phase-0.5/ERRATA.md)) |
 | Phase 0.5B Product Surface | ✅ UX Baseline Lock | 56 surfaces (32 LOCK + 24 SPEC (语义契约锁定, Phase 4 实施), SoT: SURFACE_REGISTRY.yaml) + 5 P0 wireframes + Design System + i18n ([SURFACE_SPEC](docs/phase-0.5/SURFACE_SPEC.md)) |
 | Phase 0.5C Info Arch Closure | ✅ LOCK FINAL | Directory consolidation + 4-domain navigation + object vocabulary + Product Object Model + 0.6 语义修复 (0.5F.18 P1-5 纠错 Draft→LOCK FINAL) |
-| Phase 0.6 Reference + FI | 📋 Next | A1/A2/B + 8 Fault Injection (FI-01A/B/02~07) = Executable Acceptance Spec |
-| Phase 1 Media Agent (Rust) | 📋 | JSON-RPC + FFmpeg Command Builder + 24h stability |
+| Phase 0.6 Reference + FI | 🟡 Spec modeled (G-DOC-READY PASS) | A1/A2/B + 10 Fault Injection (FI-01A/B/02~09) = Executable Acceptance Spec; real-hardware execution (G-RUNTIME) not started |
+| Phase 1 Media Agent (Rust) | ✅ **STABILITY VERIFIED** | Full Rust runtime (Session / Resource / Preflight / Registry / Event / API Boundary) + 24h qualification ladder all PASS |
 
 **V0.1 → V0.2 critical fixes (architectural, not patchable):**
 - 🔴 No failover (single point) → Switch Mode 3 + Hot-Standby 3
@@ -244,9 +246,9 @@ start docs/phase-0.5/product/M-11-media-library.html
 | Phase 0.5B (Product Surface) | ✅ **UX BASELINE LOCK FINAL** (56 surfaces (32 LOCK + 24 SPEC (语义契约锁定, Phase 4 实施), SoT: SURFACE_REGISTRY.yaml) + 5 P0 wireframes + Design System + i18n) |
 | Phase 0.5C (Info Arch) | 🟢 LOCK FINAL (directory consolidation + 4-domain navigation + object vocabulary) |
 | Phase 0.5D (P0 Product Surfaces) | 🟢 LOCK FINAL (6 new surfaces + M-14 redraw) |
-| Phase 0.6 (Reference + FI) | 📋 Next (after Phase 0.5 LOCK FINAL) |
-| Phase 1 (Media Agent Rust) | 📋 After 0.6 |
-| Phase 2-4 (Backend / Console) | 📋 |
+| Phase 0.6 (Reference + FI) | 🟡 Spec modeled (G-DOC-READY PASS) · G-RUNTIME pending |
+| Phase 1 (Media Agent Rust) | ✅ Implemented · STABILITY VERIFIED |
+| Phase 2-4 (Backend / Console) | 🟡 Console: 2 / 32 LOCK surfaces implemented |
 
 For full details, see [`ROADMAP.md`](ROADMAP.md).
 

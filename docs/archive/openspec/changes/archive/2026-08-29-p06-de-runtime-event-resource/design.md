@@ -7,7 +7,7 @@ role: technical-design
 spec: openspec
 canonical_spec: openspec
 links:
-  - "[p06-de-runtime-event-resource](p06-de-runtime-event-resource)"
+  - "[p06-de-runtime-event-resource](../2026-08-29-p06-de-runtime-event-resource/)"
 ---
 
 # Design: Phase 0.6 C2 — RuntimeEvent / Resource

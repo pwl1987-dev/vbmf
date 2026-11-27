@@ -8,7 +8,7 @@
 
 V0.2 已完成 22 轮 review，状态为 **LOCK FINAL**：
 
-- ✅ 12 Engines + 5 横向系统 + 6 横切能力 + 22 原则 + 57 决策
+- ✅ 12 Engines + 5 横向系统 + 6 横切能力 + 架构原则（V0.2 §1 声明 22 条 · **当前成文 7 条**） + 57 决策
 - ✅ V0.2 Runtime Semantics = CLOSED
 - ✅ implementation_ambiguity: NONE
 - ❌ **不再开 V0.2.x 架构 review**（V0.2.5 FORBIDDEN）
@@ -95,16 +95,16 @@ V0.2 已完成 22 轮 review，状态为 **LOCK FINAL**：
 | 🔥 高 | Phase 0.5 wireframe 润色 | 打开 `docs/phase-0.5/operator/*.html`（10 张）与 `docs/phase-0.5/product/*.html`（5 张）改进 |
 | 🔥 高 | Phase 0.6 Reference A1 | PACKET_SWITCH 基础能力，需实际部署验证 |
 | 🔥 高 | Phase 0.6 Reference A2 | SDI 主备走 FRAME/MASTER |
-| 🟡 中 | Phase 0.6 8 Fault Injection (FI-01A/B/02~07) | FI-01A SDI 冻结 / FI-01B Backup / FI-02 音频静音 / FI-03 FFmpeg 崩溃 / FI-04 Clock Drift / FI-05 HLS 切片失败 / FI-06 MASTER Join / FI-07 RECORDING |
+| 🟡 中 | Phase 0.6 10 Fault Injection (FI-01A/B/02~09) | FI-01A SDI 冻结 / FI-01B Backup / FI-02 音频静音 / FI-03 FFmpeg 崩溃 / FI-04 Clock Drift / FI-05 HLS 切片失败 / FI-06 MASTER Join / FI-07 RECORDING / FI-08 GStreamer ingest 崩溃 / FI-09 Media Agent 重启 |
 | 🟡 中 | Phase 0.6 7 Health Invariants tests | 转为 executable test cases |
 | 🟢 低 | 翻译（中 ↔ 英） | 文档 + wireframe label |
 | 🟢 低 | docs/assets/ 中的图 | 架构图 |
 
 ## 🧪 测试策略
 
-- **架构文档**：任何对 12 Engines / 5 横向系统 / 6 横切能力 / 22 原则 / 57 决策的修改必须走 V0.3 流程
+- **架构文档**：任何对 12 Engines / 5 横向系统 / 6 横切能力 / V0.2 §1 架构原则 / 57 决策的修改必须走 V0.3 流程（§1 声明 22 条，**当前成文 7 条**，补齐 15 条占位同样属架构级改动）
 - **Phase 0.5 wireframes**：视觉 review + click-through（operator 10 页互链 + product 5 页跨域链接）
-- **Phase 0.6 References**：24h 稳定性 + 全部 8 Fault Injection (FI-01A/B/02~07) 通过
+- **Phase 0.6 References**：24h 稳定性 + 全部 10 Fault Injection (FI-01A/B/02~09) 通过
 - **Phase 1 Media Agent**：24h SDI → HLS pipeline 稳定
 
 ## 📞 联系方式

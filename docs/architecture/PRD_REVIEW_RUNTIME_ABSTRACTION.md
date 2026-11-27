@@ -104,6 +104,7 @@
 
 ## 11. 门禁 / 边界测试 / Lint（#77–#80, #130–#134, #141）
 - #77 ARCH-PORTABILITY-01（MockProvider A/B 共享 same Domain/GraphIntent/Session/Supervisor/Health/Acceptance）🟡（**当前编译不过——main/resolver/signal/pipeline 直接依赖 decklink/gstreamer，P0 门禁缺口**）
+  > 📌 **评审留档，原文不改**；「当前编译不过」已被 2026-11-27 Linux CI 实跑推翻（run `46011711764` ⇒ `PROOF OK`）⇒ 现为 **PASS**（详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）。
 - #78 ARCH-BACKEND-01（MockBackend vs GStreamerBackend 共享 CanonicalPipelinePlan）🟡
 - #79 ARCH-RESOURCE-01（模拟 1/2 device、8 ports、limited GPU/encoder，证明 Resource 与 vendor 解耦）🟡（P0.5）
 - #80 ARCH-AUDIO-01（Embedded SDI/AES/MADI/Mock Matrix，Video Graph 不变）🟡（P1）

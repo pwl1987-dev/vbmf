@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 0.6 Runner — FI Matrix (FI-01A/B/02~07).
+"""Phase 0.6 Runner — FI Matrix (FI-01A/B/02~09).
 
 演进 (回应 GDOC-05): 不再 "结构连通即 PASS"。
 - 通过 harness_common.evaluate_pass_rule 对 expected 做结构化求值。

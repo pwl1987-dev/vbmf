@@ -89,7 +89,7 @@ phase-0.5/
 
 ## 下一步
 
-Phase 0.6：Reference A1/A2/B + 8 Fault Injection (FI-01A/B/02~07) + 7 Health Invariants = Executable Acceptance Specification。
+Phase 0.6：Reference A1/A2/B + 10 Fault Injection (FI-01A/B/02~09) + 7 Health Invariants = Executable Acceptance Specification。
 
 ## 补充 Spec 文档（0.5F 后变更登记）
 

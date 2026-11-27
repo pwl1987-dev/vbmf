@@ -7,7 +7,7 @@ role: technical-design
 spec: openspec
 canonical_spec: openspec
 links:
-  - "[p06-f-registry-mock-simulation](p06-f-registry-mock-simulation)"
+  - "[p06-f-registry-mock-simulation](../2026-08-29-p06-f-registry-mock-simulation/)"
 ---
 
 # Design: Phase 0.6 C3 — Registry / Mock / Simulation

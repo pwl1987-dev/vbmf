@@ -1,0 +1,31 @@
+id: FI-08-001
+title: FI-08 GStreamer ingest crash → pipeline restart (no source failover)
+gate: G-RUNTIME
+reference: FI
+fixture_id: F-FI-08-INGEST-CRASH
+env_prereq_id: ENV-LAB-01
+runner: runners/run_fi_matrix.py
+depends_on: [B-001]
+timeout: 180
+preconditions:
+  - "GStreamer ingest pipeline running on DeckLink SDI-A, Primary SDI SOURCE ACTIVE"
+  - "Channel CH01 exists, Program Master HEALTHY"
+actions:
+  - step: 1
+    do: "Inject FI-08: kill GStreamer ingest process (injection_point: GStreamer pipeline / SOURCE, device=DeckLink SDI-A)"
+expected:
+  pipeline_restarted: true
+  decklink_session_rebuilt: true
+  source_failover: false
+  output_failover: false
+  black_frame: false
+  detection_latency_ms_lte: 5000
+  recover_sustained_s: 30
+  channel_health_during_recovery: "DEGRADED"
+  channel_health_after: "HEALTHY"
+pass_rule: "pipeline_restarted == true AND decklink_session_rebuilt == true AND source_failover == false AND output_failover == false AND black_frame == false AND detection_latency_ms_lte <= 5000 AND recover_sustained_s >= 30 AND channel_health_during_recovery == 'DEGRADED' AND channel_health_after == 'HEALTHY'"
+evidence:
+  - "evidence/{id}_{run_ts}_fi_log.json"
+artifact_naming: "{id}_{run_ts}_{pass|fail}.json"
+retry_rule: {max: 1, backoff_s: 30}
+abort_rule: {consecutive_fail: 3}

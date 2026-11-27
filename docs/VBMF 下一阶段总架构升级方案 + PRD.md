@@ -1,6 +1,11 @@
 # VBMF 下一阶段总架构升级方案 + PRD
 # Vendor-Neutral / Backend-Neutral / Infrastructure-Decoupled Architecture
 
+> 📜 **状态：已执行 —— 条款已由 17 份冻结契约承接。本文不再是活的需求源。**
+> **产品层唯一入口改看：** [`VBMF_PRODUCT_PRD.md`](./VBMF_PRODUCT_PRD.md)（V1.0 DRAFT，2026-11-27）。
+> **处置**：原文保留作审计留痕，不删除、不改写条款。执行结果与当前差距见新 PRD §7；「接下来做什么」见新 PRD §8。
+> **已知债**：本文件**无版本头、无日期、无状态声明**（201 条扁平 H1），且**未引用**同期的另两份 PRD —— 详见新 PRD §0.3 与 §7.5。
+
 ---
 
 # 0. 任务等级

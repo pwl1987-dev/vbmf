@@ -1,6 +1,6 @@
 # AUDIO_ROUTING_CONTRACT（音频路由契约）
 
-> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.7/P1，第 9 替换轴）
+> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.7/P1，第 9 替换轴）（**状态订正 2026-11-27 · Acceptance Matrix 0.7 节**）：IMPLEMENTATION = `PARTIAL`（Audio 语义已落地，Audio Backend 替换轴（#63）仍 P1 未落地）；VERIFICATION = **`HARDWARE_VERIFIED`**（`AUDIO-SEMANTICS-RT-01` 真机 PASS，报告 `docs/superpowers/reports/2026-08-30-p07b-audio-semantics-verify.md`）——**仅覆盖 Audio 语义**（Role 词表 / Unknown 贯穿 / Route 零 pipeline 引用）；`ARCH-AUDIO-01`（Embedded SDI/AES/MADI/Mock Matrix）无门禁判定记录 ⇒ 未计入 ⇒ **不判 `ACCEPTED`**；GATE 以 `PHASE_0_6_ACCEPTANCE_MATRIX.md` 0.7 节为准。
 > 来源：Portability PRD #55, #63, #80, #146
 > 关联：`CANONICAL_MEDIA_MODEL.md`、`RUNTIME_SESSION_MODEL.md`
 

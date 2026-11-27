@@ -109,7 +109,7 @@
 4. Mock Provider/Backend trait，支持仿真矩阵（1/2/4/8 input、no signal/black/removed/backend failed/clock lost…）
 5. 消除 11 处 `device_number` 直接依赖，改用 Canonical `DeviceId`（见 `CANONICAL_IDENTITY.md`；`DeviceHandle` 仅是 Provider Identity）
 6. Preflight + Explainability（联合多能力，输出 Feasible/Rejected+Reason）
-7. `ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 编译门禁（当前**编译不过**）
+7. `ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 编译门禁（当前**编译不过**）（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 8. CI `check-architecture-boundaries` lint（禁 Domain import BMD/GStreamer、禁 GraphIntent 含 device-number、禁 Supervisor 引 vendor error、禁 UI 暴露 vendor primary id）
 
 **P1（Phase 0.7，新增 External Integration Plane）**

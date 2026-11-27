@@ -388,7 +388,7 @@ Supervisor  PASS
 Health      PASS
 Acceptance  PASS
 ```
-> ⚠️ **当前状态：编译不过**（main/resolver/signal/pipeline 直接依赖 decklink/gstreamer 模块）。这正是 P0 要消除的缺口，本条列为门禁目标。
+> ⚠️ **当前状态：编译不过**（main/resolver/signal/pipeline 直接依赖 decklink/gstreamer 模块）。这正是 P0 要消除的缺口，本条列为门禁目标。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 
 **Test B — 使用 Mock Provider，要求**
 ```
@@ -428,7 +428,7 @@ cargo build --features mock-only        # BMD feature absent + GStreamer feature
 > **架构冻结 ≠ 实现完成。**
 
 - **Architecture Contract = FROZEN**：本文档及配套契约关系已锁定，后续实现不得再「边写边发现抽象」。
-- **Implementation Gate = NOT PASSED**：`ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 当前**编译不过**，是 P0 硬缺口；过门禁前，P0 实现不算完成。
+- **Implementation Gate = NOT PASSED**：`ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 当前**编译不过**，是 P0 硬缺口；过门禁前，P0 实现不算完成。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 - 二者独立陈述，禁止把「Contract FROZEN」解读为「P0 已实现」。真实进度见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`。
 
 ## 11. 设备更换流程（Fail Closed）
@@ -486,5 +486,5 @@ Old Device → Removed → Binding Stale → Session Degraded
 
 *本文档为 **Phase 0.6 Architecture Contract FROZEN** 载体。
 - **Architecture Contract = FROZEN**（`CONTRACT_STATUS = FROZEN`）：所有实体（Device / Port / Capability / Resource / Session / Binding / Signal / MediaFormat / Clock / Timecode / RuntimeError / RuntimeEvent / AudioRouting）关系以此为准，后续实现不得再「边写边发现抽象」。
-- **Implementation Gate = NOT PASSED**：`ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 当前编译不过，是 P0 硬缺口；过门禁前 P0 实现不算完成（见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`）。
+- **Implementation Gate = NOT PASSED**：`ARCH-PORTABILITY-01` / `ARCH-BACKEND-01` 当前编译不过，是 P0 硬缺口；过门禁前 P0 实现不算完成（见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`）。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 - 即 **Architecture Freeze ≠ Implementation Freeze**：契约冻结不表示代码已实现。*

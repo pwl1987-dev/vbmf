@@ -306,6 +306,8 @@ Source
 
 ### 5.1 三层用户角色 (V0.2 §6 已有)
 
+> ⚠️ **角色口径冲突（2026-11-27 M0 标注 · 未擅改语义）**：本节用 Operator / Director / Engineer / **SRE**（无 Admin），与 LOCK 的 4 角色版（`OPERATOR_WORKFLOW.md:9-14`、`SURFACE_SPEC.md:148-155`，含 Admin 不含 SRE）不一致。**权威 = 4 角色版**；收敛裁决待 owner 拍板（`docs/VBMF_PRODUCT_PRD.md` §11 Q2）。
+
 | 角色 | 核心诉求 |
 |---|---|
 | **Operator** | 切播 / 监看 / 应急 |
