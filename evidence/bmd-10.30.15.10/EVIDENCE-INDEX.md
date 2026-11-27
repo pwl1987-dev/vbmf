@@ -74,6 +74,10 @@
 > 章节; 入库副本 = 审计便利层, **不称 GitHub CI**（盒上本地验证口径）;
 > 盒上原件为 P8 origin. `.json` 类新文件受根 `.gitignore` `evidence/**/*.json`
 > 规则约束（入库需 `-f`）; `*.log`/`*.md`/`*.txt` 不受约束.
+> **窄例外（2026-11-27）**：PR-STAB-01 v3 三档的 7 个判定 JSON
+> （`health`/`health0`/`runtime-before`/`stop-response`/`v3-identity`/`v3-postrun`/`v3-summary`）
+> 已按显式白名单放行入库（`.gitignore` 逐文件 `!` 例外 + `.gitattributes` `-text` 字节保真）——
+> 它们是判定与溯源锚点，且被各档 `md5s.txt` 覆盖，入库后 md5 逐位一致。
 
 ## A2-8-05 Normal-Use Preview v0.1 — 2026-09 R59 冒烟证据
 
@@ -140,9 +144,9 @@
 | `2026-11-25-pr-stab-01-reverify-16.5a1-20261125T094135/` | Historical | **决定性诊断：16.5a1 上 plateau 门禁 PASS（arm=reverify-16.5a1·原件 BMD-only）**: terminal_half_slope **0.123MB/h**、live 字节斜率 5.97→**0.12MB/h** ⇒ SDK 升级即为修复（报告 §6）。 |
 | `2026-11-25-pr-stab-01-mitg-malloctrim-20261125T001021/` | Superseded | **`malloc_trim(0)` 有界归还诊断（原件 BMD-only）**: 16.2 带泄漏平台上 RSS 1240→800MB（回收约 440MB free-list 保留）、HTTP p99 不劣化 ⇒ 保留层可治但**非泄漏本身**；该收益系 16.2 口径，**16.5 下须重测**（报告 §2.1 时效限定）。 |
 | `2026-11-25-pr-stab-01-v3-smoke-114543/` | Historical | **本轮阶梯开跑前 v3 harness smoke（120s／6-cycle·原件 BMD-only）**: 工具链链检通过，NOT QUALIFICATION。 |
-| `2026-11-25-pr-stab-01-v3-2h/` | **Acceptance** | **资格 rung 1 (2h) PASS（已入仓 23 文件；目录共 30 项，7 个 .json 被 .gitignore 排除）**: `V2_COMPAT PASS` + `V3_VERDICT PASS (fail=0 missing=0)`；plateau **0.122MB/h**、span 7345s、HTTP p99 2.104ms／3642 rows／non200=0；identity `8b68f7b` + `c569aca7…`、runtime 16.5a1、protected pid 5725 不变。第三方 verifier 已独立复算一致。 |
-| `2026-11-25-pr-stab-01-v3-8h/` | **Acceptance** | **资格 rung 2 (8h) PASS（已入仓 23 文件；目录共 30 项，7 个 .json 被 .gitignore 排除）**: `V3_VERDICT PASS (fail=0 missing=0)`；plateau **0.148MB/h**、span 29321s、HTTP p99 2.056ms／14499 rows／non200=0；sidecar 979 采样覆盖 29315s；三档身份钉扎与 rung 1 逐位一致。 |
-| `2026-11-25-pr-stab-01-v3-24h/` | **Acceptance** | **资格 rung（24h）PASS（已入仓 23 文件；目录共 30 项，7 个 .json 被 .gitignore 排除）**: `V2_COMPAT PASS` + `V3_VERDICT PASS (fail=0 missing=0)`；plateau **0.066MB/h**、span 87969s、HTTP p99 2.020ms／43469 rows／non200=0；sidecar 2933 采样覆盖 87945s；identity `8b68f7b4` + `c569aca7…`、runtime 16.5a1、protected pid 5725 不变；（收官·逐文件 sha256 零差异）。 |
+| `2026-11-25-pr-stab-01-v3-2h/` | **Acceptance** | **资格 rung 1 (2h) PASS（已入仓 30 文件；含 2026-11-27 窄例外放行的 7 个判定 JSON·字节保真·与 md5s.txt 自证 md5 逐位一致）**: `V2_COMPAT PASS` + `V3_VERDICT PASS (fail=0 missing=0)`；plateau **0.122MB/h**、span 7345s、HTTP p99 2.104ms／3642 rows／non200=0；identity `8b68f7b` + `c569aca7…`、runtime 16.5a1、protected pid 5725 不变。第三方 verifier 已独立复算一致。 |
+| `2026-11-25-pr-stab-01-v3-8h/` | **Acceptance** | **资格 rung 2 (8h) PASS（已入仓 30 文件；含 2026-11-27 窄例外放行的 7 个判定 JSON·字节保真·与 md5s.txt 自证 md5 逐位一致）**: `V3_VERDICT PASS (fail=0 missing=0)`；plateau **0.148MB/h**、span 29321s、HTTP p99 2.056ms／14499 rows／non200=0；sidecar 979 采样覆盖 29315s；三档身份钉扎与 rung 1 逐位一致。 |
+| `2026-11-25-pr-stab-01-v3-24h/` | **Acceptance** | **资格 rung（24h）PASS（已入仓 30 文件；含 2026-11-27 窄例外放行的 7 个判定 JSON·字节保真·与 md5s.txt 自证 md5 逐位一致）**: `V2_COMPAT PASS` + `V3_VERDICT PASS (fail=0 missing=0)`；plateau **0.066MB/h**、span 87969s、HTTP p99 2.020ms／43469 rows／non200=0；sidecar 2933 采样覆盖 87945s；identity `8b68f7b4` + `c569aca7…`、runtime 16.5a1、protected pid 5725 不变；（收官·逐文件 sha256 零差异）。 |
 　**文件集事前预登记（19:45 更正）**：现 **18 个**文件，差 8h 的 **12 个** teardown/收尾产物**逐个查实有产出者、零缺口**（driver 7 / wrapper 2 / collector 1 / 守夜器 1 / wrapper 收尾分析器 1）⇒ **预期收官后 30 个、与 2h/8h 同构**；若不是，属须查因的信号。
 
 | `2026-09-20-rce01-internal-control-journey/` | Acceptance | **RUNTIME-CONTROL-ENTRY-01 internal Runtime Control 真机命令旅程 @ `06bc01a`（CI `35543068464` 7/7·archive `0cdfa946…`·binary `172f46ac…`·修复版 installer `0.1.0-06bc01a`·manifest `git_commit_sha=06bc01af…`）**: service Ready + `/internal/v1/agent` JSON-RPC listening `127.0.0.1:50051`（media-agent 进程归属）；`command.dispatch start_session`（授权五元组）→ executed → 查询面 session `running`/resource `allocated` → **真实 ffmpeg listener LISTEN 127.0.0.1:19351**（service 进程命令旅程，非 gates 演示）→ replay 幂等；二次 start 被 preflight 拒（Allocated+LeaseConflict·classification retryable 诚实）；显式 `stop_session` → released/available/listener 释放 → 重启成功；Running 会话 `release_session` 诚实拒绝（防 pipeline 孤儿·permanent）；SIGTERM 带活会话 → drained count=1 → exit 0·`Result=success ExecMainStatus=0`；边界：device-2 PID 992634 存活·`/opt/vbmf-dev` 未触碰·零 listener/ffmpeg/staging 残留. 如实披露：session id wire 缝隙（`session-<hex>` vs UUID·消费方映射）·journey2/3 编排引号缺陷修正于 journey4（非产品代码）·A/V 内容验证不宣称（属 gates/信号面）. Report=`docs/superpowers/reports/2026-09-20-rce01-internal-control-journey.md`. |
