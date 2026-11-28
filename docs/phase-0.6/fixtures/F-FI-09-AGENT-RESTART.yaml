@@ -1,0 +1,13 @@
+id: F-FI-09-AGENT-RESTART
+title: FI-09 Media Agent controlled restart injection
+reference: FI
+injection_point:
+  node: "Media Agent"
+  domain: "MEDIA RUNTIME"
+params:
+  signal: "SIGTERM"
+  supervisor: "restart"
+  restart_timeout_s: 30
+expected_recovery: "Agent restart → GStreamer pipeline + DeckLink session + runtime graph + downstream state fully recover"
+channel_health_after: "HEALTHY"
+must_not: ["active_source_id_lost", "second_process_grabs_decklink_lease"]

@@ -7,6 +7,11 @@
 **状态：** Proposed Freeze Candidate  
 **核心原则：** 在不破坏 V0.2 LOCK FINAL / Phase 0.5 LOCK FINAL 的前提下，补齐实现层长期可替换性与 Runtime ownership 缺口。
 
+> 📜 **状态：已执行 —— 165 条经 `PRD_REVIEW_RUNTIME_ABSTRACTION.md`（2026-08-28）逐条裁决，落 Phase 0.6，实现状态见新 PRD §7.1–§7.2。**
+> **产品层唯一入口改看：** [`VBMF_PRODUCT_PRD.md`](./VBMF_PRODUCT_PRD.md)（V1.0 DRAFT，2026-11-27）。
+> **处置**：原文保留作审计留痕。未决项见新 PRD §11。
+> ⚠️ **勿直接引用本文的「评审基线事实」**（无 Provider/Backend trait、11 处 device_number 等）—— 那是 2026-08-28 评审时点的快照，已被后续实现推翻；当前实测基线见新 PRD §7.1。
+
 ---
 
 # 1. 文档目的

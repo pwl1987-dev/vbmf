@@ -28,7 +28,7 @@
 - **P0.5**：Resource Model（Capability/Capacity/Availability/Allocation/Reservation，对齐 V0.2 §3.11 Resource Vector，Resource≠Device）。
 - **P1**：Clock / Timecode / Audio Backend-Routing / Capability Negotiation / Encoder / Gateway（只定 Contract）。
 - **P2**：DB / Queue / ObjectStore / Auth / Deployment（连契约暂缓）。
-- **门禁**：ARCH-PORTABILITY-01（删 BMD Provider 仍能编译——当前编译不过）、ARCH-BACKEND-01。
+- **门禁**：ARCH-PORTABILITY-01（删 BMD Provider 仍能编译——当前编译不过）、ARCH-BACKEND-01。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 - **子阶段**：0.6A~0.6G（P0/P0.5）→ 0.7（P1：Audio/Clock/Timecode/Capability/Encoder/Gateway + External Integration）→ 0.8（P2 Multi-site/Federation）。
 
 ## 5. 影响范围
@@ -66,6 +66,6 @@
   - TopologyEvidence + 时间维度；Reservation 生命周期状态机；Resource 层级 mutation。
   - Backend 不得自行获取未注册资源；Provider Discovery/Control 概念分离。
   - 四事件分层（RuntimeEvent/ExternalEvent/AuditEvent/SecurityEvent）。
-- **正式宣布**：`PHASE-0.6-RUNTIME-ABSTRACTION-CONTRACT-FROZEN`（Architecture Contract FROZEN）。但 **Implementation Gate = NOT PASSED**（ARCH-PORTABILITY-01/BACKEND-01 编译不过），须先过门禁才进 0.6 实施 → Normalize。
+- **正式宣布**：`PHASE-0.6-RUNTIME-ABSTRACTION-CONTRACT-FROZEN`（Architecture Contract FROZEN）。但 **Implementation Gate = NOT PASSED**（ARCH-PORTABILITY-01/BACKEND-01 编译不过），须先过门禁才进 0.6 实施 → Normalize。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 - **明确**：Architecture Freeze ≠ Implementation Freeze；文档存在 ≠ 代码实现（见 GAP MATRIX）。
 - 暂停继续新增 PRD/契约（避免「每发现一个问题就新增一份 PRD」循环）；进入纯实现阶段。

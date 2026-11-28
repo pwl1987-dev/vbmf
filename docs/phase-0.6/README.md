@@ -1,8 +1,8 @@
 # Phase 0.6 — Executable Acceptance Specification 可执行验收规范
 
 > **状态**：📋 计划中 (前置: Phase 0.5 = UX BASELINE LOCK FINAL)
-> **范围**：Reference A1/A2/B + 8 Fault Injection / Failure-Domain Tests (FI-01A/B/02~07) + 7 Health Invariants tests
-> **目的**：在 V0.2 架构基线上做**真实部署 / 真实故障注入**，把 22 轮 review 锁定的 7 Health Invariants / 8 FI (FI-01A/B/02~07) / 3 Switch Mode 全部转成可执行测试。
+> **范围**：Reference A1/A2/B + 10 Fault Injection / Failure-Domain Tests (FI-01A/B/02~09) + 7 Health Invariants tests
+> **目的**：在 V0.2 架构基线上做**真实部署 / 真实故障注入**，把 22 轮 review 锁定的 7 Health Invariants / 10 FI (FI-01A/B/02~09) / 3 Switch Mode 全部转成可执行测试。
 
 ## 0. V0.2 语义对齐 (Phase 0.5C 锁定)
 
@@ -231,7 +231,7 @@ Audio Mixer / Loudness / Delay ─────┘
 - [ ] Variant Scope Composition 仅作用于目标 Variant（e.g. 平台水印只出现在 Variant A、区域版权贴片只出现在 Variant B）
 - [ ] Acceptance: 共享 Logo 在所有 Variant 一致；平台水印仅目标 Variant 出现（**禁止**把 Composition 全部提前到 Program Master）
 
-### 8 Fault Injection 故障注入 (FI-01A/B/02~07, 0.5F.19 补 FI-06 MASTER / FI-07 RECORDING; 0.6 启动前 Doc Patch 统一 5→7→8 / 8 FI canonicalization)
+### 10 Fault Injection 故障注入 (FI-01A/B/02~09, 0.5F.19 补 FI-06 MASTER / FI-07 RECORDING; 0.6 启动前 Doc Patch 统一 5→7→8; 2026-11-27 M0 对账补 FI-08 INGEST-CRASH / FI-09 AGENT-RESTART ⇒ canonical 10 / 10 FI canonicalization)
 
 | # | 故障 | Failure Domain | 期望恢复 | 期望 Channel Health |
 |---|---|---|---|---|
@@ -598,13 +598,13 @@ Auto Rollback → Original Effective Restored (Runtime Revision N 不变)
 - **Reference A1**：1 周（PACKET 基础，无硬件依赖）
 - **Reference A2**：1 周（需 BMD 硬件）
 - **Reference B**：2 周（复杂链路）
-- **8 Fault Injection / Failure-Domain Tests (FI-01A/B/02~07)**：1 周
+- **10 Fault Injection / Failure-Domain Tests (FI-01A/B/02~09)**：1 周
 - **24h 稳定性**：1 周
 
 ## 验收产出
 
 - 24h 稳定运行的 Reference A1/A2/B
-- 8 Fault Injection / Failure-Domain Tests (FI-01A/B/02~07) 全部通过
+- 10 Fault Injection / Failure-Domain Tests (FI-01A/B/02~09) 全部通过
 - 7 Health Invariants test 全部通过
 - 报告：`docs/phase-0.6/ACCEPTANCE_REPORT.md`
 - 视频 / 截图证据：`docs/phase-0.6/evidence/`

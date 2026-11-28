@@ -10,6 +10,7 @@
 
 | 文档 | 地位 | 状态 |
 |---|---|---|
+| **`docs/VBMF_PRODUCT_PRD.md`** | **产品层唯一入口**（定位 / 角色 / 4 条链 / 56 表面范围 / 现状基线 / 路线图 / 待拍板） | 🟡 DRAFT 2026-11-27 |
 | `.project/current-work.yaml` | 当前任务快照 | 动态 |
 | `.project/STATE.md`（§4–§5） | 完整任务队列 + §3 历史 ledger | 动态（全文 2089 行，勿通读） |
 | `AGENTS.md` | 智能体宪章 | 冻结 |
@@ -78,9 +79,10 @@
 
 | 文档 | 行数 | 定位 | 采纳状态 |
 |---|---|---|---|
-| `docs/VBMF 下一阶段总架构升级方案 + PRD.md` | 4770 | 总纲：Vendor/Backend/Infrastructure Decoupled | 目标性文档，条款由契约承接 |
-| `docs/VBMF Runtime Abstraction & Portability PRD.md` | 3900 | Runtime 内层需求（P0/P0.5） | 165 条评审采纳，落 Phase 0.6 |
-| `docs/VBMF External Integration & Device Interoperability API PRD.md` | 4197 | External 外层需求（P1/P2） | **裁剪采纳**：#1–#137 可作 P1 规划，#138–#170 外置 |
+| **`docs/VBMF_PRODUCT_PRD.md`** | 876 | **产品层顶层 PRD**：定位 / 角色 / 4 条操作链 / 56 表面范围 / 交付形态 / 现状基线 / 路线图 / 待拍板 | 🟡 **DRAFT 2026-11-27** · **需求源头唯一入口** |
+| `docs/VBMF 下一阶段总架构升级方案 + PRD.md` | 4770 | 总纲：Vendor/Backend/Infrastructure Decoupled | ✅ **已执行** → 条款由契约承接；文件头已加 banner 指向新 PRD |
+| `docs/VBMF Runtime Abstraction & Portability PRD.md` | 3900 | Runtime 内层需求（P0/P0.5） | ✅ **已执行** → 165 条评审采纳，落 Phase 0.6；文件头已加 banner |
+| `docs/VBMF External Integration & Device Interoperability API PRD.md` | 4197 | External 外层需求（P1/P2） | ⚠️ **裁剪采纳** → #1–#137 可作 P1 规划，#138–#170 外置；文件头已加 banner |
 
 ## L4 · 阶段与历史
 

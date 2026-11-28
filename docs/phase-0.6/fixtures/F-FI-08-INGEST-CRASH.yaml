@@ -1,0 +1,13 @@
+id: F-FI-08-INGEST-CRASH
+title: FI-08 GStreamer ingest process crash injection
+reference: FI
+injection_point:
+  node: "GStreamer pipeline"
+  domain: "SOURCE/PIPELINE"
+params:
+  device: "DeckLink SDI-A"
+  signal: "SIGKILL"
+  detection_timeout_s: 5
+expected_recovery: "Agent detects pipeline loss → restart pipeline → rebuild DeckLink session → downstream Normalize/Encode/Output recover"
+channel_health_after: "HEALTHY"
+must_not: ["SOURCE_FAILOVER", "black_frame", "av_sync_discontinuity"]

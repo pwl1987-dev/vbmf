@@ -4,6 +4,11 @@ name: v3 harness tooling
 # Tooling lane only: analyzer/collector unit tests + shell syntax + shellcheck
 # on the new v3 runner. It never runs the BMD qualification ladder; hardware
 # acceptance stays on the manual hardware-acceptance line.
+#
+# 2026-11-27: 本 job（context 名 = `v3-harness-tooling`）已被 owner 加入 main 的
+# required status checks ⇒ job 内任一步失败即挡合并。其中 doc 车道只有
+# `python3 scripts/check_docs.py verification`（零依赖窄门禁）；全量文档门禁在
+# doc-consistency.yml（非 required）。别把需要 pip 装依赖的步骤放进本 job。
 
 on:
   push:
@@ -31,6 +36,16 @@ jobs:
       # 直接喂合成 id, 故**不依赖 PyYAML**（runner 大概率没有）也不会空转。
       - name: doc gate script regression tests
         run: python3 scripts/test_check_docs.py
+      # VERIFICATION_STATUS canonical 守卫（2026-11-27 M0 接入；2026-11-27 晚起本 job
+      # 已进 main 的 required status checks ⇒ **本步骤失败 = 挡合并**，不再只是「红 CI」）。
+      # 窄模式 `verification`：只校验 gap matrix（SoT）与产品层 PRD 镜像表的
+      # VERIFICATION_STATUS 取值 ∈ DOCUMENT_STATUS_MODEL.md §2.3 canonical 集合
+      # （canonical 词表由该文件派生、不写死在脚本里；镜像表未入库时允许缺席）。
+      # **不依赖 PyYAML**（yaml 仅在 phase06 检查里局部导入）⇒ 门禁不会因 pip 抖动误红。
+      # 全量门禁（链接 + 锚点 + 数字 + Phase 0.6 FI 集合 + G-DOC-READY）见 doc-consistency.yml，
+      # 那里是 **非 required** lane（红了只提示，不挡合并；可由 owner 升格）。
+      - name: doc verification status gate (canonical, required context)
+        run: python3 scripts/check_docs.py verification
       # Desktop Video 运行时版本降级守卫的行为级测试: 纯 fixture + 桩 cargo,
       # 不需要 BMD 真机 (CI 无 DeckLink runtime), 但守住「守卫必须 fail-closed」。
       - name: decklink runtime guard tests

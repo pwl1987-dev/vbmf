@@ -18,7 +18,7 @@ cargo build --no-default-features --features simulation
 cargo build --features mock-only        # BMD feature absent + GStreamer feature absent
 # 要求：Domain / Runtime Contract / Simulation 仍能编译
 ```
-- `ARCH-PORTABILITY-01`：删除/禁用 BMD Provider，要求 Domain/Graph/Session/Supervisor/Health/Acceptance 编译通过（当前：编译不过，是 P0 缺口）。
+- `ARCH-PORTABILITY-01`：删除/禁用 BMD Provider，要求 Domain/Graph/Session/Supervisor/Health/Acceptance 编译通过（当前：编译不过，是 P0 缺口）。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 - `ARCH-BACKEND-01`：MockBackend vs GStreamerBackend 必须共享 CanonicalPipelinePlan / CanonicalMediaFormat / CanonicalRuntimeEvent。
 
 ## 失败闭合

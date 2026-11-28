@@ -89,5 +89,69 @@ class GateTerminationTests(unittest.TestCase):
         self.assertIsInstance(out[0], list)
 
 
+class VerificationStatusGuardTests(unittest.TestCase):
+    """VERIFICATION_STATUS canonical 守卫（2026-11-27 接入）。
+
+    canonical 词表**不写死在脚本里**, 由 DOCUMENT_STATUS_MODEL.md §2.3 派生 ——
+    故测试要同时守住三件事: 派生结果不被改坏 / 非 canonical 值必须被拒 / 列缺失必须 fail-closed。
+    全部纯文本解析, 不依赖 PyYAML ⇒ CI 上不会空转。
+    """
+
+    def test_canonical_values_derived_from_status_model(self):
+        self.assertEqual(
+            check_docs.load_verification_status_values(),
+            {"NOT_VERIFIED", "LAB_VERIFIED", "HARDWARE_VERIFIED", "ACCEPTED"},
+        )
+
+    def test_repo_tables_pass_guard(self):
+        """当前仓库（SoT 表 + 产品层镜像表）必须零问题。"""
+        self.assertEqual(check_docs.check_verification_status(), [])
+
+    def test_rejects_non_canonical_value(self):
+        canonical = check_docs.load_verification_status_values()
+        errs = check_docs.validate_verification_status(
+            canonical, ["ACCEPTED", "VERIFIED"], "synthetic"
+        )
+        self.assertEqual(len(errs), 1)
+        self.assertIn("VERIFIED", errs[0])
+
+    def test_accepts_all_canonical_values(self):
+        canonical = check_docs.load_verification_status_values()
+        errs = check_docs.validate_verification_status(
+            canonical,
+            ["NOT_VERIFIED", "LAB_VERIFIED", "HARDWARE_VERIFIED", "ACCEPTED"],
+            "synthetic",
+        )
+        self.assertEqual(errs, [])
+
+    def test_missing_column_is_fail_closed(self):
+        """列被改名/删掉 => 提取返回 None（调用方据此 fail-closed）, 不能静默放行。"""
+        text = "| 能力项 | Implementation |\n|---|---|---|\n| X | IMPLEMENTED |\n"
+        self.assertIsNone(check_docs.extract_verification_status_column(text))
+
+    def test_extracts_column_values(self):
+        text = (
+            "| 能力项 | Implementation | VERIFICATION_STATUS |\n"
+            "|---|---|---|\n"
+            "| A | `IMPLEMENTED` | `ACCEPTED` |\n"
+            "| B | `PARTIAL` | `LAB_VERIFIED` |\n"
+        )
+        self.assertEqual(
+            check_docs.extract_verification_status_column(text),
+            ["ACCEPTED", "LAB_VERIFIED"],
+        )
+
+    def test_fail_closed_when_canonical_cannot_be_derived(self):
+        """SoT 读不到 => 必须报 fail-closed, 而不是「无问题」。"""
+        original = check_docs.VERIFICATION_STATUS_SOT
+        check_docs.VERIFICATION_STATUS_SOT = Path("/nonexistent/DOCUMENT_STATUS_MODEL.md")
+        try:
+            errs = check_docs.check_verification_status()
+        finally:
+            check_docs.VERIFICATION_STATUS_SOT = original
+        self.assertTrue(errs)
+        self.assertTrue(any("fail-closed" in e for e in errs))
+
+
 if __name__ == "__main__":
     unittest.main()

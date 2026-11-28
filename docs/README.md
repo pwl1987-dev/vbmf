@@ -79,7 +79,7 @@ v0_2_runtime_semantics:
 
 | V0.2 章节 | 内容 | 关联 |
 |---|---|---|
-| §1 22 原则 | 核心原则 | [`architecture/ARCHITECTURE_V0.2.md`](architecture/ARCHITECTURE_V0.2.md) |
+| §1 架构原则 | 声明 22 条，**当前成文 7 条**（1.13 与 1.17–1.22）；其余 15 条为占位「同 V0.2 第 2 轮不变」，仓内无正文副本 —— 缺口说明见 [`VBMF_PRODUCT_PRD.md`](VBMF_PRODUCT_PRD.md) §5.5 | [`architecture/ARCHITECTURE_V0.2.md`](architecture/ARCHITECTURE_V0.2.md) |
 | §2 12 Engines | Engines 总览 | 同上 |
 | §3.x 核心算法 | Switch / Hot-Standby / Program Master / Health Tree | 同上 |
 | §4 决策 | 57 决策 | 同上 |

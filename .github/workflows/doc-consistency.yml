@@ -1,0 +1,40 @@
+name: doc consistency
+
+# 文档一致性全量门禁（2026-11-27 M0 接入）：链接可达 + 锚点有效 + 数字口径一致 +
+# Phase 0.6 FI 集合一致（含 G-DOC-READY 三子门禁）+ VERIFICATION_STATUS canonical 口径。
+#
+# 注意：本 workflow 不是 required context ⇒ 失败会红 CI 但不挡合并。
+# 原因：全量门禁的 phase06 检查族局部导入 yaml ⇒ 装不上 PyYAML 时 check_docs.py
+# 按设计以 [HARNESS] exit 1；把它放进 required 会让 pip 抖动直接卡住所有 PR。
+# 真正挡合并的那一档是 v3-harness-tooling job 内的零依赖窄门禁
+# （python3 scripts/check_docs.py verification）—— 见该 workflow 的注释。
+#
+# 升格路径：owner 把 context 名 doc-consistency 加入 main 的 required status checks
+# 即可（本 lane 在 M0 落地后全绿，无需改本文件）。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: doc-consistency-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  doc-consistency:
+    name: doc-consistency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: doc consistency gate (links + anchors + numbers + Phase 0.6 FI set)
+        run: |
+          (python3 -m pip install --quiet pyyaml \
+            || python3 -m pip install --quiet --break-system-packages pyyaml \
+            || pip install --quiet pyyaml) || true
+          # 缺 PyYAML 时 check_docs.py 会以 [HARNESS] 缺依赖问题 exit 1 ⇒ 门禁未跑全即红（诚实失败）
+          python3 scripts/check_docs.py

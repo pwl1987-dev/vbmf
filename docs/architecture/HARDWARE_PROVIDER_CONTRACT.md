@@ -49,5 +49,5 @@ Resource Control Adapter  — open_input / open_output / close / observe（运�
 
 ## 3. 门禁判据（ARCH-PORTABILITY-01 Test A）
 - 删除/禁用 BMD Provider 后，要求 **Domain / Graph / Session / Supervisor / Health / Acceptance 仍能编译**。
-- **当前状态：编译不过**（main/resolver/signal/pipeline 直接依赖 decklink/gstreamer 模块）→ 这是 P0 必须消除的缺口，列为门禁目标。
+- **当前状态：编译不过**（main/resolver/signal/pipeline 直接依赖 decklink/gstreamer 模块）→ 这是 P0 必须消除的缺口，列为门禁目标。（**状态订正 2026-11-27**：Linux CI 实跑 remove-adapter 编译证明 = `PROOF OK` ⇒ 本项 **PASS**，证据 CI run `46011711764` / job `architecture-portability` / runner `vbmf-ci-02`（self-hosted Linux）；详见 `PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md`「Gate 裁定」块）
 - CI：`cargo build --no-default-features --features simulation` 与 `--features mock-only` 必须通过。

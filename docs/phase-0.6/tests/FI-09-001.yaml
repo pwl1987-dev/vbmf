@@ -1,0 +1,30 @@
+id: FI-09-001
+title: FI-09 Media Agent controlled restart → full runtime recover (DeckLink lease retained)
+gate: G-RUNTIME
+reference: FI
+fixture_id: F-FI-09-AGENT-RESTART
+env_prereq_id: ENV-LAB-01
+runner: runners/run_fi_matrix.py
+depends_on: [B-001]
+timeout: 180
+preconditions:
+  - "Media Agent running as sole Runtime Owner and holding the DeckLink Exclusive Lease (F4/F11)"
+  - "Channel CH01 exists, active_source_id recorded, Primary SDI SOURCE ACTIVE"
+actions:
+  - step: 1
+    do: "Inject FI-09: kill -TERM Media Agent process (injection_point: Media Agent / MEDIA RUNTIME); supervisor relaunches it"
+expected:
+  agent_restarted: true
+  pipeline_rebuilt: true
+  decklink_lease_retained: true
+  active_source_id_retained: true
+  restart_latency_s_lte: 30
+  recover_sustained_s: 30
+  channel_health_during_recovery: "DEGRADED"
+  channel_health_after: "HEALTHY"
+pass_rule: "agent_restarted == true AND pipeline_rebuilt == true AND decklink_lease_retained == true AND active_source_id_retained == true AND restart_latency_s_lte <= 30 AND recover_sustained_s >= 30 AND channel_health_during_recovery == 'DEGRADED' AND channel_health_after == 'HEALTHY'"
+evidence:
+  - "evidence/{id}_{run_ts}_fi_log.json"
+artifact_naming: "{id}_{run_ts}_{pass|fail}.json"
+retry_rule: {max: 1, backoff_s: 30}
+abort_rule: {consecutive_fail: 3}

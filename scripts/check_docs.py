@@ -7,17 +7,20 @@
   3. Markdown / HTML 的锚点 (#section) 目标存在（防死锚点, 如 #final-state）
   4. 关键数字口径（表面计数 / 收口计数 / 引擎与横向系统名单）
   5. Phase 0.6 FI 集合一致性（canonical FI ID 集合 == scope/schedule/outputs 引用数, 防 5→7→8 类语义漂移）
+  6. VERIFICATION_STATUS 列 canonical 口径（取值必须来自 DOCUMENT_STATUS_MODEL.md §2.3）
 
 用法:
   python scripts/check_docs.py          # 全部检查
   python scripts/check_docs.py links    # 只查链接 + 锚点
   python scripts/check_docs.py numbers  # 只查数字口径
   python scripts/check_docs.py phase06  # 只查 Phase 0.6 FI 集合一致性
+  python scripts/check_docs.py verification  # 只查 VERIFICATION_STATUS canonical 口径
 
 退出码: 0 = 通过, 1 = 有错误
 """
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -468,6 +471,143 @@ def check_phase06_harness():
     return errs
 
 
+# ---------------------------------------------------------------------------
+# VERIFICATION_STATUS canonical 守卫（2026-11-27 接入）
+# ---------------------------------------------------------------------------
+# canonical 词表的唯一 SoT = DOCUMENT_STATUS_MODEL.md §2.3 —— **不写死在脚本里**,
+# 与「表面数必须由 SURFACE_REGISTRY.yaml 派生」同一原则（见 check_nav_domain_counts）。
+# 守卫对象 = gap matrix 的 VERIFICATION_STATUS 列（SoT）+ 产品层 PRD 镜像表（存在才校验）。
+VERIFICATION_STATUS_SOT = ROOT / "docs" / "architecture" / "DOCUMENT_STATUS_MODEL.md"
+# (路径, 是否必须存在): SoT 缺失 => fail-closed; 镜像表是新文件, 干净 checkout 里可能不存在
+# => 允许缺席（否则 CI 在未入库时误红）。
+VERIFICATION_STATUS_TABLES = (
+    (ROOT / "docs" / "architecture" / "PHASE_0_6_IMPLEMENTATION_GAP_MATRIX.md", True),
+    (ROOT / "docs" / "VBMF_PRODUCT_PRD.md", False),
+)
+
+
+def _rel(p):
+    """相对仓库根的显示路径；路径不在仓库内时原样返回（不抛 ValueError）。"""
+    try:
+        return p.relative_to(ROOT)
+    except ValueError:
+        return p
+
+
+def load_verification_status_values():
+    """从 DOCUMENT_STATUS_MODEL.md §2.3 派生 VERIFICATION_STATUS 的 canonical 取值集合。
+
+    返回 None = 派生失败（守卫须 fail-closed，不得静默放行）。
+    """
+    if not VERIFICATION_STATUS_SOT.exists():
+        return None
+    text = VERIFICATION_STATUS_SOT.read_text(encoding="utf-8")
+    m = re.search(r"###\s*2\.3\s*VERIFICATION_STATUS.*?\n(.*?)(?=\n###\s|\Z)", text, re.S)
+    if not m:
+        return None
+    vals = set()
+    for line in m.group(1).splitlines():
+        s = line.strip()
+        if not s.startswith("|"):
+            continue
+        first = s.split("|")[1].strip()
+        if re.fullmatch(r"`[A-Z_]+`", first):
+            vals.add(first.strip("`"))
+    return vals or None
+
+
+def _md_row_cells(line):
+    """把一行 markdown 表格拆成单元格（去首尾竖线与两端空白）。"""
+    s = line.strip()
+    if s.startswith("|"):
+        s = s[1:]
+    if s.endswith("|"):
+        s = s[:-1]
+    return [c.strip() for c in s.split("|")]
+
+
+def extract_verification_status_column(text):
+    """取出「首列为 能力项」的表里 VERIFICATION_STATUS 列的全部数据行取值。
+
+    返回 list[str]（已剥离 `**` 与反引号）；找不到该表或该列 => None（fail-closed）。
+    """
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = _md_row_cells(line)
+        if not cells or cells[0] != "能力项":
+            continue
+        idx = next((j for j, c in enumerate(cells) if c.startswith("VERIFICATION_STATUS")), None)
+        if idx is None:
+            continue
+        vals = []
+        for l in lines[i + 1:]:
+            if not l.lstrip().startswith("|"):
+                break
+            cs = _md_row_cells(l)
+            if cs and all(re.fullmatch(r":?-+:?", c) for c in cs):
+                continue  # 分隔行
+            if len(cs) <= idx:
+                continue
+            vals.append(cs[idx].strip().strip("`").replace("**", "").strip())
+        return vals
+    return None
+
+
+def validate_verification_status(canonical, values, label):
+    """纯校验: 取值必须全在 canonical 集合内。返回错误串列表（可单测）。"""
+    if not canonical:
+        return [f"[VERIFY-STATUS] {label}: canonical 取值集合为空（fail-closed）"]
+    bad = sorted({v for v in values if v not in canonical})
+    if bad:
+        return [
+            f"[VERIFY-STATUS] {label}: VERIFICATION_STATUS 列含非 canonical 值 {bad} "
+            f"（允许：{sorted(canonical)}）"
+        ]
+    return []
+
+
+def check_verification_status():
+    """守卫 VERIFICATION_STATUS 列: 只允许 DOCUMENT_STATUS_MODEL.md §2.3 的 canonical 取值。
+
+    - canonical 词表由 SoT 派生, 不写死在脚本里;
+    - 派生失败 / SoT 表或其列缺失 => fail-closed（诚实失败）, 不静默跳过;
+    - 产品层镜像表存在时一并校验, 且两表取值分布必须一致（防镜像漂移）。
+    """
+    errs = []
+    canonical = load_verification_status_values()
+    if canonical is None:
+        return [
+            f"[VERIFY-STATUS] 无法从 {_rel(VERIFICATION_STATUS_SOT)} §2.3 "
+            f"派生 canonical 取值（fail-closed）"
+        ]
+    dists = {}
+    for path, required in VERIFICATION_STATUS_TABLES:
+        rel = _rel(path)
+        if not path.exists():
+            if required:
+                errs.append(f"[VERIFY-STATUS] {rel} 不存在（守卫目标缺失，fail-closed）")
+            continue
+        vals = extract_verification_status_column(path.read_text(encoding="utf-8"))
+        if vals is None:
+            errs.append(f"[VERIFY-STATUS] {rel} 未找到「能力项」表的 VERIFICATION_STATUS 列（fail-closed）")
+            continue
+        if not vals:
+            errs.append(f"[VERIFY-STATUS] {rel} 的 VERIFICATION_STATUS 列没有数据行")
+            continue
+        errs += validate_verification_status(canonical, vals, str(rel))
+        dists[rel] = Counter(vals)
+    if len(dists) == len(VERIFICATION_STATUS_TABLES):
+        a, b = list(dists)
+        if dists[a] != dists[b]:
+            errs.append(
+                f"[VERIFY-STATUS] SoT 表与产品层镜像表的 VERIFICATION_STATUS 分布不一致："
+                f"{dict(dists[a])} vs {dict(dists[b])}"
+            )
+    return errs
+
+
 def main():
     # Windows GBK 控制台下确保 utf-8 输出, 避免 ∅/中文编码崩溃
     try:
@@ -486,6 +626,8 @@ def main():
     if mode in ("all", "phase06"):
         errors += check_phase06_fi_ids()
         errors += check_phase06_harness()
+    if mode in ("all", "verification"):
+        errors += check_verification_status()
 
     if mode in ("all", "phase06") and not errors:
         # 仅当 phase06 无错时给出 G-DOC-READY 三子门禁全绿结论
@@ -498,7 +640,10 @@ def main():
         for e in errors:
             print("  " + e)
         sys.exit(1)
-    print("PASS — 链接可达 + 锚点有效 + 数字口径一致")
+    if mode == "verification":
+        print("PASS — VERIFICATION_STATUS 取值全部 canonical")
+    else:
+        print("PASS — 链接可达 + 锚点有效 + 数字口径一致 + VERIFICATION_STATUS canonical")
 
 
 if __name__ == "__main__":

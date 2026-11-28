@@ -1,6 +1,6 @@
 # EVENT_CONTRACT（事件契约）
 
-> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.7/P1）
+> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.7/P1）（**状态订正 2026-11-27 · gap matrix `RuntimeEvent / RuntimeError` 行**）：IMPLEMENTATION = `PARTIAL`；VERIFICATION = **`HARDWARE_VERIFIED`**（`MEDIA-RT-01` 真机 PASS，报告 `docs/superpowers/reports/2026-08-29-p06-hi-backend-resource-gates-verify.md`）——**仅覆盖 RuntimeEvent 部分**；External Event / Projection 属 0.7C-1~8·0.7D，gap matrix 无对应行、无门禁证据 ⇒ 未计入；GATE 以 `PHASE_0_6_ACCEPTANCE_MATRIX.md` 为准。
 > 来源：API PRD #11–#34, #78–#82, #102–#105, #131, #155；问题点 (B)(C)
 > 关联：`EXTERNAL_API_CONTRACT.md`、`IMPLEMENTATION_ADDENDUM.md`（RuntimeEvent）
 

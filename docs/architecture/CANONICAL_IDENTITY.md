@@ -8,7 +8,7 @@
 > —— 它们是宿主证据/诊断输出, 非 Domain schema。
 
 
-> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.6, P0）
+> 状态：CONTRACT = FROZEN；IMPLEMENTATION = NOT_STARTED；VERIFICATION = NOT_VERIFIED；GATE = PENDING（Phase 0.6, P0）（**状态订正 2026-11-27 · gap matrix `Canonical Identity` 行**）：IMPLEMENTATION = `PARTIAL`；VERIFICATION = **`HARDWARE_VERIFIED`**（依据 `HW-IDENT-02` 真机 PASS，证据 `evidence/bmd-10.30.15.10/hw-ident-02/`）；GATE 以 `PHASE_0_6_ACCEPTANCE_MATRIX.md` 为准。**边界**：本节 `ARCH-PORTABILITY-01` 的 **BMD→AJA 真实换型**判据**仍未验收**（2026-11-27 的 PASS 只证明「删 concrete adapter 后 Domain/Contracts/Runtime 仍可编译」）。
 > 来源：API PRD 评审 §3.5-P（#93/#94/#147 与 Portability #8/#11 应共享"稳定身份"定义）；用户 Final Hardening 审查（2026-08-28）第 ①/② 优先项。
 > 关联：`CANONICAL_MEDIA_MODEL.md`、`HARDWARE_PROVIDER_CONTRACT.md`、`RUNTIME_SESSION_MODEL.md`、`DEVICE_INTEGRATION_CONTRACT.md`
 
